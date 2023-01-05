@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-#
-# Copyright (C) 2020 Prayush Kumar
+# Copyright (C) 2018 Prayush Kumar
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
 # Free Software Foundation; either version 3 of the License, or (at your
@@ -14,26 +12,28 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+"""
+gwnr is a toolkit for gravitational-wave physics
+"""
+from __future__ import absolute_import
 
-import os
-
+from . import (package_name_here)
 try:
+    from . import stats
+except:
     pass
-except ImportError:
-    pass
-
-############################################################################
+from gwnr.utils import *
 
 
-def play_movie(m):
-    import subprocess
-    subprocess.call(['mpv', os.path.join(base_dir, m)])
+def get_version_information():
+    import os
+    version_file = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                                "template/.version")
+    try:
+        with open(version_file, "r") as f:
+            return f.readline().rstrip()
+    except EnvironmentError:
+        print("No version information file '.version' found")
 
 
-def embed_video(fname, mimetype):
-    from IPython.display import HTML
-    from codecs import encode
-    video_encoded = encode(open(fname, "rb").read(), "base64")
-    video_tag = '<video controls alt="test" src="data:video/{0};base64,{1}">'.format(
-        mimetype, video_encoded)
-    return HTML(data=video_tag)
+__version__ = get_version_information()
