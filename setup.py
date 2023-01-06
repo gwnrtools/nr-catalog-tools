@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Copyright (c) 2018, Prayush Kumar
-# See LICENSE file for details: <https://github.com/gwnrtools/template/blob/master/LICENSE>
+# See LICENSE file for details: <https://github.com/gwnrtools/nr-catalog-tools/blob/master/LICENSE>
 
 from __future__ import print_function
 
@@ -9,7 +9,7 @@ from os import environ, path
 import subprocess
 from pathlib import Path
 
-NAME = 'package-name-here'
+NAME = 'nrcatalogtools'
 VERSION = 'v0.0.0'
 
 
@@ -94,9 +94,9 @@ if __name__ == "__main__":
         'A collection of tools for academic research in gravitational-wave astronomy & astrophysics',
         long_description=get_long_description(),
         license="GPL",
-        url='https://github.com/gwnrtools/template',
-        author='Who Am I?',
-        author_email='What Is My Email Address?',
+        url='https://github.com/gwnrtools/nr-catalog-tools',
+        author='Prayush Kumar',
+        author_email='prayush.kumar@gmail.com',
         packages=find_packages(),
         package_dir={NAME: NAME},
         package_data={
