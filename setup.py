@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright (c) 2018, Prayush Kumar
+# Copyright (c) 2023, Prayush Kumar
 # See LICENSE file for details: <https://github.com/gwnrtools/nr-catalog-tools/blob/master/LICENSE>
 
 from __future__ import print_function
@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 
 NAME = 'nrcatalogtools'
-VERSION = 'v0.0.0'
+VERSION = 'v0.0.1'
 
 
 def write_version_file(version):
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         name=NAME,
         version=VERSION,
         description=
-        'A collection of tools for academic research in gravitational-wave astronomy & astrophysics',
+        'A collection of tools to interface wtih Numerical Relativity waveform catalogs',
         long_description=get_long_description(),
         license="GPL",
         url='https://github.com/gwnrtools/nr-catalog-tools',
