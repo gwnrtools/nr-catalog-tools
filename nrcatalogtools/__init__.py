@@ -18,7 +18,7 @@ catalogs generated via Numerical Relativity simulations
 """
 from __future__ import absolute_import
 
-from . import (lal, maya, sxs, utils, waveform)
+from . import (lal, maya, rit, sxs, utils, waveform)
 
 
 def get_version_information():
