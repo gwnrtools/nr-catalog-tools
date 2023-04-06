@@ -12,66 +12,119 @@
 # You should have received a copy of the GNU General Public License along
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-import glob
+
 import os
+import glob
+import functools
 import pandas as pd
-import pathlib
 import requests
-# import sxs
+from sxs import Catalog
+
+from . import utils
 
 
-def url_exists(link):
-    requests.packages.urllib3.disable_warnings()
-    for n in range(100):
-        try:
-            response = requests.head(link, verify=False)
-            if response.status_code == requests.codes.ok:
-                return True
+class RITCatalog(Catalog):
+    def __init__(self,
+                 catalog=None,
+                 helper=None,
+                 verbosity=1,
+                 **kwargs) -> None:
+        if catalog is not None:
+            super().__init__(catalog)
+        else:
+            type(self).load(verbosity=verbosity, **kwargs)
+        self._helper = helper
+        self._verbosity = verbosity
+        self._dict["catalog_file_description"] = "scraped from website"
+        self._dict["modified"] = {}
+        self._dict["records"] = {}
+
+    @classmethod
+    @functools.lru_cache()
+    def load(cls, download=None, num_sims_to_crawl=2000, verbosity=1):
+        helper = RITCatalogHelper(use_cache=True, verbosity=verbosity)
+        catalog_df = helper.read_metadata_df_from_disk()
+        if len(catalog_df) == 0:
+            catalog_df = helper.refresh_metadata_df_on_disk(
+                num_sims_to_crawl=num_sims_to_crawl)
+        if len(catalog_df) == 0:
+            if download:
+                catalog_df = helper.fetch_metadata_for_catalog(
+                    num_sims_to_crawl=num_sims_to_crawl)
             else:
-                return False
-        except:
-            continue
+                raise ValueError(
+                    "Catalog not found in {}. Please set `download=True`".
+                    format(helper.metadata_dir))
+        # Get the catalog from helper object
+        catalog = {}
+        simulations = {}
+        for idx, row in catalog_df.iterrows():
+            name = row['simulation_name']
+            metadata_dict = row.to_dict()
+            simulations[name] = metadata_dict
+        catalog["simulations"] = simulations
+        return cls(catalog=catalog, helper=helper, verbosity=verbosity)
+
+    @property
+    @functools.lru_cache()
+    def simulations_dataframe(self):
+        return self._helper.metadata
+
+    @property
+    @functools.lru_cache()
+    def files(self):
+        """Map of all file names to the corresponding file info"""
+        file_infos = {}
+        for _, row in self.simulations_dataframe.iterrows():
+            waveform_data_location = row['waveform_data_location']
+            path_str = os.path.basename(waveform_data_location)
+            if os.path.exists(waveform_data_location):
+                file_size = os.path.getsize(waveform_data_location)
+            else:
+                file_size = 0
+            file_info = {
+                "checksum": None,
+                "filename": os.path.basename(waveform_data_location),
+                "filesize": file_size,
+                "download": row['waveform_data_link']
+            }
+            file_infos[path_str] = file_info
+
+        import collections
+        unique_files = collections.defaultdict(list)
+        for k, v in file_infos.items():
+            unique_files[f"{v['checksum']}{v['filesize']}"].append(k)
+
+        original_paths = {k: min(v) for k, v in unique_files.items()}
+
+        for v in file_infos.values():
+            v["truepath"] = original_paths[f"{v['checksum']}{v['filesize']}"]
+
+        return file_infos
 
 
-class RITCatalog():
-    def __init__(
-            self,
-            catalog_name='RIT',
-            catalog_url='https://ccrgpages.rit.edu/~RITCatalog/',
-            metadata_file_fmts=[
-                'RIT:BBH:{:04d}-n{:3d}-id{:d}_Metadata.txt',
-                'RIT:eBBH:{:04d}-n{:3d}-ecc_Metadata.txt',
-            ],
-            waveform_file_fmt='ExtrapStrain_RIT-BBH-{:04d}-n{:3d}.h5',
-            waveform_file_fmts=[
-                'ExtrapStrain_RIT-BBH-{:04d}-n{:3d}.h5',
-                'ExtrapStrain_RIT-eBBH-{:04d}-n{:3d}.h5',
-            ],
-            possible_resolutions=[100, 120, 88, 118, 130, 140, 144, 160, 200],
-            max_id_val=6,
-            cache_dir='~/.nr_data/',
-            use_cache=True,
-            verbosity=0):
+class RITCatalogHelper(object):
+    def __init__(self, catalog=None, use_cache=True, verbosity=0) -> None:
         self.verbosity = verbosity
-        self.catalog_url = catalog_url
+        self.catalog_url = utils.rit_catalog_info["url"]
         self.use_cache = use_cache
-        self.cache_dir = pathlib.Path(
-            os.path.abspath(os.path.expanduser(cache_dir)))
+        self.cache_dir = utils.rit_catalog_info["cache_dir"]
 
         self.num_of_sims = 0
 
-        self.metadata_url = self.catalog_url + '/Metadata/'
-        self.metadata_file_fmts = metadata_file_fmts
         self.metadata = pd.DataFrame.from_dict({})
-        self.metadata_dir = self.cache_dir / catalog_name / "metadata"
+        self.metadata_url = utils.rit_catalog_info["url"]["metadata_url"]
+        self.metadata_file_fmts = utils.rit_catalog_info["metadata_file_fmts"]
+        self.metadata_dir = utils.rit_catalog_info["metadata_dir"]
 
         self.waveform_data = {}
-        self.waveform_data_url = self.catalog_url + '/Data/'
-        self.waveform_file_fmt = waveform_file_fmt
-        self.waveform_data_dir = self.cache_dir / catalog_name / "waveform_data"
+        self.waveform_data_url = utils.rit_catalog_info["data_url"]
+        self.waveform_file_fmts = utils.rit_catalog_info["waveform_file_fmts"]
+        self.data_dir = utils.rit_catalog_info["data_dir"]
+        self.waveform_data_dir = utils.rit_catalog_info["data_dir"]
 
-        self.possible_res = possible_resolutions
-        self.max_id_val = max_id_val
+        self.possible_res = utils.rit_catalog_info["possible_resolutions"]
+        self.max_id_val = utils.rit_catalog_info["max_id_val"]
 
         internal_dirs = [
             self.cache_dir, self.metadata_dir, self.waveform_data_dir
@@ -79,7 +132,36 @@ class RITCatalog():
         for d in internal_dirs:
             d.mkdir(parents=True, exist_ok=True)
 
+    def sim_info_from_metadata_filename(self, file_name):
+        '''
+        Input:
+        ------
+        file_name: name (not path) of metadata file as hosted on the web
+        
+        Output:
+        -------
+        - simulation number
+        - resolution as indicated with an integer
+        - ID value (only for non-eccentric simulations)
+        '''
+        sim_number = int(file_name.split('-')[0][-4:])
+        res_number = int(file_name.split('-')[1][1:])
+        try:
+            id_val = int(file_name.split('-')[2].split('_')[0][2:])
+        except:
+            id_val = -1
+        return (sim_number, res_number, id_val)
+
     def simname_from_metadata_filename(self, filename):
+        '''
+        Input:
+        ------
+        - filename: name (not path) of metadata file as hosted on the web
+        
+        Output:
+        -------
+        - Simulation Name Tag (Class uses this tag for internal indexing)
+        '''
         return filename.split('_Meta')[0]
 
     def metadata_filename_from_simname(self, sim_name):
@@ -169,11 +251,6 @@ class RITCatalog():
             self.metadata_file_fmts[1].split('-')[0].format(idx)
         ]
 
-    def sim_info_from_metadata_filename(self, file_name):
-        return (int(file_name.split('-')[0][-4:]),
-                int(file_name.split('-')[1][1:]),
-                int(file_name.split('-')[2].split('_')[0][2:]))
-
     def get_metadata_from_link(self, link):
         requests.packages.urllib3.disable_warnings()
         for n in range(100):
@@ -227,7 +304,7 @@ class RITCatalog():
                         mf)
 
             if len(metadata_dict) == 0:
-                if url_exists(file_path_web):
+                if utils.url_exists(file_path_web):
                     if self.verbosity > 2:
                         print("...found {}".format(file_path_web))
                     metadata_txt, metadata_dict = self.parse_metadata_fom_link(
@@ -312,11 +389,11 @@ class RITCatalog():
         sims = pd.DataFrame({})
 
         if self.use_cache:
-            metadata_df_fpath = self.metadata_dir / "metadata.csv"
+            metadata_df_fpath = self.metadata_dir / "metadata.json"
             if os.path.exists(metadata_df_fpath
                               ) and os.path.getsize(metadata_df_fpath) > 0:
                 print("Opening file {}".format(metadata_df_fpath))
-                self.metadata = pd.read_csv(metadata_df_fpath, index_col=[0])
+                self.metadata = pd.read_json(metadata_df_fpath, index_col=[0])
                 if len(self.metadata) >= (num_sims_to_crawl - 1):
                     # return self.metadata
                     return self.metadata.iloc[:num_sims_to_crawl - 1]
@@ -395,9 +472,9 @@ class RITCatalog():
         return self.metadata
 
     def write_metadata_df_to_disk(self):
-        metadata_df_fpath = self.metadata_dir / "metadata.csv"
+        metadata_df_fpath = self.metadata_dir / "metadata.json"
         with open(metadata_df_fpath, "w+") as f:
-            self.metadata.to_csv(f)
+            self.metadata.to_json(f)
 
     def refresh_metadata_df_on_disk(self, num_sims_to_crawl=2000):
         sims = []
@@ -407,16 +484,18 @@ class RITCatalog():
                 sims = sim_data
             else:
                 sims = pd.concat([sims, sim_data])
-        metadata_df_fpath = self.metadata_dir / "metadata.csv"
+        metadata_df_fpath = self.metadata_dir / "metadata.json"
         with open(metadata_df_fpath, "w") as f:
-            sims.to_csv(f)
+            sims.to_json(f)
         return sims
 
     def read_metadata_df_from_disk(self):
-        metadata_df_fpath = self.metadata_dir / "metadata.csv"
+        metadata_df_fpath = self.metadata_dir / "metadata.json"
         if os.path.exists(
                 metadata_df_fpath) and os.path.getsize(metadata_df_fpath) > 0:
-            self.metadata = pd.read_csv(metadata_df_fpath, index_col=[0])
+            self.metadata = pd.read_json(metadata_df_fpath, index_col=[0])
+        else:
+            self.metadata = pd.DataFrame([])
         return self.metadata
 
     def download_waveform_data(self, sim_name, use_cache=None):
@@ -444,7 +523,7 @@ class RITCatalog():
         else:
             if self.verbosity > 2:
                 print("...writing to cache: {}".format(str(local_file_path)))
-            if url_exists(file_path_web):
+            if utils.url_exists(file_path_web):
                 if self.verbosity > 2:
                     print("...downloading {}".format(file_path_web))
                 # wget.download(str(file_path_web), str(local_file_path))
@@ -485,7 +564,7 @@ class RITCatalog():
             x = os.popen('/bin/ls {}/*.txt | wc -l'.format(
                 str(self.metadata_dir)))
             num_metadata_txt_files = int(x.read().strip())
-            x = os.popen('/bin/cat {}/metadata.csv | wc -l'.format(
+            x = os.popen('/bin/cat {}/metadata.json | wc -l'.format(
                 str(self.metadata_dir)))
             num_metadata_df = int(x.read().strip())
         except:
