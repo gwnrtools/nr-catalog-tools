@@ -16,6 +16,7 @@
 import os
 import glob
 import functools
+from tqdm import tqdm
 import pandas as pd
 import requests
 from sxs import Catalog
@@ -41,13 +42,38 @@ class RITCatalog(Catalog):
 
     @classmethod
     @functools.lru_cache()
-    def load(cls, download=None, num_sims_to_crawl=2000, verbosity=1):
+    def load(cls,
+             download=None,
+             num_sims_to_crawl=2000,
+             acceptable_scraping_fraction=0.7,
+             verbosity=1):
         helper = RITCatalogHelper(use_cache=True, verbosity=verbosity)
+        if verbosity > 2:
+            print("..Going to read catalog file from cache.")
         catalog_df = helper.read_metadata_df_from_disk()
         if len(catalog_df) == 0:
+            if verbosity > 2:
+                print(
+                    "..Catalog file not found on disk. Going to refresh from cache."
+                )
             catalog_df = helper.refresh_metadata_df_on_disk(
                 num_sims_to_crawl=num_sims_to_crawl)
-        if len(catalog_df) == 0:
+        elif len(
+                catalog_df) < acceptable_scraping_fraction * num_sims_to_crawl:
+            if verbosity > 2:
+                print(
+                    """..Catalog file on disk is likely incomplete with only {} sims.
+                    ...Going to refresh from cache.
+                    """.format(len(catalog_df)))
+            catalog_df = helper.refresh_metadata_df_on_disk(
+                num_sims_to_crawl=num_sims_to_crawl)
+
+        if len(catalog_df) < acceptable_scraping_fraction * num_sims_to_crawl:
+            if verbosity > 2:
+                print("""..Refreshing catalog file from cache did not work.
+...Falling back to downloading metadata for the full 
+...catalog. This will take some time.
+                    """)
             if download:
                 catalog_df = helper.fetch_metadata_for_catalog(
                     num_sims_to_crawl=num_sims_to_crawl)
@@ -362,7 +388,7 @@ class RITCatalogHelper(object):
         return sim
 
     def fetch_metadata_for_catalog(self,
-                                   num_sims_to_crawl=100,
+                                   num_sims_to_crawl=2000,
                                    possible_res=[],
                                    max_id_in_name=-1):
         '''
@@ -377,19 +403,20 @@ class RITCatalogHelper(object):
         sims = pd.DataFrame({})
 
         if self.use_cache:
-            metadata_df_fpath = self.metadata_dir / "metadata.json"
+            metadata_df_fpath = self.metadata_dir / "metadata.csv"
             if os.path.exists(metadata_df_fpath
                               ) and os.path.getsize(metadata_df_fpath) > 0:
                 print("Opening file {}".format(metadata_df_fpath))
-                self.metadata = pd.read_json(metadata_df_fpath, index_col=[0])
+                self.metadata = pd.read_csv(metadata_df_fpath)
                 if len(self.metadata) >= (num_sims_to_crawl - 1):
                     # return self.metadata
                     return self.metadata.iloc[:num_sims_to_crawl - 1]
                 else:
                     sims = self.metadata
-        print(len(sims))
+        if self.verbosity > 2:
+            print("Found metadata for {} sims".format(len(sims)))
 
-        for idx in range(1, 1 + num_sims_to_crawl):
+        for idx in tqdm(range(1, 1 + num_sims_to_crawl)):
             found = False
             possible_sim_tags = self.simtags(idx)
 
@@ -460,28 +487,34 @@ class RITCatalogHelper(object):
         return self.metadata
 
     def write_metadata_df_to_disk(self):
-        metadata_df_fpath = self.metadata_dir / "metadata.json"
+        metadata_df_fpath = self.metadata_dir / "metadata.csv"
         with open(metadata_df_fpath, "w+") as f:
-            self.metadata.to_json(f)
+            try:
+                self.metadata.to_csv(f)
+            except:
+                self.metadata.reset_index(drop=True, inplace=True)
+                self.metadata.to_csv(f)
 
     def refresh_metadata_df_on_disk(self, num_sims_to_crawl=2000):
         sims = []
-        for idx in range(1, 1 + num_sims_to_crawl):
+        for idx in tqdm(range(1, 1 + num_sims_to_crawl)):
             sim_data = self.metadata_from_cache(idx)
             if len(sims) == 0:
                 sims = sim_data
             else:
                 sims = pd.concat([sims, sim_data])
-        metadata_df_fpath = self.metadata_dir / "metadata.json"
+        sims.reset_index(drop=True, inplace=True)
+        metadata_df_fpath = self.metadata_dir / "metadata.csv"
         with open(metadata_df_fpath, "w") as f:
-            sims.to_json(f)
-        return sims
+            sims.to_csv(f)
+        self.metadata = sims  # set this member
+        return self.metadata
 
     def read_metadata_df_from_disk(self):
-        metadata_df_fpath = self.metadata_dir / "metadata.json"
+        metadata_df_fpath = self.metadata_dir / "metadata.csv"
         if os.path.exists(
                 metadata_df_fpath) and os.path.getsize(metadata_df_fpath) > 0:
-            self.metadata = pd.read_json(metadata_df_fpath, index_col=[0])
+            self.metadata = pd.read_csv(metadata_df_fpath)
         else:
             self.metadata = pd.DataFrame([])
         return self.metadata
@@ -552,7 +585,7 @@ class RITCatalogHelper(object):
             x = os.popen('/bin/ls {}/*.txt | wc -l'.format(
                 str(self.metadata_dir)))
             num_metadata_txt_files = int(x.read().strip())
-            x = os.popen('/bin/cat {}/metadata.json | wc -l'.format(
+            x = os.popen('/bin/cat {}/metadata.csv | wc -l'.format(
                 str(self.metadata_dir)))
             num_metadata_df = int(x.read().strip())
         except:
@@ -565,7 +598,7 @@ class RITCatalogHelper(object):
             metadata = self.read_metadata_df_from_disk()
         sims = {}
 
-        for idx, sim_name in enumerate(metadata['simulation_name']):
+        for idx, sim_name in tqdm(enumerate(metadata['simulation_name'])):
             if idx + 1 > num_sims_to_crawl:
                 break
             file_name = self.waveform_filename_from_simname(sim_name)
