@@ -113,7 +113,7 @@ class RITCatalogHelper(object):
         self.num_of_sims = 0
 
         self.metadata = pd.DataFrame.from_dict({})
-        self.metadata_url = utils.rit_catalog_info["url"]["metadata_url"]
+        self.metadata_url = utils.rit_catalog_info["metadata_url"]
         self.metadata_file_fmts = utils.rit_catalog_info["metadata_file_fmts"]
         self.metadata_dir = utils.rit_catalog_info["metadata_dir"]
 
@@ -251,15 +251,20 @@ class RITCatalogHelper(object):
             self.metadata_file_fmts[1].split('-')[0].format(idx)
         ]
 
-    def get_metadata_from_link(self, link):
-        requests.packages.urllib3.disable_warnings()
-        for n in range(100):
-            try:
-                response = requests.get(link, verify=False)
-                break
-            except:
-                continue
-        return response.content.decode().split('\n')
+    def get_metadata_from_link(self, link, save_to=None):
+        if save_to is not None:
+            utils.download_file(link, save_to, progress=True)
+            return self.parse_metadata_from_file(save_to)
+        else:
+            requests.packages.urllib3.disable_warnings()
+            for n in range(100):
+                try:
+                    response = requests.get(link, verify=False)
+                    break
+                except:
+                    continue
+            return self.parse_metadata_txt(
+                response.content.decode().split('\n'))
 
     def parse_metadata_txt(self, raw):
         next = [s for s in raw if len(s) > 0 and s[0].isalpha()]
@@ -271,10 +276,6 @@ class RITCatalogHelper(object):
             except:
                 opts[kv[0].strip()] = str(kv[1].strip())
         return next, opts
-
-    def parse_metadata_fom_link(self, link):
-        raw = self.get_metadata_from_link(link)
-        return self.parse_metadata_txt(raw)
 
     def parse_metadata_from_file(self, file_path):
         with open(file_path, "r") as f:
@@ -288,7 +289,6 @@ class RITCatalogHelper(object):
             self.metadata_file_fmts[1].format(idx, res)
         ]
         metadata_txt, metadata_dict = "", {}
-        sim = pd.DataFrame(metadata_dict)
 
         for file_name in possible_file_names:
             if self.verbosity > 2:
@@ -307,39 +307,28 @@ class RITCatalogHelper(object):
                 if utils.url_exists(file_path_web):
                     if self.verbosity > 2:
                         print("...found {}".format(file_path_web))
-                    metadata_txt, metadata_dict = self.parse_metadata_fom_link(
-                        file_path_web)
+                    metadata_txt, metadata_dict = self.get_metadata_from_link(
+                        file_path_web, save_to=mf)
                 else:
                     if self.verbosity > 3:
                         print("...tried and failed to find {}".format(
                             file_path_web))
 
             if len(metadata_dict) > 0:
+                # Convert to DataFrame and break loop
+                metadata_dict['simulation_name'] = [
+                    self.simname_from_metadata_filename(file_name)
+                ]
+                metadata_dict['metadata_link'] = [file_path_web]
+                metadata_dict['metadata_location'] = [mf]
+                metadata_dict['waveform_data_location'] = [
+                    str(self.waveform_data_dir /
+                        self.waveform_filename_from_simname(
+                            metadata_dict['simulation_name'][0]))
+                ]
                 break
 
-        if len(metadata_dict) > 0:
-            # Write to cache dir
-            if self.use_cache and (not os.path.exists(mf)
-                                   or os.path.getsize(mf) == 0):
-                if self.verbosity > 1:
-                    print("...writing to {}".format(mf))
-                with open(mf, "w") as fout:
-                    for line in metadata_txt:
-                        fout.write(line + '\n')
-
-            # Convert to DataFrame and write to disk
-            metadata_dict['simulation_name'] = [
-                self.simname_from_metadata_filename(file_name)
-            ]
-            metadata_dict['metadata_link'] = [file_path_web]
-            metadata_dict['metadata_location'] = [mf]
-            metadata_dict['waveform_data_location'] = [
-                str(self.waveform_data_dir /
-                    self.waveform_filename_from_simname(
-                        metadata_dict['simulation_name'][0]))
-            ]
-            sim = pd.DataFrame.from_dict(metadata_dict)
-
+        sim = pd.DataFrame.from_dict(metadata_dict)
         return sim
 
     def fetch_metadata_from_cache(self, idx):
