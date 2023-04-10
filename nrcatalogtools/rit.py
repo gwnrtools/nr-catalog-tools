@@ -251,21 +251,6 @@ class RITCatalogHelper(object):
             self.metadata_file_fmts[1].split('-')[0].format(idx)
         ]
 
-    def get_metadata_from_link(self, link, save_to=None):
-        if save_to is not None:
-            utils.download_file(link, save_to, progress=True)
-            return self.parse_metadata_from_file(save_to)
-        else:
-            requests.packages.urllib3.disable_warnings()
-            for n in range(100):
-                try:
-                    response = requests.get(link, verify=False)
-                    break
-                except:
-                    continue
-            return self.parse_metadata_txt(
-                response.content.decode().split('\n'))
-
     def parse_metadata_txt(self, raw):
         next = [s for s in raw if len(s) > 0 and s[0].isalpha()]
         opts = {}
@@ -277,10 +262,56 @@ class RITCatalogHelper(object):
                 opts[kv[0].strip()] = str(kv[1].strip())
         return next, opts
 
-    def parse_metadata_from_file(self, file_path):
+    def metadata_from_link(self, link, save_to=None):
+        if save_to is not None:
+            utils.download_file(link, save_to, progress=True)
+            return self.metadata_from_file(save_to)
+        else:
+            requests.packages.urllib3.disable_warnings()
+            for n in range(100):
+                try:
+                    response = requests.get(link, verify=False)
+                    break
+                except:
+                    continue
+            return self.parse_metadata_txt(
+                response.content.decode().split('\n'))
+
+    def metadata_from_file(self, file_path):
         with open(file_path, "r") as f:
             lines = f.readlines()
         return self.parse_metadata_txt(lines)
+
+    def metadata_from_cache(self, idx):
+        possible_sim_tags = self.simtags(idx)
+        for sim_tag in possible_sim_tags:
+            mf = self.metadata_dir / sim_tag
+            poss_files = glob.glob(str(mf) + "*")
+            if len(poss_files) == 0:
+                if self.verbosity > 4:
+                    print(
+                        "...found no files matching {}".format(str(mf) + "*"))
+                continue
+            file_path = poss_files[0]  # glob gives full paths
+            file_name = os.path.basename(file_path)
+            file_path_web = self.metadata_url + '/' + file_name
+            wf_file_name = self.waveform_filename_from_cache(idx)
+            wf_file_path_web = self.waveform_data_url + '/' + wf_file_name
+            _, metadata_dict = self.metadata_from_file(file_path)
+            if len(metadata_dict) > 0:
+                metadata_dict['simulation_name'] = [
+                    self.simname_from_metadata_filename(file_name)
+                ]
+                metadata_dict['metadata_link'] = [file_path_web]
+                metadata_dict['metadata_location'] = [file_path]
+                metadata_dict['waveform_data_link'] = [wf_file_path_web]
+                metadata_dict['waveform_data_location'] = [
+                    str(self.waveform_data_dir /
+                        self.waveform_filename_from_simname(
+                            metadata_dict['simulation_name'][0]))
+                ]
+                return pd.DataFrame.from_dict(metadata_dict)
+        return pd.DataFrame({})
 
     def fetch_metadata(self, idx, res, id_val=-1):
         import pandas as pd
@@ -300,14 +331,13 @@ class RITCatalogHelper(object):
                 if os.path.exists(mf) and os.path.getsize(mf) > 0:
                     if self.verbosity > 2:
                         print("...reading from cache: {}".format(str(mf)))
-                    metadata_txt, metadata_dict = self.parse_metadata_from_file(
-                        mf)
+                    metadata_txt, metadata_dict = self.metadata_from_file(mf)
 
             if len(metadata_dict) == 0:
                 if utils.url_exists(file_path_web):
                     if self.verbosity > 2:
                         print("...found {}".format(file_path_web))
-                    metadata_txt, metadata_dict = self.get_metadata_from_link(
+                    metadata_txt, metadata_dict = self.metadata_from_link(
                         file_path_web, save_to=mf)
                 else:
                     if self.verbosity > 3:
@@ -330,37 +360,6 @@ class RITCatalogHelper(object):
 
         sim = pd.DataFrame.from_dict(metadata_dict)
         return sim
-
-    def fetch_metadata_from_cache(self, idx):
-        possible_sim_tags = self.simtags(idx)
-        for sim_tag in possible_sim_tags:
-            mf = self.metadata_dir / sim_tag
-            poss_files = glob.glob(str(mf) + "*")
-            if len(poss_files) == 0:
-                if self.verbosity > 4:
-                    print(
-                        "...found no files matching {}".format(str(mf) + "*"))
-                continue
-            file_path = poss_files[0]  # glob gives full paths
-            file_name = os.path.basename(file_path)
-            file_path_web = self.metadata_url + '/' + file_name
-            wf_file_name = self.waveform_filename_from_cache(idx)
-            wf_file_path_web = self.waveform_data_url + '/' + wf_file_name
-            _, metadata_dict = self.parse_metadata_from_file(file_path)
-            if len(metadata_dict) > 0:
-                metadata_dict['simulation_name'] = [
-                    self.simname_from_metadata_filename(file_name)
-                ]
-                metadata_dict['metadata_link'] = [file_path_web]
-                metadata_dict['metadata_location'] = [file_path]
-                metadata_dict['waveform_data_link'] = [wf_file_path_web]
-                metadata_dict['waveform_data_location'] = [
-                    str(self.waveform_data_dir /
-                        self.waveform_filename_from_simname(
-                            metadata_dict['simulation_name'][0]))
-                ]
-                return pd.DataFrame.from_dict(metadata_dict)
-        return pd.DataFrame({})
 
     def fetch_metadata_for_catalog(self,
                                    num_sims_to_crawl=100,
@@ -401,7 +400,7 @@ class RITCatalogHelper(object):
             if not found and self.use_cache:
                 if self.verbosity > 3:
                     print("checking for metadata file on disk")
-                sim_data = self.fetch_metadata_from_cache(idx)
+                sim_data = self.metadata_from_cache(idx)
                 if len(sim_data) > 0:
                     found = True
                     if self.verbosity > 3:
@@ -468,7 +467,7 @@ class RITCatalogHelper(object):
     def refresh_metadata_df_on_disk(self, num_sims_to_crawl=2000):
         sims = []
         for idx in range(1, 1 + num_sims_to_crawl):
-            sim_data = self.fetch_metadata_from_cache(idx)
+            sim_data = self.metadata_from_cache(idx)
             if len(sims) == 0:
                 sims = sim_data
             else:
