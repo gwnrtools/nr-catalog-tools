@@ -16,6 +16,8 @@ import lal
 import numpy as np
 import pathlib
 import requests
+import shutil
+import functools
 import sxs
 
 ## --------------------------------------------------------------
@@ -77,11 +79,35 @@ def url_exists(link, num_retries=100):
 
 def download_file(url, path, progress=False, if_newer=True):
     if url_exists(url):
-        return sxs.utilities.downloads.download_file(url,
+        try:
+            return sxs.utilities.downloads.download_file(url,
                                                      path,
                                                      progress=progress,
                                                      if_newer=if_newer)
-    return None
+        except:
+            requests.packages.urllib3.disable_warnings()
+            for n in range(100):
+                try:
+                    r = requests.get(url,
+                                     verify=False,
+                                     stream=True,
+                                     allow_redirects=True)
+                    break
+                except:
+                    continue
+            if r.status_code != 200:
+                print(f"An error occurred when trying to access <{url}>.")
+                try:
+                    print(r.json())
+                except Exception:
+                    pass
+                r.raise_for_status()
+                raise RuntimeError()  # Will only happen if the response was not strictly an error
+            r.raw.read = functools.partial(r.raw.read, decode_content=True)
+            path = pathlib.Path(path).expanduser().resolve()
+            with path.open("wb") as f:
+                shutil.copyfileobj(r.raw, f)
+    return path
 
 
 def call_with_timeout(myfunc, args=(), kwargs={}, timeout=5):
