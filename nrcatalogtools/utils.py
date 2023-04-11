@@ -21,7 +21,7 @@ import functools
 import sxs
 
 ## --------------------------------------------------------------
-nrcatalog_cache_dir = pathlib.Path('~/.nr_data/').expanduser().resolve()
+nrcatalog_cache_dir = pathlib.Path('~/.cache/').expanduser().resolve()
 
 rit_catalog_info = {}
 rit_catalog_info['cache_dir'] = nrcatalog_cache_dir / 'RIT'
