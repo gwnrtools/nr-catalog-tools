@@ -28,7 +28,7 @@ class RITCatalog(Catalog):
     def __init__(self,
                  catalog=None,
                  helper=None,
-                 verbosity=1,
+                 verbosity=0,
                  **kwargs) -> None:
         if catalog is not None:
             super().__init__(catalog)
@@ -46,7 +46,7 @@ class RITCatalog(Catalog):
              download=None,
              num_sims_to_crawl=2000,
              acceptable_scraping_fraction=0.7,
-             verbosity=1):
+             verbosity=0):
         helper = RITCatalogHelper(use_cache=True, verbosity=verbosity)
         if verbosity > 2:
             print("..Going to read catalog file from cache.")
