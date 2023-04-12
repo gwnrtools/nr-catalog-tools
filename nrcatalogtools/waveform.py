@@ -24,7 +24,7 @@ from pycbc.types import TimeSeries
 import pathlib
 import requests
 from scipy.interpolate import InterpolatedUnivariateSpline
-from sxs import waveform
+from sxs import WaveformModes as sxs_WaveformModes
 
 from . import utils
 
@@ -32,7 +32,7 @@ from . import utils
 MSUN = lal.MSUN_SI
 
 
-class WaveformModesLocal(sxs.WaveformModes):
+class WaveformModes(sxs_WaveformModes):
     def __new__(cls,
                 data,
                 time=None,
@@ -42,7 +42,6 @@ class WaveformModesLocal(sxs.WaveformModes):
                 ell_max=4,
                 verbosity=0,
                 **w_attributes) -> None:
-        print("SHAPE OF DATA: {}".format(np.shape(data)))
         self = super().__new__(cls,
                                data,
                                time=time,
@@ -64,11 +63,7 @@ class WaveformModesLocal(sxs.WaveformModes):
               ell_max=4,
               verbosity=0,
               **w_attributes):
-        print("INPUT TIME: {}".format(time))
-        print("INPUT DATA COL 0: {}".format(data[:, 0]))
-        print(w_attributes)
         if time is None:
-            print("USING DUMMY TIME")
             time = np.arange(0, len(data[:, 0]))
         return cls(data,
                    time=time,
@@ -81,27 +76,47 @@ class WaveformModesLocal(sxs.WaveformModes):
 
     @classmethod
     def load_from_h5(cls, file_path_or_open_file, verbosity=0):
+        """Method to load SWSH waveform modes from RIT or MAYA catalogs
+        from HDF5 file.
+
+        Args:
+            file_path_or_open_file (str or open file): Either the path to an
+                HDF5 file containing waveform data, or an open file pointer to
+                the same.
+            verbosity (int, optional): Verbosity level with which to
+                print messages during execution. Defaults to 0.
+
+        Raises:
+            RuntimeError: If inputs are invalid, or if no mode found in
+                input file.
+
+        Returns:
+            WaveformModes: Object containing time-series of SWSH modes.
+        """
         import quaternionic
         from scipy.interpolate import InterpolatedUnivariateSpline
         from scipy.stats import mode as stat_mode
         from sxs.waveforms.nrar import (h, translate_data_type_to_spin_weight,
                                         translate_data_type_to_sxs_string)
-        ELL_MIN, ELL_MAX = 2, 8
 
         if type(file_path_or_open_file) == h5py._hl.files.File:
             h5_file = file_path_or_open_file
             close_input_file = False
+            nr_group = 'UNKNOWN'
         elif os.path.exists(file_path_or_open_file):
             h5_file = h5py.File(file_path_or_open_file, "r")
             close_input_file = True
+            for tag in utils.nr_group_tags:
+                if utils.nr_group_tags[tag] in file_path_or_open_file:
+                    nr_group = utils.nr_group_tags[tag]
         else:
             raise RuntimeError(
                 f"Could not use or open {file_path_or_open_file}")
 
-        ell_min = 1e999999
-        ell_max = -1e999999
+        ELL_MIN, ELL_MAX = 2, 10
+        ell_min, ell_max = 99, -1
         LM = []
-        t_min, t_max, dt = -1e999999, 1e999999, 1
+        t_min, t_max, dt = -1e99, 1e99, 1
         mode_data = {}
         for ell in range(ELL_MIN, ELL_MAX + 1):
             for em in range(-ell, ell + 1):
@@ -125,6 +140,11 @@ class WaveformModesLocal(sxs.WaveformModes):
                 LM.append([ell, em])
         if close_input_file:
             h5_file.close()
+        if len(LM) == 0:
+            raise RuntimeError(
+                f"We did not find even one mode in the file. Perhaps the "
+                f" format `amp_l?_m?` and `phase_l?_m?` is not the "
+                f"nomenclature of datagroups in the input file?")
 
         times = np.arange(t_min, t_max + 0.5 * dt, dt)
         data = np.empty((len(times), len(LM)), dtype=complex)
@@ -133,6 +153,7 @@ class WaveformModesLocal(sxs.WaveformModes):
             amp_interp = InterpolatedUnivariateSpline(amp_time, amp)
             phase_interp = InterpolatedUnivariateSpline(phase_time, phase)
             data[:, idx] = amp_interp(times) * np.exp(1j * phase_interp(times))
+
         w_attributes = {}
         w_attributes["metadata"] = {}
         w_attributes["history"] = ""
@@ -146,19 +167,7 @@ class WaveformModesLocal(sxs.WaveformModes):
         w_attributes["r_is_scaled_out"] = True
         w_attributes["m_is_scaled_out"] = True
         # w_attributes["ells"] = ell_min, ell_max
-        print(w_attributes.keys())
-        # return cls._load(
-        #     cls,
-        #     data,
-        #     time=times,
-        #     time_axis=0,
-        #     modes_axis=1,
-        #     ell_min=ell_min,
-        #     ell_max=ell_max,
-        #     verbosity=verbosity,
-        #     **w_attributes)
-        print(t_min, t_max, dt, times)
-        print("SHAPE OF DATA: {}".format(np.shape(data)))
+
         return cls(data,
                    time=times,
                    time_axis=0,
@@ -167,6 +176,52 @@ class WaveformModesLocal(sxs.WaveformModes):
                    ell_max=ell_max,
                    verbosity=verbosity,
                    **w_attributes)
+
+    def get_polarizations(self, inclination, coa_phase):
+        polarizations = self.evaluate([inclination, coa_phase])
+        return polarizations
+
+    def get_td_waveform(self,
+                        total_mass,
+                        distance,
+                        inclination,
+                        coa_phase,
+                        delta_t=None):
+        if delta_t is None:
+            from scipy.stats import mode as stat_mode
+            delta_t = stat_mode(np.diff(self.time))[0][0]
+        m_secs = utils.time_to_physical(total_mass)
+        # we assume that we generally do not sample at a rate below 128Hz.
+        # Therefore, depending on the numerical value of dt, we deduce whether
+        # dt is in dimensionless units or in seconds.
+        if delta_t > 1. / 128:
+            new_time = np.arange(min(self.time), max(self.time), delta_t)
+        else:
+            new_time = np.arange(min(self.time), max(self.time),
+                                 delta_t / m_secs)
+        h = self.interpolate(new_time).evaluate([inclination, coa_phase
+                                                 ]) * utils.amp_to_physical(
+                                                     total_mass, distance)
+        h.time *= m_secs
+        return h
+
+    def to_pycbc(self, input_array=None):
+        if input_array is None:
+            input_array = self.ndarray
+        from pycbc.types import TimeSeries
+        from scipy.stats import mode as stat_mode
+        delta_t = stat_mode(np.diff(input_array.time))[0][0]
+        return TimeSeries(input_array,
+                          delta_t=delta_t,
+                          dtype=self.ndarray.dtype,
+                          epoch=input_array.time[0],
+                          copy=True)
+
+    def to_lal(self):
+        raise NotImplementedError()
+
+    def to_astropy(self):
+        return self.to_pycbc().to_astropy()
 
 
 def mode_maya_or_rit(catalog,
