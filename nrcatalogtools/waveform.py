@@ -17,16 +17,156 @@ import glob
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import h5py
 import pandas as pd
 import gwsurrogate
 from pycbc.types import TimeSeries
 import pathlib
 import requests
 from scipy.interpolate import InterpolatedUnivariateSpline
+from sxs import waveform
+
 from . import utils
 
 # sur = gwsurrogate.LoadSurrogate("NRSur7dq4")
 MSUN = lal.MSUN_SI
+
+
+class WaveformModesLocal(sxs.WaveformModes):
+    def __new__(cls,
+                data,
+                time=None,
+                time_axis=0,
+                modes_axis=1,
+                ell_min=2,
+                ell_max=4,
+                verbosity=0,
+                **w_attributes) -> None:
+        print("SHAPE OF DATA: {}".format(np.shape(data)))
+        self = super().__new__(cls,
+                               data,
+                               time=time,
+                               time_axis=time_axis,
+                               modes_axis=modes_axis,
+                               ell_min=ell_min,
+                               ell_max=ell_max,
+                               **w_attributes)
+        self.verbosity = verbosity
+        return self
+
+    @classmethod
+    def _load(cls,
+              data,
+              time=None,
+              time_axis=0,
+              modes_axis=1,
+              ell_min=2,
+              ell_max=4,
+              verbosity=0,
+              **w_attributes):
+        print("INPUT TIME: {}".format(time))
+        print("INPUT DATA COL 0: {}".format(data[:, 0]))
+        print(w_attributes)
+        if time is None:
+            print("USING DUMMY TIME")
+            time = np.arange(0, len(data[:, 0]))
+        return cls(data,
+                   time=time,
+                   time_axis=time_axis,
+                   modes_axis=modes_axis,
+                   ell_min=ell_min,
+                   ell_max=ell_max,
+                   verbosity=verbosity,
+                   **w_attributes)
+
+    @classmethod
+    def load_from_h5(cls, file_path_or_open_file, verbosity=0):
+        import quaternionic
+        from scipy.interpolate import InterpolatedUnivariateSpline
+        from scipy.stats import mode as stat_mode
+        from sxs.waveforms.nrar import (h, translate_data_type_to_spin_weight,
+                                        translate_data_type_to_sxs_string)
+        ELL_MIN, ELL_MAX = 2, 8
+
+        if type(file_path_or_open_file) == h5py._hl.files.File:
+            h5_file = file_path_or_open_file
+            close_input_file = False
+        elif os.path.exists(file_path_or_open_file):
+            h5_file = h5py.File(file_path_or_open_file, "r")
+            close_input_file = True
+        else:
+            raise RuntimeError(
+                f"Could not use or open {file_path_or_open_file}")
+
+        ell_min = 1e999999
+        ell_max = -1e999999
+        LM = []
+        t_min, t_max, dt = -1e999999, 1e999999, 1
+        mode_data = {}
+        for ell in range(ELL_MIN, ELL_MAX + 1):
+            for em in range(-ell, ell + 1):
+                afmt = f"amp_l{ell}_m{em}"
+                pfmt = f"phase_l{ell}_m{em}"
+                if afmt not in h5_file or pfmt not in h5_file:
+                    continue
+                amp_time = h5_file[afmt]["X"][:]
+                amp = h5_file[afmt]["Y"][:]
+                phase_time = h5_file[pfmt]["X"][:]
+                phase = h5_file[pfmt]["Y"][:]
+                mode_data[(ell, em)] = [amp_time, amp, phase_time, phase]
+                # get the minimum time and maximum time stamps for all modes
+                t_min = max(t_min, amp_time[0], phase_time[0])
+                t_max = min(t_max, amp_time[-1], phase_time[-1])
+                dt = min(dt,
+                         stat_mode(np.diff(amp_time))[0][0],
+                         stat_mode(np.diff(phase_time))[0][0])
+                ell_min = min(ell_min, ell)
+                ell_max = max(ell_max, ell)
+                LM.append([ell, em])
+        if close_input_file:
+            h5_file.close()
+
+        times = np.arange(t_min, t_max + 0.5 * dt, dt)
+        data = np.empty((len(times), len(LM)), dtype=complex)
+        for idx, (ell, em) in enumerate(LM):
+            amp_time, amp, phase_time, phase = mode_data[(ell, em)]
+            amp_interp = InterpolatedUnivariateSpline(amp_time, amp)
+            phase_interp = InterpolatedUnivariateSpline(phase_time, phase)
+            data[:, idx] = amp_interp(times) * np.exp(1j * phase_interp(times))
+        w_attributes = {}
+        w_attributes["metadata"] = {}
+        w_attributes["history"] = ""
+        w_attributes["frame"] = quaternionic.array([[1., 0., 0., 0.]])
+        w_attributes["frame_type"] = "inertial"
+        w_attributes["data_type"] = h
+        w_attributes["spin_weight"] = translate_data_type_to_spin_weight(
+            w_attributes["data_type"])
+        w_attributes["data_type"] = translate_data_type_to_sxs_string(
+            w_attributes["data_type"])
+        w_attributes["r_is_scaled_out"] = True
+        w_attributes["m_is_scaled_out"] = True
+        # w_attributes["ells"] = ell_min, ell_max
+        print(w_attributes.keys())
+        # return cls._load(
+        #     cls,
+        #     data,
+        #     time=times,
+        #     time_axis=0,
+        #     modes_axis=1,
+        #     ell_min=ell_min,
+        #     ell_max=ell_max,
+        #     verbosity=verbosity,
+        #     **w_attributes)
+        print(t_min, t_max, dt, times)
+        print("SHAPE OF DATA: {}".format(np.shape(data)))
+        return cls(data,
+                   time=times,
+                   time_axis=0,
+                   modes_axis=1,
+                   ell_min=ell_min,
+                   ell_max=ell_max,
+                   verbosity=verbosity,
+                   **w_attributes)
 
 
 def mode_maya_or_rit(catalog,
