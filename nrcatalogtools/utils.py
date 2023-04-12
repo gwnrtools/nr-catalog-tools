@@ -22,6 +22,11 @@ import sxs
 
 ## --------------------------------------------------------------
 nrcatalog_cache_dir = pathlib.Path('~/.cache/').expanduser().resolve()
+nr_group_tags = {}
+nr_group_tags['SXS'] = 'SXS'
+nr_group_tags['RIT'] = 'RIT'
+nr_group_tags['MAYA'] = 'MAYA'
+nr_group_tags['UNKNOWN'] = 'UNKNOWN'
 
 rit_catalog_info = {}
 rit_catalog_info['cache_dir'] = nrcatalog_cache_dir / 'RIT'
@@ -81,9 +86,9 @@ def download_file(url, path, progress=False, if_newer=True):
     if url_exists(url):
         try:
             return sxs.utilities.downloads.download_file(url,
-                                                     path,
-                                                     progress=progress,
-                                                     if_newer=if_newer)
+                                                         path,
+                                                         progress=progress,
+                                                         if_newer=if_newer)
         except:
             requests.packages.urllib3.disable_warnings()
             for n in range(100):
@@ -102,7 +107,8 @@ def download_file(url, path, progress=False, if_newer=True):
                 except Exception:
                     pass
                 r.raise_for_status()
-                raise RuntimeError()  # Will only happen if the response was not strictly an error
+                raise RuntimeError(
+                )  # Will only happen if the response was not strictly an error
             r.raw.read = functools.partial(r.raw.read, decode_content=True)
             path = pathlib.Path(path).expanduser().resolve()
             with path.open("wb") as f:
