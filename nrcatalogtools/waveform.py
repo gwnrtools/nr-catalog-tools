@@ -179,7 +179,7 @@ class WaveformModes(sxs_WaveformModes):
                                                  ]) * utils.amp_to_physical(
                                                      total_mass, distance)
         h.time *= m_secs
-        return h
+        return self.to_pycbc(h)
 
     def to_pycbc(self, input_array=None):
         if input_array is None:
