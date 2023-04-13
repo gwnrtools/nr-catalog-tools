@@ -153,6 +153,9 @@ class WaveformModes(sxs_WaveformModes):
                    verbosity=verbosity,
                    **w_attributes)
 
+    def get_mode(self, ell, em):
+        return self[f"Y_l{ell}_m{em}.dat"]
+
     def get_polarizations(self, inclination, coa_phase):
         polarizations = self.evaluate([inclination, coa_phase])
         return polarizations
@@ -183,11 +186,11 @@ class WaveformModes(sxs_WaveformModes):
 
     def to_pycbc(self, input_array=None):
         if input_array is None:
-            input_array = self.ndarray
+            input_array = self
         from pycbc.types import TimeSeries
         from scipy.stats import mode as stat_mode
         delta_t = stat_mode(np.diff(input_array.time), keepdims=True)[0][0]
-        return TimeSeries(input_array,
+        return TimeSeries(np.array(input_array),
                           delta_t=delta_t,
                           dtype=self.ndarray.dtype,
                           epoch=input_array.time[0],
