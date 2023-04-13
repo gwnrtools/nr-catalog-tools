@@ -156,7 +156,9 @@ class MayaCatalog(Catalog):
     @property
     @functools.lru_cache()
     def simulations_dataframe(self):
-        return pd.DataFrame(self.simulations).transpose()
+        df = pd.DataFrame(self.simulations).transpose()
+        df.rename(columns={'GTID': 'simulation_name'}, inplace=True)
+        return df
 
     @property
     @functools.lru_cache()
@@ -229,7 +231,8 @@ class MayaCatalog(Catalog):
                         str(file_path_web)))
 
     def get(self, sim_name):
-        if sim_name not in self.simulations_dataframe['GTID']:
+        if sim_name not in self.simulations_dataframe[
+                'simulation_name'].to_list():
             raise IOError(f"Simulation {sim_name} not found in catalog."
                           f"Please check that it exists")
         filepath = self.waveform_filepath_from_simname(sim_name)
