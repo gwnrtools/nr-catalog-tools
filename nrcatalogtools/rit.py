@@ -512,10 +512,8 @@ class RITCatalogHelper(object):
         '''
         if use_cache is None:
             use_cache = self.use_cache
-        webdir = self.waveform_data_url
-
         file_name = self.waveform_filename_from_simname(sim_name)
-        file_path_web = webdir + "/" + file_name
+        file_path_web = self.waveform_data_url + "/" + file_name
         local_file_path = self.waveform_data_dir / file_name
         if use_cache and os.path.exists(
                 local_file_path) and os.path.getsize(local_file_path) > 0:
@@ -539,7 +537,6 @@ class RITCatalogHelper(object):
                     str(file_path_web), '-O',
                     str(local_file_path)
                 ])
-
             else:
                 if self.verbosity > 2:
                     print("... ... but couldnt find link: {}".format(
