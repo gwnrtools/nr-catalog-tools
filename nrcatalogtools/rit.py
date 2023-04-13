@@ -6,7 +6,7 @@ import pandas as pd
 import requests
 from sxs import Catalog
 
-from . import utils
+from . import (utils, waveform)
 
 
 class RITCatalog(Catalog):
@@ -79,7 +79,13 @@ class RITCatalog(Catalog):
     @property
     @functools.lru_cache()
     def simulations_dataframe(self):
-        return self._helper.metadata
+        df = self._helper.metadata
+        for col_name in list(df.columns):
+            if 'Unnamed' in col_name:
+                df = df.drop(columns=[col_name])
+                break
+        self._helper.metadata = df
+        return df
 
     @property
     @functools.lru_cache()
@@ -112,6 +118,36 @@ class RITCatalog(Catalog):
             v["truepath"] = original_paths[f"{v['checksum']}{v['filesize']}"]
 
         return file_infos
+
+    def waveform_filename_from_simname(self, sim_name):
+        return self._helper.waveform_filename_from_simname(sim_name)
+
+    def waveform_filepath_from_simname(self, sim_name):
+        return self._helper.waveform_data_dir / self.waveform_filename_from_simname(
+            sim_name)
+
+    def waveform_url_from_simname(self, sim_name):
+        return self._helper.waveform_data_url + "/" + self.waveform_filename_from_simname(
+            sim_name)
+
+    def download_waveform_data(self, sim_name, use_cache=None):
+        raise self._helper.download_waveform_data(sim_name,
+                                                  use_cache=use_cache)
+
+    def get(self, sim_name):
+        if sim_name not in self.simulations_dataframe[
+                'simulation_name'].to_list():
+            raise IOError(f"Simulation {sim_name} not found in catalog."
+                          f"Please check that it exists")
+        filepath = self.waveform_filepath_from_simname(sim_name)
+        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+            if self._verbosity > 1:
+                print(f"..As data does not exist in cache:"
+                      f"  (in {filepath}),\n"
+                      f"..we will now download it from"
+                      " {}".format(self.waveform_url_from_simname(sim_name)))
+            self.download_waveform_data(sim_name)
+        return waveform.WaveformModes.load_from_h5(filepath)
 
 
 class RITCatalogHelper(object):
