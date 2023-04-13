@@ -81,8 +81,9 @@ class WaveformModes(sxs_WaveformModes):
         elif os.path.exists(file_path_or_open_file):
             h5_file = h5py.File(file_path_or_open_file, "r")
             close_input_file = True
+            file_path_str = str(file_path_or_open_file)
             for tag in utils.nr_group_tags:
-                if utils.nr_group_tags[tag] in file_path_or_open_file:
+                if utils.nr_group_tags[tag] in file_path_str:
                     nr_group = utils.nr_group_tags[tag]
         else:
             raise RuntimeError(
@@ -108,8 +109,8 @@ class WaveformModes(sxs_WaveformModes):
                 t_min = max(t_min, amp_time[0], phase_time[0])
                 t_max = min(t_max, amp_time[-1], phase_time[-1])
                 dt = min(dt,
-                         stat_mode(np.diff(amp_time))[0][0],
-                         stat_mode(np.diff(phase_time))[0][0])
+                         stat_mode(np.diff(amp_time), keepdims=True)[0][0],
+                         stat_mode(np.diff(phase_time), keepdims=True)[0][0])
                 ell_min = min(ell_min, ell)
                 ell_max = max(ell_max, ell)
                 LM.append([ell, em])
@@ -164,7 +165,7 @@ class WaveformModes(sxs_WaveformModes):
                         delta_t=None):
         if delta_t is None:
             from scipy.stats import mode as stat_mode
-            delta_t = stat_mode(np.diff(self.time))[0][0]
+            delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
         m_secs = utils.time_to_physical(total_mass)
         # we assume that we generally do not sample at a rate below 128Hz.
         # Therefore, depending on the numerical value of dt, we deduce whether
@@ -185,7 +186,7 @@ class WaveformModes(sxs_WaveformModes):
             input_array = self.ndarray
         from pycbc.types import TimeSeries
         from scipy.stats import mode as stat_mode
-        delta_t = stat_mode(np.diff(input_array.time))[0][0]
+        delta_t = stat_mode(np.diff(input_array.time), keepdims=True)[0][0]
         return TimeSeries(input_array,
                           delta_t=delta_t,
                           dtype=self.ndarray.dtype,
