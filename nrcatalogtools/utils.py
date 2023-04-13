@@ -18,14 +18,12 @@ rit_catalog_info = {}
 rit_catalog_info['cache_dir'] = nrcatalog_cache_dir / 'RIT'
 rit_catalog_info['metadata_dir'] = rit_catalog_info['cache_dir'] / 'metadata'
 rit_catalog_info['data_dir'] = rit_catalog_info['cache_dir'] / 'data'
-
 rit_catalog_info['url'] = 'https://ccrgpages.rit.edu/~RITCatalog/'
 rit_catalog_info['metadata_url'] = rit_catalog_info['url'] + '/Metadata/'
 rit_catalog_info['data_url'] = rit_catalog_info['url'] + '/Data/'
 rit_catalog_info['possible_resolutions'] = [
     100, 120, 88, 118, 130, 140, 144, 160, 200
 ]
-
 rit_catalog_info['metadata_file_fmts'] = [
     'RIT:BBH:{:04d}-n{:3d}-id{:d}_Metadata.txt',
     'RIT:eBBH:{:04d}-n{:3d}-ecc_Metadata.txt',
@@ -37,11 +35,16 @@ rit_catalog_info['waveform_file_fmts'] = [
 rit_catalog_info['max_id_val'] = 6
 
 maya_catalog_info = {
-    'cache_dir': nrcatalog_cache_dir / 'MAYA',
-    'url': '',
-    'metadata_file_fmts': [],
-    'waveform_file_fmts': [],
+    'cache_dir':
+    nrcatalog_cache_dir / 'MAYA',
+    'url':
+    'https://raw.githubusercontent.com/cevans216/gt-waveform-catalog/master/h5files',
+    'metadata_url':
+    'https://raw.githubusercontent.com/cevans216/gt-waveform-catalog/master/catalog-table.txt',
 }
+maya_catalog_info['data_dir'] = maya_catalog_info['cache_dir'] / 'data'
+maya_catalog_info['metadata_dir'] = maya_catalog_info['cache_dir'] / 'metadata'
+maya_catalog_info['data_url'] = maya_catalog_info['url']
 
 ## --------------------------------------------------------------
 
