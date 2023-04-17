@@ -1,8 +1,6 @@
 import h5py
 import lal
 import lalsimulation as lalsim
-from nrcatalogtools.lal import (get_lal_mode_dictionary,
-                                get_lal_mode_dictionary_from_lmax)
 from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 from pycbc.types import TimeSeries
 
