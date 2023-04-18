@@ -85,6 +85,9 @@ class RITCatalog(Catalog):
                 df = df.drop(columns=[col_name])
                 break
         self._helper.metadata = df
+        df = df.set_index('simulation_name')
+        df.index.names = [None]
+        df['simulation_name'] = df.index.to_list()
         return df
 
     @property
@@ -135,8 +138,7 @@ class RITCatalog(Catalog):
                                                   use_cache=use_cache)
 
     def get(self, sim_name):
-        if sim_name not in self.simulations_dataframe[
-                'simulation_name'].to_list():
+        if sim_name not in self.simulations_dataframe.index.to_list():
             raise IOError(f"Simulation {sim_name} not found in catalog."
                           f"Please check that it exists")
         filepath = self.waveform_filepath_from_simname(sim_name)
