@@ -1,4 +1,4 @@
-# Unified Interface to Numerical Relativity Catalogs
+# Interface to Numerical Relativity Waveforms Catalogs
 
 This library provides a unified interface to various catalogs
 of Numerical Relativity simulations of binary black hole mergers.
@@ -84,6 +84,8 @@ which can subsequently be plotted easily:
 >>> plt.show()
 ```
 which should give the following figure:
+
+![RIT-BBH-0003](https://github.com/gwnrtools/nr-catalog-tools/blob/master/test/validation_data/RIT-BBH-0003-n100-id0_m40_d100_inc0p2_coaph0p3.png)
 
 
 
