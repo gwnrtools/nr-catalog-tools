@@ -8,6 +8,8 @@ from . import (lvc, maya, rit, sxs, utils, waveform)
 from .maya import MayaCatalog
 from .rit import RITCatalog
 from .sxs import SXSCatalog
+from .waveform import WaveformModes
+
 
 def get_version_information():
     import os
