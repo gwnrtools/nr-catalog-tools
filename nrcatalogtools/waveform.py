@@ -50,7 +50,7 @@ class WaveformModes(sxs_WaveformModes):
                    **w_attributes)
 
     @classmethod
-    def load_from_h5(cls, file_path_or_open_file, verbosity=0):
+    def load_from_h5(cls, file_path_or_open_file, metadata={}, verbosity=0):
         """Method to load SWSH waveform modes from RIT or MAYA catalogs
         from HDF5 file.
 
@@ -58,6 +58,8 @@ class WaveformModes(sxs_WaveformModes):
             file_path_or_open_file (str or open file): Either the path to an
                 HDF5 file containing waveform data, or an open file pointer to
                 the same.
+            metadata (dict): Dictionary containing metadata (Note that keys
+                will be NR group specific)
             verbosity (int, optional): Verbosity level with which to
                 print messages during execution. Defaults to 0.
 
@@ -131,7 +133,7 @@ class WaveformModes(sxs_WaveformModes):
             data[:, idx] = amp_interp(times) * np.exp(1j * phase_interp(times))
 
         w_attributes = {}
-        w_attributes["metadata"] = {}
+        w_attributes["metadata"] = metadata
         w_attributes["history"] = ""
         w_attributes["frame"] = quaternionic.array([[1., 0., 0., 0.]])
         w_attributes["frame_type"] = "inertial"
@@ -157,6 +159,17 @@ class WaveformModes(sxs_WaveformModes):
         return self[f"Y_l{ell}_m{em}.dat"]
 
     def get_polarizations(self, inclination, coa_phase):
+        """Sum over modes data and return plus and cross GW polarizations
+
+        Args:
+            inclination (float): Inclination angle between the line-of-sight
+                orbital angular momentum vector [radians]
+            coa_phase (float): Coalesence orbital phase [radians]
+
+        Returns:
+            Tuple(numpy.ndarray): Numpy Arrays containing polarizations
+                time-series
+        """
         polarizations = self.evaluate([inclination, coa_phase])
         return polarizations
 
@@ -166,6 +179,26 @@ class WaveformModes(sxs_WaveformModes):
                         inclination,
                         coa_phase,
                         delta_t=None):
+        """Sum over modes data and return plus and cross GW polarizations,
+        rescaled appropriately for a compact-object binary with given
+        total mass and distance from GW detectors.
+
+        Returns:
+            Tuple(numpy.ndarray): Numpy Arrays containing polarizations
+                time-series
+
+        Args:
+            total_mass (_type_): _description_
+            distance (_type_): _description_
+            inclination (float): Inclination angle between the line-of-sight
+                orbital angular momentum vector [radians]
+            coa_phase (float): Coalesence orbital phase [radians]
+            delta_t (_type_, optional): _description_. Defaults to None.
+
+        Returns:
+            pycbc.TimeSeries(numpy.complex128): Complex polarizations
+                stored in `pycbc` container `TimeSeries`
+        """
         if delta_t is None:
             from scipy.stats import mode as stat_mode
             delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
