@@ -1,12 +1,18 @@
 # Interface to Numerical Relativity Waveforms Catalogs
 
-This library provides a unified interface to various catalogs
-of Numerical Relativity simulations of compact-object binary mergers.
-At the moment of writing, different research groups have separate
-formats of data and/or tools to interface with them. This library
-will be a thin layer atop those for convenience of downstream
-applications.
+The `nrcatalogtools` python package provides a unified
+high-level interface to multiple catalogs of data products
+from Numerical Relativity simulations of compact-object
+binary mergers. At the moment of writing, different
+research groups have separate formats of data and/or
+tools to interface with them. This package will be a
+convenience layer atop those for downstream research
+applications. 
 
+We currently support the following catalogs:
+- [Simulating eXtreme Spacetimes Waveforms Catalog](https://data.black-holes.org/waveforms/catalog.html)
+- [Georgia Tech Binary Black Hole Simulations](https://einstein.gatech.edu/catalog/)
+- [RIT Waveform Catalog](https://ccrg.rit.edu/content/data/rit-waveform-catalog)
 
 # Usage
 ```
