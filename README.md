@@ -1,4 +1,4 @@
-# Interface to Numerical Relativity Waveforms Catalogs
+# Interface to Numerical Relativity Catalogs
 
 The `nrcatalogtools` python package provides a unified
 high-level interface to multiple catalogs of data products
