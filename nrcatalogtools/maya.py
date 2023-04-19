@@ -1,12 +1,11 @@
 import os
 import functools
 import pandas as pd
-from sxs import Catalog
 
-from . import (utils, waveform)
+from . import (catalog, utils)
 
 
-class MayaCatalog(Catalog):
+class MayaCatalog(catalog.CatalogBase):
     def __init__(self,
                  catalog=None,
                  use_cache=True,
@@ -229,18 +228,3 @@ class MayaCatalog(Catalog):
                 if self._verbosity > 2:
                     print("... ... but couldnt find link: {}".format(
                         str(file_path_web)))
-
-    def get(self, sim_name):
-        if sim_name not in self.simulations_dataframe[
-                'simulation_name'].to_list():
-            raise IOError(f"Simulation {sim_name} not found in catalog."
-                          f"Please check that it exists")
-        filepath = self.waveform_filepath_from_simname(sim_name)
-        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
-            if self._verbosity > 1:
-                print(f"..As data does not exist in cache:"
-                      f"  (in {filepath}),\n"
-                      f"..we will now download it from"
-                      " {}".format(self.waveform_url_from_simname(sim_name)))
-            self.download_waveform_data(sim_name)
-        return waveform.WaveformModes.load_from_h5(filepath)
