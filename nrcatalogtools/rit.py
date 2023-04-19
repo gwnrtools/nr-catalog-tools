@@ -4,12 +4,11 @@ import functools
 from tqdm import tqdm
 import pandas as pd
 import requests
-from sxs import Catalog
 
-from . import (utils, waveform)
+from . import (catalog, utils)
 
 
-class RITCatalog(Catalog):
+class RITCatalog(catalog.CatalogBase):
     def __init__(self,
                  catalog=None,
                  helper=None,
@@ -136,20 +135,6 @@ class RITCatalog(Catalog):
     def download_waveform_data(self, sim_name, use_cache=None):
         raise self._helper.download_waveform_data(sim_name,
                                                   use_cache=use_cache)
-
-    def get(self, sim_name):
-        if sim_name not in self.simulations_dataframe.index.to_list():
-            raise IOError(f"Simulation {sim_name} not found in catalog."
-                          f"Please check that it exists")
-        filepath = self.waveform_filepath_from_simname(sim_name)
-        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
-            if self._verbosity > 1:
-                print(f"..As data does not exist in cache:"
-                      f"  (in {filepath}),\n"
-                      f"..we will now download it from"
-                      " {}".format(self.waveform_url_from_simname(sim_name)))
-            self.download_waveform_data(sim_name)
-        return waveform.WaveformModes.load_from_h5(filepath)
 
 
 class RITCatalogHelper(object):
