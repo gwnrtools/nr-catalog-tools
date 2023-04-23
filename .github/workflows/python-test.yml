@@ -34,13 +34,15 @@ jobs:
             pwd
             ls -l
             pip install -r requirements.txt
-            cd test
+            cd ./test
+            pwd
+            ls
             python -m unittest -v
       - name: Upload logs
         uses: actions/upload-artifact@v3
         with:
           name: logs
           path: |
-            test/logs/*
+            ./test/logs/*
 
 
