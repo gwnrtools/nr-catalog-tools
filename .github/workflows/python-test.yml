@@ -32,3 +32,4 @@ jobs:
           python --version
           pip --version
           pwd
+          ls -l
