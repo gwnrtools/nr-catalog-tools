@@ -16,7 +16,7 @@ jobs:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: nrcat
-          python-version: 3.10
+          python-version: 3.10.x
           channels: main, conda-forge
           allow-softlinks: true
           channel-priority: flexible
