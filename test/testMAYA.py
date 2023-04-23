@@ -48,6 +48,10 @@ inc = np.pi/6
 coa_phase = np.pi/4
 delta_t = 1./2048
 
+# Extrinsic parameters:
+f_lower = 20
+f_lower_at_1MSUN = f_lower/M
+
 
 #######################################
 # Fetch waveform using nr-catalog-tools
@@ -110,14 +114,8 @@ else:
     f.close()
 
 f = h5py.File(file, 'r')
-print(f.attrs.keys())
+#print(f.attrs.keys())
 params = {}
-
-# Extrinsic parameters:
-f_lower = 20
-f_lower_at_1MSUN = f_lower/M
-
-
 
 params['f_lower'] = f_lower
 params['mtotal'] = M#150.0
