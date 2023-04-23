@@ -158,6 +158,16 @@ class WaveformModes(sxs_WaveformModes):
     def get_mode(self, ell, em):
         return self[f"Y_l{ell}_m{em}.dat"]
 
+    @property
+    def f_lower_at_1Msun(self):
+        from pycbc.types import TimeSeries
+        from pycbc.waveform import frequency_from_polarizations
+        mode22 = self.get_mode(2, 2)
+        fr22 = frequency_from_polarizations(
+            TimeSeries(mode22[:, 1], delta_t=np.diff(mwf.time)[0]),
+            TimeSeries(-1 * mode22[:, 2], delta_t=np.diff(mwf.time)[0]))
+        return fr22[0] / lal.MTSUN_SI
+
     def get_polarizations(self, inclination, coa_phase):
         """Sum over modes data and return plus and cross GW polarizations
 
