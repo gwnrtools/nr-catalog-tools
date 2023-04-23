@@ -31,3 +31,4 @@ jobs:
           conda info --envs
           python --version
           pip --version
+          pwd
