@@ -12,7 +12,7 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
-      - name: Setup miniconda
+      - name: Setup miniconda and test
         uses: actions/checkout@v2
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -23,7 +23,6 @@ jobs:
           allow-softlinks: true
           channel-priority: flexible
           show-channel-urls: true
-      - name: Setup env
           run: |
             conda --version
             conda info
@@ -40,6 +39,7 @@ jobs:
             python -m unittest -v
       - name: Upload logs
         uses: actions/upload-artifact@v3
+        name: logs
         with:
           path: |
             test/logs/*
