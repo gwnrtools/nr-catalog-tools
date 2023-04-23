@@ -110,7 +110,7 @@ else:
     f.close()
 
 f = h5py.File(file, 'r')
-
+print(f.attrs.keys())
 params = {}
 
 # Extrinsic parameters:
