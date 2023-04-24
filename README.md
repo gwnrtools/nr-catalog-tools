@@ -8,7 +8,9 @@ research groups have separate formats of data and/or
 tools to interface with them. This package will be a
 convenience layer atop those for downstream research
 applications. This package derives where it can from
-the `sxs` package of the `sxs-collaboration`, as that 
+the [`sxs`](https://github.com/sxs-collaboration/sxs)
+package of the [Simulating eXtreme Spacetimes](https://github.com/sxs-collaboration)
+collaboration, as that 
 has much of the capabilities for handling Numerical
 Relativity data that we need in general for all catalogs.
 
