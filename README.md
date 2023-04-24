@@ -13,6 +13,9 @@ package of the [Simulating eXtreme Spacetimes](https://github.com/sxs-collaborat
 collaboration, as that 
 has much of the capabilities for handling Numerical
 Relativity data that we need in general for all catalogs.
+Much of the interface here is deliberately identical to
+that in the `sxs` package to facilitate their interuse.
+
 
 We currently support the following catalogs:
 - [Simulating eXtreme Spacetimes Waveforms Catalog](https://data.black-holes.org/waveforms/catalog.html)
