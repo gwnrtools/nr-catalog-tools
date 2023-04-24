@@ -1,5 +1,4 @@
 import lal
-import numpy as np
 import pathlib
 import requests
 import shutil
@@ -167,48 +166,3 @@ def amp_to_physical(M, D):
     """
 
     return lal.G_SI * M * lal.MSUN_SI / (lal.C_SI**2 * D * 1e6 * lal.PC_SI)
-
-
-def dlm(ell, m, theta):
-    """Wigner d function
-    parameters
-    ----------
-    ell: lvalue
-    m: mvalue
-    theta: theta angle, e. g in GW, inclination angle iota
-
-    Returns:
-    value of d^{ell m}(theta)
-    """
-    kmin = max(0, m - 2)
-    kmax = min(ell + m, ell - 2)
-    d = 0
-    for k in range(kmin, kmax + 1):
-        numerator = np.sqrt(
-            float(
-                np.math.factorial(ell + m) * np.math.factorial(ell - m) *
-                np.math.factorial(ell + 2) * np.math.factorial(ell - 2)))
-        denominator = (np.math.factorial(k - m + 2) *
-                       np.math.factorial(ell + m - k) *
-                       np.math.factorial(ell - k - 2))
-        d += (((-1)**k / np.math.factorial(k)) * (numerator / denominator) *
-              (np.cos(theta / 2))**(2 * ell + m - 2 * k - 2) *
-              (np.sin(theta / 2))**(2 * k - m + 2))
-    return d
-
-
-def ylm(ell, m, theta, phi):
-    """
-    parameters:
-    -----------
-    ell: lvalue
-    m: mvalue
-    theta: theta angle, e. g in GW, inclination angle iota
-    phi: phi angle, e. g. in GW, orbital phase
-
-    Returns:
-    --------
-    ylm_s(theta, phi)
-    """
-    return (np.sqrt((2 * ell + 1) / (4 * np.pi)) * dlm(ell, m, theta) *
-            np.exp(1j * m * phi))
