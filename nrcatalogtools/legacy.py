@@ -11,6 +11,50 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from . import utils
 
 
+def dlm(ell, m, theta):
+    """Wigner d function
+    parameters
+    ----------
+    ell: lvalue
+    m: mvalue
+    theta: theta angle, e. g in GW, inclination angle iota
+
+    Returns:
+    value of d^{ell m}(theta)
+    """
+    kmin = max(0, m - 2)
+    kmax = min(ell + m, ell - 2)
+    d = 0
+    for k in range(kmin, kmax + 1):
+        numerator = np.sqrt(
+            float(
+                np.math.factorial(ell + m) * np.math.factorial(ell - m) *
+                np.math.factorial(ell + 2) * np.math.factorial(ell - 2)))
+        denominator = (np.math.factorial(k - m + 2) *
+                       np.math.factorial(ell + m - k) *
+                       np.math.factorial(ell - k - 2))
+        d += (((-1)**k / np.math.factorial(k)) * (numerator / denominator) *
+              (np.cos(theta / 2))**(2 * ell + m - 2 * k - 2) *
+              (np.sin(theta / 2))**(2 * k - m + 2))
+    return d
+
+
+def ylm(ell, m, theta, phi):
+    """
+    parameters:
+    -----------
+    ell: lvalue
+    m: mvalue
+    theta: theta angle, e. g in GW, inclination angle iota
+    phi: phi angle, e. g. in GW, orbital phase
+
+    Returns:
+    --------
+    ylm_s(theta, phi)
+    """
+    return (np.sqrt((2 * ell + 1) / (4 * np.pi)) * dlm(ell, m, theta) *
+            np.exp(1j * m * phi))
+
 
 def mode_maya_or_rit(catalog,
                      sim_id,
@@ -101,7 +145,7 @@ def td_maya_or_rit(catalog,
                                       M_fed, dMpc, data_dir, physical_units, k)
         if idx == 0:
             h = np.zeros(len(times), dtype="complex128")
-        h += utils.ylm(ell, m, theta, phi) * hlm
+        h += ylm(ell, m, theta, phi) * hlm
 
     if physical_units:
         delta_t = delta_t * utils.time_to_physical(M_fed)
