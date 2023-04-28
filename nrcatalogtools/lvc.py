@@ -156,6 +156,8 @@ def get_modes_from_lvcnr_file(path_to_file,
 def get_strain_from_lvcnr_file(path_to_file,
                                Mtot,
                                distance,
+                               inclination,
+                               phi_ref,
                                srate,
                                mode_array=None):
     """
@@ -181,7 +183,14 @@ def get_strain_from_lvcnr_file(path_to_file,
     UNDER CONSTRUCTION
     """
 
-    fixed_args = [distance * lal.PC_SI * 1e6, 0, 0, 0, 0, 0, 1 / srate]
+    longAscNodes = 0
+    eccentricity = 0
+    meanPerAno = 0
+
+    fixed_args = [
+        distance * lal.PC_SI * 1e6, inclination, phi_ref, longAscNodes,
+        eccentricity, meanPerAno, 1 / srate
+    ]
 
     with h5py.File(path_to_file) as h5file:
         if mode_array is not None:
@@ -201,7 +210,7 @@ def get_strain_from_lvcnr_file(path_to_file,
                 f_low, Mtot, path_to_file)
 
         mass_args = list(
-            mtotal_eta_to_mass1_mass2(Mtot * lal.MSUN, h5file.attrs["eta"]))
+            mtotal_eta_to_mass1_mass2(Mtot * lal.MSUN_SI, h5file.attrs["eta"]))
 
     hp, hc = lalsim.SimInspiralChooseTDWaveform(
         *mass_args,
