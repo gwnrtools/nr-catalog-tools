@@ -67,7 +67,7 @@ jobs:
             export PYTHONPATH="$WTOOLS_DIR":$PYTHONPATH
             echo $PYTHONPATH
             # Begin linting
-            cd %NRC_DIR
+            cd $NRC_DIR
             isort .
             black .
             # Begin testing
