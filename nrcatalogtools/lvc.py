@@ -298,7 +298,7 @@ def GetRefTimeFromRefFreq(H5File, ref_freq):
     return RefTime
 
 
-def CheckNRAttrs(MetadataObject, ReqAttrs):
+def CheckNRAttrs(MetadataObject, ReqAttrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]):
     """Check if the NR h5 file or a metadata dictionary
         contains all the attributes required.
 
@@ -362,8 +362,10 @@ def GetInterpRefValuesFromH5File(H5File, ReqTSAttrs, ref_time):
     return params
 
 
-def GetRefVals(MetadataObject, ReqAttrs):
-    """Get the reference values from the NR HDF5 file
+def GetRefVals(MetadataObject, ReqAttrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]
+):
+    """Get the reference values from a NR HDF5 file
+    or a metadata dictionary.
 
     Parameters
     ----------
@@ -386,8 +388,9 @@ def GetRefVals(MetadataObject, ReqAttrs):
 
     params = {}
 
+    #print(MetadataObject.keys())
     for key in ReqAttrs:
-        RefVal = MetadataObject[key]
+        RefVal = Source[key]
         params.update({key: RefVal})
     return params
 
@@ -441,8 +444,8 @@ def ComputeLALSourceFrameFromSXSMetadata(Metadata):
     nhat = (DPos) / np.linalg.norm(DPos)
     # nhatx, nhaty, nhatz = Nhat
 
-    # params = {'LNhatx' : LNhatx, 'LNhaty' : LNhaty, 'LNhatz' : LNhatz, 'nhatx' : nhatx, 'nhaty' : nhaty, 'nhatz' : nhatz}
-    params = {"LNhat": LNhat, "nhat": nhat}
+    params = {'LNhatx' : LNhatx, 'LNhaty' : LNhaty, 'LNhatz' : LNhatz, 'nhatx' : nhatx, 'nhaty' : nhaty, 'nhatz' : nhatz}
+    #params = {"LNhat": LNhat, "nhat": nhat}
 
     return params
 
@@ -490,8 +493,8 @@ def ComputeLALSourceFrameByInterp(H5File, ReqTSAttrs, TRef):
     LNhat = LNhat / np.linalg.norm(LNhat)
     # LNhatx, LNhaty, LNhatz = LNhat
 
-    params = {"LNhat": LNhat, "nhat": nhat}
-    # params = {'LNhatx' : LNhatx, 'LNhaty' : LNhaty, 'LNhatz' : LNhatz, 'nhatx' : nhatx, 'nhaty' : nhaty, 'nhatz' : nhatz}
+    #params = {"LNhat": LNhat, "nhat": nhat}
+    params = {'LNhatx' : LNhatx, 'LNhaty' : LNhaty, 'LNhatz' : LNhatz, 'nhatx' : nhatx, 'nhaty' : nhaty, 'nhatz' : nhatz}
 
     return params
 
@@ -661,7 +664,7 @@ def GetNRToLALRotationAngles(
     ###########################################
     # Cases
     ###########################################
-    ReqDefAttrs = ["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]
+    #ReqDefAttrs = ["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]
     ReqDefAttrsSXS = [
         "reference_time",
         "reference_mass1",
@@ -706,26 +709,33 @@ def GetNRToLALRotationAngles(
         # RIT and GT qualify this.
         # Default attributes in case of no interpolation
         # RefCheckInterp = CheckNRAttrs(H5File, ReqTSAttrs)
-        RefCheckDefMeta, AbsentAttrsMeta = CheckNRAttrs(Metadata, ReqDefAttrs)
+        #RefCheckDefMeta, AbsentAttrsMeta = CheckNRAttrs(Metadata, ReqDefAttrs)
+        RefCheckDefH5, AbsentAttrsH5 = CheckNRAttrs(H5File)
+
         # RefCheckDefMeta, AbsentAttrsMeta  = CheckNRAttrs(Metadata, ReqDefAttrs)
 
-        if RefCheckDefMeta == False:
-            # Then this is SXS waveform. The LAL source frame need to be computed from
-            # the metadata.
-            RefCheckSXS, AbsentAttrsH5 = CheckNRAttrs(Metadata, ReqDefAttrsSXS)
+        if RefCheckDefH5 == False:
+            # Then the LAL source frame information is not present in the H5 file.
+            # Then this could be SXS or GT data. The LAL source frame need to be computed from
+            # the H5 File or metadata.
 
-            if RefCheckSXS == False:
-                raise Exception(
-                    f"Insufficient information to compute the LAL source frame. Missing information is {AbsentAttrsH5}."
-                )
+            # Check if LAL source frame info is present in the metadata.
+            RefCheckDefMeta, AbsentAttrsMeta = CheckNRAttrs(Metadata)
+
+            if RefCheckDefMeta == False:
+                # Then this is SXS data.
+                try:
+                    # Compute the LAL source frame from metadata
+                    RefParams = ComputeLALSourceFrameFromSXSMetadata(Metadata)
+                except Exception as ex:
+                    ex(f"Insufficient information to compute the LAL source frame. Missing information is {AbsentAttrsH5}.")
             else:
-                # Compute the LAL source frame from metadata
-                RefParams = ComputeLALSourceFrameFromSXSMetadata(Metadata)
+                # LAL source frame is present in the metadata
+                RefParams = GetRefVals(Metadata)
         else:
-            # If the metadata contains the Lal source frame
-            # retain it.
-            RefParams = Metadata
-
+            #print(RefCheckDefH5, AbsentAttrsH5)
+            RefParams = GetRefVals(H5File)
+            #print(RefParams)
     elif Interp == True:
         # Experimental; This assumes all the required atributes  needed
         # to compute the LAL source frame at the given reference time
@@ -759,13 +769,20 @@ def GetNRToLALRotationAngles(
         # XLAL_CHECK( ref_time!=XLAL_FAILURE, XLAL_FAILURE, "Error computing reference time.
         # Try setting fRef equal to the f_low given by the NR simulation or to a value <=0 to deactivate
         # fRef for a non-precessing simulation.\n")
+    
+    print(RefParams)
 
     # Get the LAL source frame vectors
-    ln_hat = RefParams["LNhat"]
-    n_hat = RefParams["nhat"]
+    ln_hat_x = RefParams["LNhatx"]
+    ln_hat_y = RefParams["LNhaty"]
+    ln_hat_z = RefParams["LNhatz"]
 
-    ln_hat_x, ln_hat_y, ln_hat_z = ln_hat
-    n_hat_x, n_hat_y, n_hat_z = n_hat
+    n_hat_x = RefParams["nhatx"]
+    n_hat_y = RefParams["nhaty"]
+    n_hat_z = RefParams["nhatz"]
+
+    ln_hat = np.array([ln_hat_x, ln_hat_y, ln_hat_z])
+    n_hat = np.array([n_hat_x, n_hat_y, n_hat_z])
 
     # 2.3: Carryout vector math to get Zref in the lal wave frame
     corb_phase = np.cos(orb_phase)

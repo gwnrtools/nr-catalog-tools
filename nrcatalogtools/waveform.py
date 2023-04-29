@@ -4,7 +4,7 @@ import h5py
 import lal
 import numpy as np
 from sxs import WaveformModes as sxs_WaveformModes
-
+from nrcatalogtools.lvc import GetNRToLALRotationAngles
 from . import utils
 
 
@@ -100,6 +100,10 @@ class WaveformModes(sxs_WaveformModes):
         else:
             raise RuntimeError(
                 f"Could not use or open {file_path_or_open_file}")
+        
+        # Set the file path attribute
+        cls._filepath = h5_file.filename
+        cls._metadata = metadata
 
         ELL_MIN, ELL_MAX = 2, 10
         ell_min, ell_max = 99, -1
@@ -168,6 +172,16 @@ class WaveformModes(sxs_WaveformModes):
             verbosity=verbosity,
             **w_attributes,
         )
+
+    @property
+    def filepath(self):
+        ''' Return the data file path '''
+        return self._filepath
+
+    @property
+    def metadata(self):
+        ''' Return the metadata dictionary'''
+        return self._metadata
 
     def get_mode(self, ell, em):
         return self[f"Y_l{ell}_m{em}.dat"]
@@ -270,14 +284,11 @@ class WaveformModes(sxs_WaveformModes):
                  If available, this also contains the reference time and frequency.
         """
 
-        # Get file path to NR H5 data file
-        path = str(self.waveform_filepath)
-        # Get metadata
-        Metadata = self.get_metadata()
         # Compute angles
-        with h5py.File(path) as H5File:
-            angles = nrcatalogtools.lvc.GetNRToLALRotationAngles(
-                H5File=H5File, Metadata=Metadata, inclination=inclination, PhiRef=coa_phase, Fref=Fref, TRef=Tref)
+        with h5py.File(self.filepath) as H5File:
+            #print(H5File.attrs.keys())
+            angles = GetNRToLALRotationAngles(
+                H5File=H5File, Metadata=self.metadata, inclination=inclination, PhiRef=coa_phase, FRef=FRef, TRef=TRef)
 
         return angles
 
