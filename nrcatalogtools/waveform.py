@@ -1,53 +1,63 @@
+import os
+
+import h5py
 import lal
 import numpy as np
-import os
-import h5py
 from sxs import WaveformModes as sxs_WaveformModes
 
 from . import utils
 
 
 class WaveformModes(sxs_WaveformModes):
-    def __new__(cls,
-                data,
-                time=None,
-                time_axis=0,
-                modes_axis=1,
-                ell_min=2,
-                ell_max=4,
-                verbosity=0,
-                **w_attributes) -> None:
-        self = super().__new__(cls,
-                               data,
-                               time=time,
-                               time_axis=time_axis,
-                               modes_axis=modes_axis,
-                               ell_min=ell_min,
-                               ell_max=ell_max,
-                               **w_attributes)
+
+    def __new__(
+        cls,
+        data,
+        time=None,
+        time_axis=0,
+        modes_axis=1,
+        ell_min=2,
+        ell_max=4,
+        verbosity=0,
+        **w_attributes,
+    ) -> None:
+        self = super().__new__(
+            cls,
+            data,
+            time=time,
+            time_axis=time_axis,
+            modes_axis=modes_axis,
+            ell_min=ell_min,
+            ell_max=ell_max,
+            **w_attributes,
+        )
         self.verbosity = verbosity
         return self
 
     @classmethod
-    def _load(cls,
-              data,
-              time=None,
-              time_axis=0,
-              modes_axis=1,
-              ell_min=2,
-              ell_max=4,
-              verbosity=0,
-              **w_attributes):
+    def _load(
+        cls,
+        data,
+        time=None,
+        time_axis=0,
+        modes_axis=1,
+        ell_min=2,
+        ell_max=4,
+        verbosity=0,
+        **w_attributes,
+    ):
         if time is None:
             time = np.arange(0, len(data[:, 0]))
-        return cls(data,
-                   time=time,
-                   time_axis=time_axis,
-                   modes_axis=modes_axis,
-                   ell_min=ell_min,
-                   ell_max=ell_max,
-                   verbosity=verbosity,
-                   **w_attributes)
+        return cls(
+            data,
+            time=time,
+            time_axis=time_axis,
+            modes_axis=modes_axis,
+            ell_min=ell_min,
+            ell_max=ell_max,
+            verbosity=verbosity,
+            **w_attributes,
+        )
 
     @classmethod
     def load_from_h5(cls, file_path_or_open_file, metadata={}, verbosity=0):
@@ -79,7 +89,7 @@ class WaveformModes(sxs_WaveformModes):
         if type(file_path_or_open_file) == h5py._hl.files.File:
             h5_file = file_path_or_open_file
             close_input_file = False
-            nr_group = 'UNKNOWN'
+            nr_group = "UNKNOWN"
         elif os.path.exists(file_path_or_open_file):
             h5_file = h5py.File(file_path_or_open_file, "r")
             close_input_file = True
@@ -110,9 +120,11 @@ class WaveformModes(sxs_WaveformModes):
                 # get the minimum time and maximum time stamps for all modes
                 t_min = max(t_min, amp_time[0], phase_time[0])
                 t_max = min(t_max, amp_time[-1], phase_time[-1])
-                dt = min(dt,
-                         stat_mode(np.diff(amp_time), keepdims=True)[0][0],
-                         stat_mode(np.diff(phase_time), keepdims=True)[0][0])
+                dt = min(
+                    dt,
+                    stat_mode(np.diff(amp_time), keepdims=True)[0][0],
+                    stat_mode(np.diff(phase_time), keepdims=True)[0][0],
+                )
                 ell_min = min(ell_min, ell)
                 ell_max = max(ell_max, ell)
                 LM.append([ell, em])
@@ -135,7 +147,7 @@ class WaveformModes(sxs_WaveformModes):
         w_attributes = {}
         w_attributes["metadata"] = metadata
         w_attributes["history"] = ""
-        w_attributes["frame"] = quaternionic.array([[1., 0., 0., 0.]])
+        w_attributes["frame"] = quaternionic.array([[1.0, 0.0, 0.0, 0.0]])
         w_attributes["frame_type"] = "inertial"
         w_attributes["data_type"] = h
         w_attributes["spin_weight"] = translate_data_type_to_spin_weight(
@@ -146,14 +158,16 @@ class WaveformModes(sxs_WaveformModes):
         w_attributes["m_is_scaled_out"] = True
         # w_attributes["ells"] = ell_min, ell_max
 
-        return cls(data,
-                   time=times,
-                   time_axis=0,
-                   modes_axis=1,
-                   ell_min=ell_min,
-                   ell_max=ell_max,
-                   verbosity=verbosity,
-                   **w_attributes)
+        return cls(
+            data,
+            time=times,
+            time_axis=0,
+            modes_axis=1,
+            ell_min=ell_min,
+            ell_max=ell_max,
+            verbosity=verbosity,
+            **w_attributes,
+        )
 
     def get_mode(self, ell, em):
         return self[f"Y_l{ell}_m{em}.dat"]
@@ -170,15 +184,25 @@ class WaveformModes(sxs_WaveformModes):
             Tuple(numpy.ndarray): Numpy Arrays containing polarizations
                 time-series
         """
-        polarizations = self.evaluate([inclination, coa_phase])
+
+        # Get angles
+        angles = self.get_angles(inclination, coa_phase, FRef, TRef)
+
+        polarizations = self.evaluate(
+            [angles["theta"], angles["psi"], angles["alpha"]])
+
         return polarizations
 
-    def get_td_waveform(self,
-                        total_mass,
-                        distance,
-                        inclination,
-                        coa_phase,
-                        delta_t=None):
+    def get_td_waveform(
+        self,
+        total_mass,
+        distance,
+        inclination,
+        coa_phase,
+        delta_t=None,
+        FRef=None,
+        TRef=None,
+    ):
         """Sum over modes data and return plus and cross GW polarizations,
         rescaled appropriately for a compact-object binary with given
         total mass and distance from GW detectors.
@@ -194,40 +218,83 @@ class WaveformModes(sxs_WaveformModes):
                 orbital angular momentum vector [radians]
             coa_phase (float): Coalesence orbital phase [radians]
             delta_t (_type_, optional): _description_. Defaults to None.
-
+            FRef (float, optional) : The reference frequency.
+            TRef (float, optional) : The reference time.
         Returns:
             pycbc.TimeSeries(numpy.complex128): Complex polarizations
                 stored in `pycbc` container `TimeSeries`
         """
         if delta_t is None:
             from scipy.stats import mode as stat_mode
+
             delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
         m_secs = utils.time_to_physical(total_mass)
         # we assume that we generally do not sample at a rate below 128Hz.
         # Therefore, depending on the numerical value of dt, we deduce whether
         # dt is in dimensionless units or in seconds.
-        if delta_t > 1. / 128:
+        if delta_t > 1.0 / 128:
             new_time = np.arange(min(self.time), max(self.time), delta_t)
         else:
             new_time = np.arange(min(self.time), max(self.time),
                                  delta_t / m_secs)
-        h = self.interpolate(new_time).evaluate([inclination, coa_phase
-                                                 ]) * utils.amp_to_physical(
-                                                     total_mass, distance)
+
+        # Get angles
+        angles = self.get_angles(inclination, coa_phase, FRef, TRef)
+
+        h = self.interpolate(new_time).evaluate([
+            angles["theta"], angles["psi"], angles["alpha"]
+        ]) * utils.amp_to_physical(total_mass, distance)
         h.time *= m_secs
         return self.to_pycbc(h)
+
+    def get_angles(self, inclination, coa_phase, FRef=None, TRef=None):
+        """Get the inclination, azimuthal and polarization angles
+        of the observer in the NR source frame.
+
+        Parameters
+        ----------
+        inclination : float
+                      The inclination angle of the observer
+                      in the LAL source frame
+        coa_phase : float
+                    The coalescence phase. This will be
+                    the same as reference orbital phase.
+        FRef, TRef : float, optional
+                     The reference frquency and time to define the LAL source frame.
+                     Defaults to the available frequency in the data file.
+        Returns
+        -------
+        angles : dict
+                 angles : dict
+                 The angular corrdinates Theta, Psi,  and the rotation angle Alpha.
+                 If available, this also contains the reference time and frequency.
+        """
+
+        # Get file path to NR H5 data file
+        path = str(self.waveform_filepath_from_simname)
+        # Get metadata
+        Metadata = self.get_metadata()
+        # Compute angles
+        with h5py.File(path) as H5File:
+            angles = nrcatalogtools.lvc.GetNRToLALRotationAngles(
+                H5File, Metadata, inclination, coa_phase, Fref, Tref)
+
+        return angles
 
     def to_pycbc(self, input_array=None):
         if input_array is None:
             input_array = self
         from pycbc.types import TimeSeries
         from scipy.stats import mode as stat_mode
+
         delta_t = stat_mode(np.diff(input_array.time), keepdims=True)[0][0]
-        return TimeSeries(np.array(input_array),
-                          delta_t=delta_t,
-                          dtype=self.ndarray.dtype,
-                          epoch=input_array.time[0],
-                          copy=True)
+        return TimeSeries(
+            np.array(input_array),
+            delta_t=delta_t,
+            dtype=self.ndarray.dtype,
+            epoch=input_array.time[0],
+            copy=True,
+        )
 
     def to_lal(self):
         raise NotImplementedError()

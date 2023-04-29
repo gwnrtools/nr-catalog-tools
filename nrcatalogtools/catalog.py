@@ -1,4 +1,4 @@
-from abc import (ABC, abstractmethod)
+from abc import ABC, abstractmethod
 
 
 class CatalogABC(ABC):
@@ -21,17 +21,20 @@ class CatalogBase(CatalogABC, sxs.Catalog):
         super().__init__(*args, **kwargs)
 
     def get(self, sim_name):
-        if sim_name not in self.simulations_dataframe[
-                'simulation_name'].to_list():
-            raise IOError(f"Simulation {sim_name} not found in catalog."
-                          f"Please check that it exists")
+        if sim_name not in self.simulations_dataframe["simulation_name"].to_list():
+            raise IOError(
+                f"Simulation {sim_name} not found in catalog."
+                f"Please check that it exists"
+            )
         filepath = self.waveform_filepath_from_simname(sim_name)
         if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
             if self._verbosity > 1:
-                print(f"..As data does not exist in cache:"
-                      f"  (in {filepath}),\n"
-                      f"..we will now download it from"
-                      " {}".format(self.waveform_url_from_simname(sim_name)))
+                print(
+                    f"..As data does not exist in cache:"
+                    f"  (in {filepath}),\n"
+                    f"..we will now download it from"
+                    " {}".format(self.waveform_url_from_simname(sim_name))
+                )
             self.download_waveform_data(sim_name)
         metadata = self.get_metadata(sim_name)
         if type(metadata) is not dict and hasattr(metadata, "to_dict"):
@@ -40,7 +43,9 @@ class CatalogBase(CatalogABC, sxs.Catalog):
 
     def get_metadata(self, sim_name):
         df = self.simulations_dataframe
-        if sim_name not in df['simulation_name'].to_list():
-            raise IOError(f"Simulation {sim_name} not found in catalog."
-                          f"Please check that it exists")
+        if sim_name not in df["simulation_name"].to_list():
+            raise IOError(
+                f"Simulation {sim_name} not found in catalog."
+                f"Please check that it exists"
+            )
         return df.loc[sim_name]

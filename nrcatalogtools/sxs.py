@@ -1,5 +1,5 @@
 import sxs
-from . import (catalog, waveform)
+from . import catalog, waveform
 
 
 class SXSCatalog(catalog.CatalogBase):
@@ -14,7 +14,7 @@ class SXSCatalog(catalog.CatalogBase):
         raise NotImplementedError("COMING SOON!")
 
     def get(self, sim_name, extrapolation_order=2):
-        extrap_key = f'Extrapolated_N{extrapolation_order}.dir'
+        extrap_key = f"Extrapolated_N{extrapolation_order}.dir"
         raw_obj = sxs.load(f"{sim_name}/Lev/rhOverM")
         raw_obj = raw_obj.get(extrap_key)
         return waveform.WaveformModes(raw_obj.data, **raw_obj._metadata)

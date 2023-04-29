@@ -350,11 +350,6 @@ def GetInterpRefValuesFromH5File(H5File, ReqTSAttrs, ref_time):
     -------
     params : dict
              The parameter values at the reference time.
-
-    Notes
-    -----
-
-
     """
     from scipy.interpolate import interp1d
 
@@ -597,7 +592,7 @@ def TransformSpinsNRtoLAL(nrSpin1, nrSpin2, n_hat, ln_hat):
     return S1, S2
 
 
-def GetNRToLALRotationAnglesFromH5(
+def GetNRToLALRotationAngles(
     H5File, Metadata, inclination, PhiRef=np.pi / 2, FRef=None, TRef=None
 ):
     """Get the angular coordinates :math:`\theta, \phi`
@@ -620,7 +615,7 @@ def GetNRToLALRotationAnglesFromH5(
     Returns
     -------
     angles : dict
-             The angular corrdinates Theta, Phi,  and the rotation angles Alpha.
+             The angular corrdinates Theta, Psi,  and the rotation angle Alpha.
              If available, this also contains the reference time and frequency.
 
     Notes
@@ -820,7 +815,7 @@ def GetNRToLALRotationAnglesFromH5(
                 print(f"z_wave_x = {z_wave_x}")
                 print(f"sin(theta) = {np.sin(theta)}")
                 raise ValueError(
-                    "Z_x cannot be bigger than sin(theta). Please email the developers."
+                    "Z_x cannot be bigger than sin(theta). Please contact the developers."
                 )
 
         else:
