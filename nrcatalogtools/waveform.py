@@ -271,13 +271,13 @@ class WaveformModes(sxs_WaveformModes):
         """
 
         # Get file path to NR H5 data file
-        path = str(self.waveform_filepath_from_simname)
+        path = str(self.waveform_filepath)
         # Get metadata
         Metadata = self.get_metadata()
         # Compute angles
         with h5py.File(path) as H5File:
             angles = nrcatalogtools.lvc.GetNRToLALRotationAngles(
-                H5File, Metadata, inclination, coa_phase, Fref, Tref)
+                H5File=H5File, Metadata=Metadata, inclination=inclination, PhiRef=coa_phase, Fref=Fref, TRef=Tref)
 
         return angles
 
