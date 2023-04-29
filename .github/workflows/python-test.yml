@@ -23,6 +23,7 @@ jobs:
           channel-priority: flexible
           show-channel-urls: true
       - run: |
+            # Conda diagnostic
             conda --version
             conda info
             conda list
@@ -33,10 +34,38 @@ jobs:
             pip --version
             pwd
             ls -l
+            # Setup nrcattools
             pip install -r requirements.txt
+            export NRC_DIR=${PWD}
+            echo $NRC_DIR
             cd ./test
             pwd
             ls
+            # LAL extras
+            export LAL_DATA_PATH="${PWD}/test_data/lalsuite/lalsuite-extra/data/lalsimulation"
+            echo $LAL_DATA_PATH
+            mkdir -p $LAL_DATA_PATH
+            cd $LAL_DATA_PATH
+            ls
+            ## lal extras fetch method
+            #git lfs pull
+            # wget https://git.ligo.org/lscsoft/lalsuite-extra/-/raw/master/data/lalsimulation/SEOBNRv4ROM_v2.0.hdf5 -O SEOBNRv4ROM_v2.0.hdf5
+            #cd ../../../../../
+            cd $NRC_DIR
+            pwd
+            ls
+            # Pull waveformtools
+            cd ..
+            git clone https://gitlab.com/vaishakp/waveformtools.git
+            cd waveformtools
+            pip install -r requirements.txt
+            ls
+            export WTOOLS_DIR=$PWD
+            echo $WTOOLS_DIR
+            export PYTHONPATH="$WTOOLS_DIR":$PYTHONPATH
+            echo $PYTHONPATH
+            # Begin testing
+            cd $NRC_DIR/test
             python -m unittest -v
       - name: Upload logs
         uses: actions/upload-artifact@v3
