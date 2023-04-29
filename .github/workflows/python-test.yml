@@ -34,6 +34,8 @@ jobs:
             pip --version
             pwd
             ls -l
+            # Setup linters
+            conda install black isort -y
             # Setup nrcattools
             pip install -r requirements.txt
             export NRC_DIR=${PWD}
@@ -64,6 +66,10 @@ jobs:
             echo $WTOOLS_DIR
             export PYTHONPATH="$WTOOLS_DIR":$PYTHONPATH
             echo $PYTHONPATH
+            # Begin linting
+            cd %NRC_DIR
+            isort .
+            black .
             # Begin testing
             cd $NRC_DIR/test
             python -m unittest -v
