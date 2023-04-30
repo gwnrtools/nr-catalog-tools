@@ -132,6 +132,17 @@ class RITCatalog(catalog.CatalogBase):
         return self._helper.waveform_data_url + "/" + self.waveform_filename_from_simname(
             sim_name)
 
+    def metadata_filename_from_simname(self, sim_name):
+        return self._helper.metadata_filename_from_simname(sim_name)
+
+    def metadata_filepath_from_simname(self, sim_name):
+        return self._helper.metadata_dir / self.metadata_filename_from_simname(
+            sim_name)
+
+    def metadata_url_from_simname(self, sim_name):
+        return self._helper.metadata_url + "/" + self.metadata_filename_from_simname(
+            sim_name)
+
     def download_waveform_data(self, sim_name, use_cache=None):
         raise self._helper.download_waveform_data(sim_name,
                                                   use_cache=use_cache)
