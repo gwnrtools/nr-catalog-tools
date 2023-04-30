@@ -17,7 +17,7 @@ class RITCatalog(catalog.CatalogBase):
         if catalog is not None:
             super().__init__(catalog)
         else:
-            type(self).load(verbosity=verbosity, **kwargs)
+            self = type(self).load(verbosity=verbosity, **kwargs)
         self._helper = helper
         self._verbosity = verbosity
         self._dict["catalog_file_description"] = "scraped from website"
