@@ -1,3 +1,4 @@
+import os
 import sxs
 from . import (catalog, waveform)
 
@@ -8,10 +9,28 @@ class SXSCatalog(catalog.CatalogBase):
         self._verbosity = verbosity
 
     def waveform_filename_from_simname(self, sim_name):
-        raise NotImplementedError("COMING SOON!")
+        return os.path.basename(self.waveform_filepath_from_simname(sim_name))
 
     def waveform_filepath_from_simname(self, sim_name):
-        raise NotImplementedError("COMING SOON!")
+        poss_files = self.select_files(f"{sim_name}/Lev/rhOverM")
+        file_path = sxs.sxs_directory("cache") / poss_files[list(
+            poss_files.keys())[0]]['truepath']
+        if os.path.exists(file_path):
+            return file_path.as_posix()
+        raise RuntimeError(f"Could not resolve path for {sim_name}"
+                           f"..best calculated path = {file_path}")
+
+    def metadata_filename_from_simname(self, sim_name):
+        return os.path.basename(self.metadata_filepath_from_simname(sim_name))
+
+    def metadata_filepath_from_simname(self, sim_name):
+        poss_files = self.select_files(f"{sim_name}/Lev/metadata.json")
+        file_path = sxs.sxs_directory("cache") / poss_files[list(
+            poss_files.keys())[0]]['truepath']
+        if os.path.exists(file_path):
+            return file_path.as_posix()
+        raise RuntimeError(f"Could not resolve path for {sim_name}"
+                           f"..best calculated path = {file_path}")
 
     def get(self, sim_name, extrapolation_order=2):
         extrap_key = f'Extrapolated_N{extrapolation_order}.dir'
