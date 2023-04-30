@@ -195,12 +195,22 @@ class MayaCatalog(catalog.CatalogBase):
         return sim_name + '.h5'
 
     def waveform_filepath_from_simname(self, sim_name):
-        return self.waveform_data_dir / self.waveform_filename_from_simname(
+        file_path = self.waveform_data_dir / self.waveform_filename_from_simname(
             sim_name)
+        if not os.path.exists(file_path):
+            raise RuntimeError(f"Could not resolve path for {sim_name}"
+                               f"..best calculated path = {file_path}")
+        return file_path.as_posix()
 
     def waveform_url_from_simname(self, sim_name):
         return self.waveform_data_url + "/" + self.waveform_filename_from_simname(
             sim_name)
+
+    def metadata_filename_from_simname(self, sim_name):
+        return os.path.basename(self.metadata_filepath_from_simname(sim_name))
+
+    def metadata_filepath_from_simname(self, sim_name):
+        raise NotImplementedError("COMING SOON!")
 
     def download_waveform_data(self, sim_name, use_cache=None):
         if use_cache is None:
