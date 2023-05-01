@@ -129,7 +129,7 @@ class RITCatalog(catalog.CatalogBase):
         if not os.path.exists(file_path):
             raise RuntimeError(f"Could not resolve path for {sim_name}"
                                f"..best calculated path = {file_path}")
-        return file_path.as_posix()
+        return str(file_path)
 
     def waveform_url_from_simname(self, sim_name):
         return self._helper.waveform_data_url + "/" + self.waveform_filename_from_simname(
@@ -150,8 +150,8 @@ class RITCatalog(catalog.CatalogBase):
             sim_name)
 
     def download_waveform_data(self, sim_name, use_cache=None):
-        raise self._helper.download_waveform_data(sim_name,
-                                                  use_cache=use_cache)
+        return self._helper.download_waveform_data(sim_name,
+                                                   use_cache=use_cache)
 
 
 class RITCatalogHelper(object):
