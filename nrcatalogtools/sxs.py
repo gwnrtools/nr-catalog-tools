@@ -40,3 +40,9 @@ class SXSCatalog(catalog.CatalogBase):
 
     def get_metadata(self, sim_name):
         return sxs.load(f"{sim_name}/Lev/metadata.json")
+
+    def download_waveform_data(self, sim_name):
+        raise NotImplementedError("This shouldn't be called.")
+
+    def waveform_url_from_simname(self, sim_name):
+        raise NotImplementedError("This shouldn't be called.")
