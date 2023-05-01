@@ -51,7 +51,7 @@ class CatalogBase(CatalogABC, sxs.Catalog):
         if sim_name not in df['simulation_name'].to_list():
             raise IOError(f"Simulation {sim_name} not found in catalog."
                           f"Please check that it exists")
-        return df.loc[sim_name]
+        return sxs.Metadata(df.loc[sim_name].to_dict())
 
     def set_attribute_in_waveform_data_file(self, sim_name, attr, attr_value):
         """Set attributes in the HDF5 file holding waveform data for a given
