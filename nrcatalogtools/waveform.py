@@ -103,7 +103,6 @@ class WaveformModes(sxs_WaveformModes):
         
         # Set the file path attribute
         cls._filepath = h5_file.filename
-        cls._sim_metadata = metadata
 
         ELL_MIN, ELL_MAX = 2, 10
         ell_min, ell_max = 99, -1
@@ -180,8 +179,8 @@ class WaveformModes(sxs_WaveformModes):
 
     @property
     def sim_metadata(self):
-        ''' Return the metadata dictionary'''
-        return self._sim_metadata
+        ''' Return the simulation metadata dictionary'''
+        return self._metadata['metadata']
 
     def get_mode(self, ell, em):
         return self[f"Y_l{ell}_m{em}.dat"]
@@ -288,7 +287,7 @@ class WaveformModes(sxs_WaveformModes):
         with h5py.File(self.filepath) as H5File:
             #print(H5File.attrs.keys())
             angles = GetNRToLALRotationAngles(
-                H5File=H5File, Metadata=self.sim_metadata, inclination=inclination, PhiRef=coa_phase, FRef=FRef, TRef=TRef)
+                H5File=H5File, Metadata=self._sim_metadata, inclination=inclination, PhiRef=coa_phase, FRef=FRef, TRef=TRef)
 
         return angles
 
