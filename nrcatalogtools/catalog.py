@@ -18,6 +18,14 @@ class CatalogABC(ABC):
     def metadata_filepath_from_simname(self, sim_name):
         raise NotImplementedError()
 
+    @abstractmethod
+    def download_waveform_data(self, sim_name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def waveform_url_from_simname(self, sim_name):
+        raise NotImplementedError()
+
 
 import os
 import sxs
