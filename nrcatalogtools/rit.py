@@ -630,8 +630,6 @@ class RITCatalogHelper(object):
                     )
 
     def fetch_waveform_data_from_cache(self, idx):
-        wf = self.waveform_filename_from_cache(idx)
-        wf_local_path = self.waveform_data_dir / wf
         raise NotImplementedError()
 
     def download_waveform_data_for_catalog(

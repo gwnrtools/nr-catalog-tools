@@ -1,7 +1,6 @@
 import os
 import functools
 import pandas as pd
-import sxs
 
 from . import catalog, utils
 
