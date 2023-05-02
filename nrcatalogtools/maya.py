@@ -15,7 +15,8 @@ class MayaCatalog(catalog.CatalogBase):
         if catalog is not None:
             super().__init__(catalog)
         else:
-            self = type(self).load(verbosity=verbosity, **kwargs)
+            obj = type(self).load(verbosity=verbosity, **kwargs)
+            super().__init__(obj._dict)
         self._verbosity = verbosity
         self._dict["catalog_file_description"] = "scraped from website"
         self._dict["modified"] = {}
