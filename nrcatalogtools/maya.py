@@ -229,8 +229,9 @@ class MayaCatalog(catalog.CatalogBase):
         file_path = self.waveform_data_dir / self.waveform_filename_from_simname(
             sim_name)
         if not os.path.exists(file_path):
-            print(f"WARNING: Could not resolve path for {sim_name}"
-                  f"..best calculated path = {file_path}")
+            if self._verbosity > 2:
+                print(f"WARNING: Could not resolve path for {sim_name}"
+                      f"..best calculated path = {file_path}")
         return file_path.as_posix()
 
     def waveform_url_from_simname(self, sim_name):

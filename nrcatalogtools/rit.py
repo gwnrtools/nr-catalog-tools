@@ -127,8 +127,9 @@ class RITCatalog(catalog.CatalogBase):
     def waveform_filepath_from_simname(self, sim_name):
         file_path = self.get_metadata(sim_name)['waveform_data_location']
         if not os.path.exists(file_path):
-            print(f"WARNING: Could not resolve path for {sim_name}"
-                  f"..best calculated path = {file_path}")
+            if self._verbosity > 2:
+                print(f"WARNING: Could not resolve path for {sim_name}"
+                      f"..best calculated path = {file_path}")
         return str(file_path)
 
     def waveform_url_from_simname(self, sim_name):
@@ -431,7 +432,8 @@ class RITCatalogHelper(object):
             metadata_df_fpath = self.metadata_dir / "metadata.csv"
             if os.path.exists(metadata_df_fpath
                               ) and os.path.getsize(metadata_df_fpath) > 0:
-                print("Opening file {}".format(metadata_df_fpath))
+                if self.verbosity > 2:
+                    print("Opening file {}".format(metadata_df_fpath))
                 self.metadata = pd.read_csv(metadata_df_fpath)
                 if len(self.metadata) >= (num_sims_to_crawl - 1):
                     # return self.metadata
@@ -460,7 +462,8 @@ class RITCatalogHelper(object):
 
             # Second, check if metadata present already in DataFrame
             if len(sims) > 0 and not found:
-                print("Checking existing dataframe")
+                if self.verbosity > 1:
+                    print("Checking existing dataframe")
                 for _, row in sims.iterrows():
                     name = row['simulation_name']
                     for sim_tag in possible_sim_tags:

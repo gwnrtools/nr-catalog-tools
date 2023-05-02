@@ -16,8 +16,9 @@ class SXSCatalog(catalog.CatalogBase):
         file_path = sxs.sxs_directory("cache") / poss_files[list(
             poss_files.keys())[0]]['truepath']
         if not os.path.exists(file_path):
-            print(f"WARNING: Could not resolve path for {sim_name}"
-                  f"..best calculated path = {file_path}")
+            if self._verbosity > 2:
+                print(f"WARNING: Could not resolve path for {sim_name}"
+                      f"..best calculated path = {file_path}")
         return file_path.as_posix()
 
     def metadata_filename_from_simname(self, sim_name):
@@ -28,8 +29,9 @@ class SXSCatalog(catalog.CatalogBase):
         file_path = sxs.sxs_directory("cache") / poss_files[list(
             poss_files.keys())[0]]['truepath']
         if not os.path.exists(file_path):
-            print(f"WARNING: Could not resolve path for {sim_name}"
-                  f"..best calculated path = {file_path}")
+            if self._verbosity > 2:
+                print(f"WARNING: Could not resolve path for {sim_name}"
+                      f"..best calculated path = {file_path}")
         return file_path.as_posix()
 
     def get(self, sim_name, extrapolation_order=2):
