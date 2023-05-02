@@ -298,7 +298,9 @@ def GetRefTimeFromRefFreq(H5File, ref_freq):
     return RefTime
 
 
-def CheckNRAttrs(MetadataObject, ReqAttrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]):
+def CheckNRAttrs(
+    MetadataObject, ReqAttrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]
+):
     """Check if the NR h5 file or a metadata dictionary
         contains all the attributes required.
 
@@ -362,7 +364,8 @@ def GetInterpRefValuesFromH5File(H5File, ReqTSAttrs, ref_time):
     return params
 
 
-def GetRefVals(MetadataObject, ReqAttrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]
+def GetRefVals(
+    MetadataObject, ReqAttrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]
 ):
     """Get the reference values from a NR HDF5 file
     or a metadata dictionary.
@@ -388,7 +391,7 @@ def GetRefVals(MetadataObject, ReqAttrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", 
 
     params = {}
 
-    #print(MetadataObject.keys())
+    # print(MetadataObject.keys())
     for key in ReqAttrs:
         RefVal = Source[key]
         params.update({key: RefVal})
@@ -444,8 +447,15 @@ def ComputeLALSourceFrameFromSXSMetadata(Metadata):
     nhat = (DPos) / np.linalg.norm(DPos)
     # nhatx, nhaty, nhatz = Nhat
 
-    params = {'LNhatx' : LNhatx, 'LNhaty' : LNhaty, 'LNhatz' : LNhatz, 'nhatx' : nhatx, 'nhaty' : nhaty, 'nhatz' : nhatz}
-    #params = {"LNhat": LNhat, "nhat": nhat}
+    params = {
+        "LNhatx": LNhatx,
+        "LNhaty": LNhaty,
+        "LNhatz": LNhatz,
+        "nhatx": nhatx,
+        "nhaty": nhaty,
+        "nhatz": nhatz,
+    }
+    # params = {"LNhat": LNhat, "nhat": nhat}
 
     return params
 
@@ -493,8 +503,15 @@ def ComputeLALSourceFrameByInterp(H5File, ReqTSAttrs, TRef):
     LNhat = LNhat / np.linalg.norm(LNhat)
     # LNhatx, LNhaty, LNhatz = LNhat
 
-    #params = {"LNhat": LNhat, "nhat": nhat}
-    params = {'LNhatx' : LNhatx, 'LNhaty' : LNhaty, 'LNhatz' : LNhatz, 'nhatx' : nhatx, 'nhaty' : nhaty, 'nhatz' : nhatz}
+    # params = {"LNhat": LNhat, "nhat": nhat}
+    params = {
+        "LNhatx": LNhatx,
+        "LNhaty": LNhaty,
+        "LNhatz": LNhatz,
+        "nhatx": nhatx,
+        "nhaty": nhaty,
+        "nhatz": nhatz,
+    }
 
     return params
 
@@ -596,7 +613,7 @@ def TransformSpinsNRtoLAL(nrSpin1, nrSpin2, n_hat, ln_hat):
 
 
 def GetNRToLALRotationAngles(
-    H5File, Metadata, inclination, PhiRef=np.pi / 2, FRef=None, TRef=None
+    H5File, Metadata, Inclination, PhiRef=np.pi / 2, FRef=None, TRef=None
 ):
     """Get the angular coordinates :math:`\theta, \phi`
     and the rotation angle :math:`\alpha` from the H5 file
@@ -606,10 +623,10 @@ def GetNRToLALRotationAngles(
     H5File : file object
             The waveform h5 file handle.
 
-    inclination : float
+    Inclination : float
                   The inclination angle.
     PhiRef : float
-             The reference orbital phase.
+             The orbital phase at reference time.
     Fref, TRef : float, optional
                  The reference orbital frequency or time
 
@@ -634,6 +651,8 @@ def GetNRToLALRotationAngles(
     phi_ref: Orbital reference phase.
     TRef : Reference time. -1 or None indicates it was not found in the metadata.
     FRef: Reference frequency.
+
+    The reference epoch is defined close to the beginning of the simulation.
     """
 
     # tolerence for sanity checks
@@ -664,7 +683,7 @@ def GetNRToLALRotationAngles(
     ###########################################
     # Cases
     ###########################################
-    #ReqDefAttrs = ["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]
+    # ReqDefAttrs = ["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]
     ReqDefAttrsSXS = [
         "reference_time",
         "reference_mass1",
@@ -709,7 +728,7 @@ def GetNRToLALRotationAngles(
         # RIT and GT qualify this.
         # Default attributes in case of no interpolation
         # RefCheckInterp = CheckNRAttrs(H5File, ReqTSAttrs)
-        #RefCheckDefMeta, AbsentAttrsMeta = CheckNRAttrs(Metadata, ReqDefAttrs)
+        # RefCheckDefMeta, AbsentAttrsMeta = CheckNRAttrs(Metadata, ReqDefAttrs)
         RefCheckDefH5, AbsentAttrsH5 = CheckNRAttrs(H5File)
 
         # RefCheckDefMeta, AbsentAttrsMeta  = CheckNRAttrs(Metadata, ReqDefAttrs)
@@ -728,14 +747,16 @@ def GetNRToLALRotationAngles(
                     # Compute the LAL source frame from metadata
                     RefParams = ComputeLALSourceFrameFromSXSMetadata(Metadata)
                 except Exception as ex:
-                    ex(f"Insufficient information to compute the LAL source frame. Missing information is {AbsentAttrsH5}.")
+                    ex(
+                        f"Insufficient information to compute the LAL source frame. Missing information is {AbsentAttrsH5}."
+                    )
             else:
                 # LAL source frame is present in the metadata
                 RefParams = GetRefVals(Metadata)
         else:
-            #print(RefCheckDefH5, AbsentAttrsH5)
+            # print(RefCheckDefH5, AbsentAttrsH5)
             RefParams = GetRefVals(H5File)
-            #print(RefParams)
+            # print(RefParams)
     elif Interp == True:
         # Experimental; This assumes all the required atributes  needed
         # to compute the LAL source frame at the given reference time
@@ -769,7 +790,7 @@ def GetNRToLALRotationAngles(
         # XLAL_CHECK( ref_time!=XLAL_FAILURE, XLAL_FAILURE, "Error computing reference time.
         # Try setting fRef equal to the f_low given by the NR simulation or to a value <=0 to deactivate
         # fRef for a non-precessing simulation.\n")
-    
+
     print(RefParams)
 
     # Get the LAL source frame vectors
@@ -787,8 +808,8 @@ def GetNRToLALRotationAngles(
     # 2.3: Carryout vector math to get Zref in the lal wave frame
     corb_phase = np.cos(orb_phase)
     sorb_phase = np.sin(orb_phase)
-    sinclination = np.sin(inclination)
-    cinclination = np.cos(inclination)
+    sinclination = np.sin(Inclination)
+    cinclination = np.cos(Inclination)
 
     ln_cross_n = np.cross(ln_hat, n_hat)
     ln_cross_n_x, ln_cross_n_y, ln_cross_n_z = ln_cross_n
