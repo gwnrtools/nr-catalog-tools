@@ -60,17 +60,17 @@ class CatalogBase(CatalogABC, sxs.Catalog):
                           f"Please check that it exists")
         return sim_dict[sim_name]
 
-    def set_attribute_in_waveform_data_file(self, sim_name, attr, attr_value):
+    def set_attribute_in_waveform_data_file(self, sim_name, attr_name, attr_value):
         """Set attributes in the HDF5 file holding waveform data for a given
         simulation
 
         Args:
             sim_name (str): Name/Tag of the simulation
-            attr (str): Name of the attribute to set
+            attr_name (str): Name of the attribute to set
             attr_value (any/serializable): Value of the attribute
         """
         import h5py
         file_path = self.waveform_filepath_from_simname(sim_name)
         with h5py.File(file_path, 'a') as fp:
-            if attr not in fp.attrs:
-                fp.attrs[attr] = attr_value
+            if attr_name not in fp.attrs:
+                fp.attrs[attr_name] = attr_value
