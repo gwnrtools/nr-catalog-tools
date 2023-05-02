@@ -37,8 +37,7 @@ class CatalogBase(CatalogABC, sxs.Catalog):
         sxs.Catalog.__init__(self, *args, **kwargs)
 
     def get(self, sim_name):
-        if sim_name not in self.simulations_dataframe[
-                'simulation_name'].to_list():
+        if sim_name not in self.simulations_dataframe.index.to_list():
             raise IOError(f"Simulation {sim_name} not found in catalog."
                           f"Please check that it exists")
         filepath = self.waveform_filepath_from_simname(sim_name)
@@ -55,11 +54,11 @@ class CatalogBase(CatalogABC, sxs.Catalog):
         return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
 
     def get_metadata(self, sim_name):
-        df = self.simulations_dataframe
-        if sim_name not in df['simulation_name'].to_list():
+        sim_dict = self.simulations
+        if sim_name not in list(sim_dict.keys()):
             raise IOError(f"Simulation {sim_name} not found in catalog."
                           f"Please check that it exists")
-        return sxs.Metadata(df.loc[sim_name].to_dict())
+        return sim_dict[sim_name]
 
     def set_attribute_in_waveform_data_file(self, sim_name, attr, attr_value):
         """Set attributes in the HDF5 file holding waveform data for a given
