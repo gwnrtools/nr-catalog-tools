@@ -1,6 +1,7 @@
 import os
 import functools
 import pandas as pd
+import sxs
 
 from . import (catalog, utils)
 
@@ -98,7 +99,7 @@ class MayaCatalog(catalog.CatalogBase):
                     f"Catalog not found in '{cache_path}' and download failed"
                 ) from download_failed
             elif download is False:  # Test if it literally *is* False, rather than just casts to False
-                raise ValueError(
+                raise ValueErwaveform_filepath_from_simnameror(
                     f"The catalog was not found in '{cache_path}', and downloading was turned off"
                 )
             else:
@@ -157,7 +158,37 @@ class MayaCatalog(catalog.CatalogBase):
     def simulations_dataframe(self):
         df = pd.DataFrame(self.simulations).transpose()
         df.rename(columns={'GTID': 'simulation_name'}, inplace=True)
-        return df
+
+        extra_cols = [
+            'metadata_link', 'metadata_location', 'waveform_data_link',
+            'waveform_data_location'
+        ]
+        if any([col not in df.columns.to_list() for col in extra_cols]):
+            metadata_dict = {k: [] for k in extra_cols}
+            for _, row in df.iterrows():
+                sim_name = row.name
+                if 'metadata_location' in extra_cols:
+                    metadata_dict['metadata_location'].append(
+                        self.metadata_filepath_from_simname(sim_name))
+                if 'metadata_link' in extra_cols:
+                    metadata_dict['metadata_link'].append(self.metadata_url)
+                if 'waveform_data_link' in extra_cols:
+                    metadata_dict['waveform_data_link'].append(
+                        self.waveform_data_url + "/" + f"{sim_name}.h5")
+                if 'waveform_data_location' in extra_cols:
+                    metadata_dict['waveform_data_location'].append(
+                        self.waveform_filepath_from_simname(sim_name))
+
+            for col_name in metadata_dict:
+                df[col_name] = metadata_dict[col_name]
+            tmp = df.transpose().to_dict()
+            self._dict["simulations"] = {
+                sim_name: sxs.Metadata(tmp[sim_name])
+                for sim_name in tmp
+            }
+            return self.simulations_dataframe
+        else:
+            return df
 
     @property
     @functools.lru_cache()
@@ -198,8 +229,8 @@ class MayaCatalog(catalog.CatalogBase):
         file_path = self.waveform_data_dir / self.waveform_filename_from_simname(
             sim_name)
         if not os.path.exists(file_path):
-            raise RuntimeError(f"Could not resolve path for {sim_name}"
-                               f"..best calculated path = {file_path}")
+            print(f"WARNING: Could not resolve path for {sim_name}"
+                  f"..best calculated path = {file_path}")
         return file_path.as_posix()
 
     def waveform_url_from_simname(self, sim_name):
@@ -209,8 +240,8 @@ class MayaCatalog(catalog.CatalogBase):
     def metadata_filename_from_simname(self, sim_name):
         return os.path.basename(self.metadata_filepath_from_simname(sim_name))
 
-    def metadata_filepath_from_simname(self, sim_name):
-        raise NotImplementedError("COMING SOON!")
+    def metadata_filepath_from_simname(self, sim_name, ext='txt'):
+        return self.metadata_dir / f"{sim_name}.{ext}"
 
     def download_waveform_data(self, sim_name, use_cache=None):
         if use_cache is None:
