@@ -58,24 +58,25 @@ class SXSCatalog(catalog.CatalogBase):
 
     def _add_paths_to_metadata(self):
         metadata_dict = self._dict["simulations"]
-        existing_cols = list(metadata_dict[list(
-            metadata_dict.keys())[0]].keys())
+        existing_cols = list(metadata_dict[list(metadata_dict.keys())[0]].keys())
         new_cols = [
-            'metadata_link', 'metadata_location', 'waveform_data_link',
-            'waveform_data_location'
+            "metadata_link",
+            "metadata_location",
+            "waveform_data_link",
+            "waveform_data_location",
         ]
 
         if any([col not in existing_cols for col in new_cols]):
             for sim_name in metadata_dict:
-                if 'metadata_location' not in existing_cols:
+                if "metadata_location" not in existing_cols:
                     metadata_dict[sim_name][
-                        'metadata_location'] = self.metadata_filepath_from_simname(
-                            sim_name)
-                if 'metadata_link' not in existing_cols:
-                    metadata_dict[sim_name]['metadata_link'] = ""
-                if 'waveform_data_link' not in existing_cols:
-                    metadata_dict[sim_name]['waveform_data_link'] = ""
-                if 'waveform_data_location' not in existing_cols:
+                        "metadata_location"
+                    ] = self.metadata_filepath_from_simname(sim_name)
+                if "metadata_link" not in existing_cols:
+                    metadata_dict[sim_name]["metadata_link"] = ""
+                if "waveform_data_link" not in existing_cols:
+                    metadata_dict[sim_name]["waveform_data_link"] = ""
+                if "waveform_data_location" not in existing_cols:
                     metadata_dict[sim_name][
-                        'waveform_data_location'] = self.waveform_filepath_from_simname(
-                            sim_name)
+                        "waveform_data_location"
+                    ] = self.waveform_filepath_from_simname(sim_name)
