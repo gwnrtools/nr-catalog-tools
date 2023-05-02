@@ -241,7 +241,7 @@ class MayaCatalog(catalog.CatalogBase):
         return os.path.basename(self.metadata_filepath_from_simname(sim_name))
 
     def metadata_filepath_from_simname(self, sim_name, ext='txt'):
-        return self.metadata_dir / f"{sim_name}.{ext}"
+        return str(self.metadata_dir / f"{sim_name}.{ext}")
 
     def download_waveform_data(self, sim_name, use_cache=None):
         if use_cache is None:
