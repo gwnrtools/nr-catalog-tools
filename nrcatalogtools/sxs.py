@@ -1,6 +1,6 @@
 import os
 import sxs
-from . import (catalog, waveform)
+from . import catalog, waveform
 
 
 class SXSCatalog(catalog.CatalogBase):
@@ -14,12 +14,16 @@ class SXSCatalog(catalog.CatalogBase):
 
     def waveform_filepath_from_simname(self, sim_name):
         poss_files = self.select_files(f"{sim_name}/Lev/rhOverM")
-        file_path = sxs.sxs_directory("cache") / poss_files[list(
-            poss_files.keys())[0]]['truepath']
+        file_path = (
+            sxs.sxs_directory("cache")
+            / poss_files[list(poss_files.keys())[0]]["truepath"]
+        )
         if not os.path.exists(file_path):
             if self._verbosity > 2:
-                print(f"WARNING: Could not resolve path for {sim_name}"
-                      f"..best calculated path = {file_path}")
+                print(
+                    f"WARNING: Could not resolve path for {sim_name}"
+                    f"..best calculated path = {file_path}"
+                )
         return file_path.as_posix()
 
     def metadata_filename_from_simname(self, sim_name):
@@ -27,16 +31,20 @@ class SXSCatalog(catalog.CatalogBase):
 
     def metadata_filepath_from_simname(self, sim_name):
         poss_files = self.select_files(f"{sim_name}/Lev/metadata.json")
-        file_path = sxs.sxs_directory("cache") / poss_files[list(
-            poss_files.keys())[0]]['truepath']
+        file_path = (
+            sxs.sxs_directory("cache")
+            / poss_files[list(poss_files.keys())[0]]["truepath"]
+        )
         if not os.path.exists(file_path):
             if self._verbosity > 2:
-                print(f"WARNING: Could not resolve path for {sim_name}"
-                      f"..best calculated path = {file_path}")
+                print(
+                    f"WARNING: Could not resolve path for {sim_name}"
+                    f"..best calculated path = {file_path}"
+                )
         return file_path.as_posix()
 
     def get(self, sim_name, extrapolation_order=2):
-        extrap_key = f'Extrapolated_N{extrapolation_order}.dir'
+        extrap_key = f"Extrapolated_N{extrapolation_order}.dir"
         raw_obj = sxs.load(f"{sim_name}/Lev/rhOverM")
         raw_obj = raw_obj.get(extrap_key)
         return waveform.WaveformModes(raw_obj.data, **raw_obj._metadata)

@@ -3,15 +3,11 @@ import functools
 import pandas as pd
 import sxs
 
-from . import (catalog, utils)
+from . import catalog, utils
 
 
 class MayaCatalog(catalog.CatalogBase):
-    def __init__(self,
-                 catalog=None,
-                 use_cache=True,
-                 verbosity=0,
-                 **kwargs) -> None:
+    def __init__(self, catalog=None, use_cache=True, verbosity=0, **kwargs) -> None:
         if catalog is not None:
             super().__init__(catalog)
         else:
@@ -47,6 +43,7 @@ class MayaCatalog(catalog.CatalogBase):
     @functools.lru_cache()
     def load(cls, download=None, verbosity=0):
         import zipfile
+
         progress = True
         utils.maya_catalog_info["cache_dir"].mkdir(parents=True, exist_ok=True)
         catalog_url = utils.maya_catalog_info["metadata_url"]
@@ -66,10 +63,9 @@ class MayaCatalog(catalog.CatalogBase):
             temp_zip = cache_path.with_suffix(".temp.zip")
             try:
                 try:
-                    utils.download_file(catalog_url,
-                                        temp_txt,
-                                        progress=progress,
-                                        if_newer=if_newer)
+                    utils.download_file(
+                        catalog_url, temp_txt, progress=progress, if_newer=if_newer
+                    )
                 except Exception as e:
                     if download:
                         raise RuntimeError(
@@ -80,8 +76,8 @@ class MayaCatalog(catalog.CatalogBase):
                     download_failed = False
                     if temp_txt.exists():
                         with zipfile.ZipFile(
-                                temp_zip, "w",
-                                compression=zipfile.ZIP_BZIP2) as catalog_zip:
+                            temp_zip, "w", compression=zipfile.ZIP_BZIP2
+                        ) as catalog_zip:
                             catalog_zip.write(temp_txt, arcname="catalog.txt")
                         temp_zip.replace(cache_path)
             finally:
@@ -106,20 +102,25 @@ class MayaCatalog(catalog.CatalogBase):
                 )
             else:
                 raise ValueError(
-                    f"Catalog not found in '{cache_path}' for unknown reasons")
+                    f"Catalog not found in '{cache_path}' for unknown reasons"
+                )
 
         try:
             with zipfile.ZipFile(cache_path, "r") as catalog_zip:
                 try:
                     with catalog_zip.open("catalog.txt") as catalog_txt:
                         try:
-                            catalog_df = pd.read_table(
-                                catalog_txt,
-                                sep="|",
-                                header=0,
-                                index_col=1,
-                                skipinitialspace=True).dropna(
-                                    axis=1, how='all').iloc[1:]
+                            catalog_df = (
+                                pd.read_table(
+                                    catalog_txt,
+                                    sep="|",
+                                    header=0,
+                                    index_col=1,
+                                    skipinitialspace=True,
+                                )
+                                .dropna(axis=1, how="all")
+                                .iloc[1:]
+                            )
                         except Exception as e:
                             raise ValueError(
                                 f"Failed to parse 'catalog.json' in '{cache_path}'"
@@ -129,27 +130,26 @@ class MayaCatalog(catalog.CatalogBase):
                         f"Failed to open 'catalog.txt' in '{cache_path}'"
                     ) from e
         except Exception as e:
-            raise ValueError(
-                f"Failed to open '{cache_path}' as a ZIP file") from e
+            raise ValueError(f"Failed to open '{cache_path}' as a ZIP file") from e
 
         # Fill in the catalog object
         catalog_dict = {}
-        catalog_dict['GTID'] = [s.strip() for s in list(catalog_df.index)]
+        catalog_dict["GTID"] = [s.strip() for s in list(catalog_df.index)]
 
         for col_name in catalog_df.columns:
             column = list(catalog_df[col_name])
-            if 'GT_Tag' in col_name:
-                catalog_dict['GT_Tag'] = [s.strip() for s in column]
+            if "GT_Tag" in col_name:
+                catalog_dict["GT_Tag"] = [s.strip() for s in column]
             else:
                 catalog_dict[col_name.strip()] = [
-                    float(s.strip().replace('-', 'NAN'))
-                    if type(s) == str else float(s) for s in column
+                    float(s.strip().replace("-", "NAN")) if type(s) == str else float(s)
+                    for s in column
                 ]
         catalog_df = pd.DataFrame(catalog_dict)
         catalog = {}
         simulations = {}
         for idx, row in catalog_df.iterrows():
-            name = row['GTID']
+            name = row["GTID"]
             metadata_dict = row.to_dict()
             simulations[name] = metadata_dict
         catalog["simulations"] = simulations
@@ -194,7 +194,7 @@ class MayaCatalog(catalog.CatalogBase):
         """Map of all file names to the corresponding file info"""
         file_infos = {}
         for _, row in self.simulations_dataframe.iterrows():
-            waveform_data_location = row['waveform_data_location']
+            waveform_data_location = row["waveform_data_location"]
             path_str = os.path.basename(waveform_data_location)
             if os.path.exists(waveform_data_location):
                 file_size = os.path.getsize(waveform_data_location)
@@ -204,11 +204,12 @@ class MayaCatalog(catalog.CatalogBase):
                 "checksum": None,
                 "filename": os.path.basename(waveform_data_location),
                 "filesize": file_size,
-                "download": row['waveform_data_link']
+                "download": row["waveform_data_link"],
             }
             file_infos[path_str] = file_info
 
         import collections
+
         unique_files = collections.defaultdict(list)
         for k, v in file_infos.items():
             unique_files[f"{v['checksum']}{v['filesize']}"].append(k)
@@ -221,25 +222,29 @@ class MayaCatalog(catalog.CatalogBase):
         return file_infos
 
     def waveform_filename_from_simname(self, sim_name):
-        return sim_name + '.h5'
+        return sim_name + ".h5"
 
     def waveform_filepath_from_simname(self, sim_name):
         file_path = self.waveform_data_dir / self.waveform_filename_from_simname(
-            sim_name)
+            sim_name
+        )
         if not os.path.exists(file_path):
             if self._verbosity > 2:
-                print(f"WARNING: Could not resolve path for {sim_name}"
-                      f"..best calculated path = {file_path}")
+                print(
+                    f"WARNING: Could not resolve path for {sim_name}"
+                    f"..best calculated path = {file_path}"
+                )
         return file_path.as_posix()
 
     def waveform_url_from_simname(self, sim_name):
-        return self.waveform_data_url + "/" + self.waveform_filename_from_simname(
-            sim_name)
+        return (
+            self.waveform_data_url + "/" + self.waveform_filename_from_simname(sim_name)
+        )
 
     def metadata_filename_from_simname(self, sim_name):
         return os.path.basename(self.metadata_filepath_from_simname(sim_name))
 
-    def metadata_filepath_from_simname(self, sim_name, ext='txt'):
+    def metadata_filepath_from_simname(self, sim_name, ext="txt"):
         return str(self.metadata_dir / f"{sim_name}.{ext}")
 
     def download_waveform_data(self, sim_name, use_cache=None):
@@ -248,14 +253,15 @@ class MayaCatalog(catalog.CatalogBase):
         file_name = self.waveform_filename_from_simname(sim_name)
         file_path_web = self.waveform_data_url + "/" + file_name
         local_file_path = self.waveform_data_dir / file_name
-        if use_cache and os.path.exists(
-                local_file_path) and os.path.getsize(local_file_path) > 0:
+        if (
+            use_cache
+            and os.path.exists(local_file_path)
+            and os.path.getsize(local_file_path) > 0
+        ):
             if self._verbosity > 2:
-                print("...can read from cache: {}".format(
-                    str(local_file_path)))
+                print("...can read from cache: {}".format(str(local_file_path)))
             pass
-        elif os.path.exists(
-                local_file_path) and os.path.getsize(local_file_path) > 0:
+        elif os.path.exists(local_file_path) and os.path.getsize(local_file_path) > 0:
             pass
         else:
             if self._verbosity > 2:
@@ -266,5 +272,6 @@ class MayaCatalog(catalog.CatalogBase):
                 utils.download_file(file_path_web, local_file_path)
             else:
                 if self._verbosity > 2:
-                    print("... ... but couldnt find link: {}".format(
-                        str(file_path_web)))
+                    print(
+                        "... ... but couldnt find link: {}".format(str(file_path_web))
+                    )
