@@ -127,8 +127,8 @@ class RITCatalog(catalog.CatalogBase):
     def waveform_filepath_from_simname(self, sim_name):
         file_path = self.get_metadata(sim_name)['waveform_data_location']
         if not os.path.exists(file_path):
-            raise RuntimeError(f"Could not resolve path for {sim_name}"
-                               f"..best calculated path = {file_path}")
+            print(f"WARNING: Could not resolve path for {sim_name}"
+                  f"..best calculated path = {file_path}")
         return str(file_path)
 
     def waveform_url_from_simname(self, sim_name):
