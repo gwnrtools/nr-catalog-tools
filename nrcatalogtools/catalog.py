@@ -38,8 +38,10 @@ class CatalogBase(CatalogABC, sxs.Catalog):
 
     def get(self, sim_name):
         if sim_name not in self.simulations_dataframe.index.to_list():
-            raise IOError(f"Simulation {sim_name} not found in catalog."
-                          f"Please check that it exists")
+            raise IOError(
+                f"Simulation {sim_name} not found in catalog."
+                f"Please check that it exists"
+            )
         filepath = self.waveform_filepath_from_simname(sim_name)
         if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
             if self._verbosity > 1:
@@ -58,8 +60,10 @@ class CatalogBase(CatalogABC, sxs.Catalog):
     def get_metadata(self, sim_name):
         sim_dict = self.simulations
         if sim_name not in list(sim_dict.keys()):
-            raise IOError(f"Simulation {sim_name} not found in catalog."
-                          f"Please check that it exists")
+            raise IOError(
+                f"Simulation {sim_name} not found in catalog."
+                f"Please check that it exists"
+            )
         return sim_dict[sim_name]
 
     def set_attribute_in_waveform_data_file(self, sim_name, attr, attr_value):
