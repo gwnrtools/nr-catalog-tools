@@ -5,8 +5,8 @@
 
 from __future__ import print_function
 
-from os import environ, path
 import subprocess
+from os import environ, path
 from pathlib import Path
 
 NAME = "nrcatalogtools"
@@ -90,13 +90,13 @@ else:
         )
         print("Setup.py using git log version='{0}'".format(version))
     except:
-        from time import strftime, gmtime
+        from time import gmtime, strftime
 
         version = strftime("%Y.%m.%d.%H.%M.%S", gmtime())
         print("Setup.py using strftime version='{0}'".format(version))
 
 if __name__ == "__main__":
-    from setuptools import setup, find_packages
+    from setuptools import find_packages, setup
 
     setup(
         name=NAME,

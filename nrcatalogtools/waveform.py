@@ -106,7 +106,7 @@ class WaveformModes(sxs_WaveformModes):
         cls._filepath = h5_file.filename
         # Note: to be activate after metdata has been loaded
         # in SXS format.
-        # cls._metadata_path = cls._metadata['metadata_path']
+        cls._metadata_path = cls._metadata["metadata_path"]
 
         ELL_MIN, ELL_MAX = 2, 10
         ell_min, ell_max = 99, -1
@@ -192,6 +192,18 @@ class WaveformModes(sxs_WaveformModes):
     def get_mode(self, ell, em):
         return self[f"Y_l{ell}_m{em}.dat"]
 
+    @property
+    def f_lower_at_1Msun(self):
+        from pycbc.types import TimeSeries
+        from pycbc.waveform import frequency_from_polarizations
+
+        mode22 = self.get_mode(2, 2)
+        fr22 = frequency_from_polarizations(
+            TimeSeries(mode22[:, 1], delta_t=np.diff(self.time)[0]),
+            TimeSeries(-1 * mode22[:, 2], delta_t=np.diff(self.time)[0]),
+        )
+        return fr22[0] / lal.MTSUN_SI
+
     def get_polarizations(self, inclination, coa_phase):
         """Sum over modes data and return plus and cross GW polarizations
 
@@ -219,8 +231,8 @@ class WaveformModes(sxs_WaveformModes):
         inclination,
         coa_phase,
         delta_t=None,
-        FRef=None,
-        TRef=None,
+        f_ref=None,
+        t_ref=None,
     ):
         """Sum over modes data and return plus and cross GW polarizations,
         rescaled appropriately for a compact-object binary with given
@@ -265,7 +277,9 @@ class WaveformModes(sxs_WaveformModes):
         h.time *= m_secs
         return self.to_pycbc(h)
 
-    def get_angles(self, inclination, coa_phase, phi_ref=np.pi/2, f_ref=None, t_ref=None):
+    def get_angles(
+        self, inclination, coa_phase, phi_ref=np.pi / 2, f_ref=None, t_ref=None
+    ):
         """Get the inclination, azimuthal and polarization angles
         of the observer in the NR source frame.
 
@@ -282,7 +296,7 @@ class WaveformModes(sxs_WaveformModes):
         fref, tref : float, optional
                     The reference frquency and time to define the LAL source frame.
                      Defaults to the available frequency in the data file.
-        
+
         Returns
         -------
         angles : dict
@@ -292,7 +306,9 @@ class WaveformModes(sxs_WaveformModes):
         """
         # Note: 02 May 23 (VP)
         # Presently, coa_phase is not implemented.
-        print('Note: coa_phase is not presently implemented. The reference phase will be used.')
+        print(
+            "Note: coa_phase is not presently implemented. The reference phase will be used."
+        )
 
         # Compute angles
         with h5py.File(self.filepath) as H5File:
