@@ -234,7 +234,7 @@ def get_strain_from_lvcnr_file(
     )
 
 
-def TransformSpinsNRtoLAL(nrSpin1, nrSpin2, n_hat, ln_hat):
+def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
     """Trnasform the spins of the NR simulation from the
     NR frame to the  frame.
     Parameters
@@ -280,7 +280,7 @@ def TransformSpinsNRtoLAL(nrSpin1, nrSpin2, n_hat, ln_hat):
     return S1, S2
 
 
-def GetNRToLALRotationAngles(
+def get_nr_to_lal_rotation_angles(
     H5File, Metadata, Inclination, PhiRef=0, FRef=None, TRef=None
 ):
     """Get the angular coordinates :math:`\theta, \phi`
