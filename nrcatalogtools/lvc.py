@@ -22,10 +22,8 @@ def get_lal_mode_dictionary(mode_array):
     waveform_dictionary = lal.CreateDict()
     mode_array_lal = lalsim.SimInspiralCreateModeArray()
     for mode in mode_array:
-        lalsim.SimInspiralModeArrayActivateMode(mode_array_lal, mode[0],
-                                                mode[1])
-    lalsim.SimInspiralWaveformParamsInsertModeArray(waveform_dictionary,
-                                                    mode_array_lal)
+        lalsim.SimInspiralModeArrayActivateMode(mode_array_lal, mode[0], mode[1])
+    lalsim.SimInspiralWaveformParamsInsertModeArray(waveform_dictionary, mode_array_lal)
 
     return waveform_dictionary
 
@@ -45,17 +43,13 @@ def get_lal_mode_dictionary_from_lmax(lmax):
 
     """
 
-    mode_array = [[ell, emm] for ell in range(2, lmax + 1)
-                  for emm in range(-ell, ell + 1)]
+    mode_array = [
+        [ell, emm] for ell in range(2, lmax + 1) for emm in range(-ell, ell + 1)
+    ]
     return get_lal_mode_dictionary(mode_array)
 
 
-def get_modes_from_lvcnr_file(path_to_file,
-                              Mtot,
-                              distance,
-                              srate,
-                              lmax=4,
-                              f_low=None):
+def get_modes_from_lvcnr_file(path_to_file, Mtot, distance, srate, lmax=4, f_low=None):
     """
     Get individual modes from LVCNR format file.
 
@@ -107,21 +101,21 @@ def get_modes_from_lvcnr_file(path_to_file,
 
         if h5file.attrs["Format"] < 3:
             spin_args = lalsim.SimInspiralNRWaveformGetSpinsFromHDF5File(
-                -1, Mtot, path_to_file)
+                -1, Mtot, path_to_file
+            )
         else:
             spin_args = lalsim.SimInspiralNRWaveformGetSpinsFromHDF5File(
-                f_low, Mtot, path_to_file)
+                f_low, Mtot, path_to_file
+            )
 
-        mass_args = list(
-            mtotal_eta_to_mass1_mass2(Mtot * MSUN, h5file.attrs["eta"]))
+        mass_args = list(mtotal_eta_to_mass1_mass2(Mtot * MSUN, h5file.attrs["eta"]))
 
         try:
             eccentricity = float(h5file.attrs["eccentricity"])
         except ValueError:
             eccentricity = None
 
-    values_mode_array = lalsim.SimInspiralWaveformParamsLookupModeArray(
-        waveform_dict)
+    values_mode_array = lalsim.SimInspiralWaveformParamsLookupModeArray(waveform_dict)
     _, modes = lalsim.SimInspiralNRWaveformGetHlms(
         1 / srate,
         *mass_args,
@@ -153,13 +147,9 @@ def get_modes_from_lvcnr_file(path_to_file,
     )
 
 
-def get_strain_from_lvcnr_file(path_to_file,
-                               Mtot,
-                               distance,
-                               inclination,
-                               phi_ref,
-                               srate,
-                               mode_array=None):
+def get_strain_from_lvcnr_file(
+    path_to_file, Mtot, distance, inclination, phi_ref, srate, mode_array=None
+):
     """
     Get full strain from LVCNR format file.
 
@@ -188,8 +178,13 @@ def get_strain_from_lvcnr_file(path_to_file,
     meanPerAno = 0
 
     fixed_args = [
-        distance * lal.PC_SI * 1e6, inclination, phi_ref, longAscNodes,
-        eccentricity, meanPerAno, 1 / srate
+        distance * lal.PC_SI * 1e6,
+        inclination,
+        phi_ref,
+        longAscNodes,
+        eccentricity,
+        meanPerAno,
+        1 / srate,
     ]
 
     with h5py.File(path_to_file) as h5file:
@@ -198,19 +193,21 @@ def get_strain_from_lvcnr_file(path_to_file,
         else:
             waveform_dict = lal.CreateDict()
 
-        lalsim.SimInspiralWaveformParamsInsertNumRelData(
-            waveform_dict, path_to_file)
+        lalsim.SimInspiralWaveformParamsInsertNumRelData(waveform_dict, path_to_file)
         f_low = h5file.attrs["f_lower_at_1MSUN"] / Mtot
 
         if h5file.attrs["Format"] < 3:
             spin_args = lalsim.SimInspiralNRWaveformGetSpinsFromHDF5File(
-                -1, Mtot, path_to_file)
+                -1, Mtot, path_to_file
+            )
         else:
             spin_args = lalsim.SimInspiralNRWaveformGetSpinsFromHDF5File(
-                f_low, Mtot, path_to_file)
+                f_low, Mtot, path_to_file
+            )
 
         mass_args = list(
-            mtotal_eta_to_mass1_mass2(Mtot * lal.MSUN_SI, h5file.attrs["eta"]))
+            mtotal_eta_to_mass1_mass2(Mtot * lal.MSUN_SI, h5file.attrs["eta"])
+        )
 
     hp, hc = lalsim.SimInspiralChooseTDWaveform(
         *mass_args,
