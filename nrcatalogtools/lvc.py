@@ -234,6 +234,348 @@ def get_strain_from_lvcnr_file(
     )
 
 
+def check_interp_req(H5File, ref_time):
+    """Check if the required reference time is different from
+    the available reference time in the NR HDF5 file
+
+    Parameters
+    ----------
+    H5File : file object
+                The waveform h5 file handle.
+    ref_time : float
+               Reference time.
+
+    Returns
+    -------
+    Interp : bool
+             Whether interpolation across time is required.
+    avail_ref_time: float
+                    The ref_time available in the NR HDF5 file.
+    """
+
+    avail_ref_time = H5File.attrs("ref_time")
+
+    if abs(avail_ref_time - ref_time) < 1e-5:
+        return False, avail_ref_time
+    else:
+        return True, avail_ref_time
+
+
+def get_ref_freq_from_ref_time(H5File, ref_time):
+    """Get the reference frequency from reference time
+
+    Parameters
+    ----------
+    H5File : file object
+             The waveform h5 file handle.
+    ref_time : float
+               Reference time.
+    Returns
+    -------
+    fRef : float
+           Reference frequency.
+    """
+
+    time, freq = H5File.attrs["Omega-vs-time"]
+
+    from scipy.interpolate import interp1d
+
+    RefFreq = interp1d(time, freq, kind="cubic")[ref_time]
+
+    return RefFreq
+
+
+def get_ref_time_from_ref_freq(H5File, ref_freq):
+    """Get the reference time from reference frequency
+
+    Parameters
+    ----------
+    H5File : file object
+             The waveform h5 file handle.
+    ref_freq : float
+               The reference frequency.
+    Returns
+    -------
+    fTime : float
+           Reference time.
+    """
+    from scipy.interpolate import interp1d
+
+    time, freq = H5File.attrs["Omega-vs-time"]
+
+    RefTime = interp1d(freq, time, kind="cubic")[ref_freq]
+
+    return RefTime
+
+
+def check_nr_attrs(
+    MetadataObject, ReqAttrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]
+):
+    """Check if the NR h5 file or a metadata dictionary
+        contains all the attributes required.
+
+    Parameters
+    ----------
+    MetadataObject : h5 file object, dict
+                     The NR h5py file handle or metadata.
+    ReqAttrs : list
+               A list of attribute keys.
+    Returns
+    -------
+    Present : bool
+              Whether or not all specified attributes are present.
+    AbsentAttrs : list
+                 The attributes that are absent.
+    """
+    if isinstance(MetadataObject, h5py.File):
+        all_attrs = list(MetadataObject.attrs.keys())
+
+    elif isinstance(MetadataObject, dict):
+        all_attrs = list(MetadataObject.keys())
+    else:
+        raise TypeError("Please supply an open h5py file handle or a dictionary")
+
+    AbsentAttrs = []
+    Present = True
+
+    for item in ReqAttrs:
+        if item not in all_attrs:
+            Present = False
+            AbsentAttrs.append(item)
+
+    return Present, AbsentAttrs
+
+
+def get_interp_ref_values_from_h5_file(H5File, ReqTSAttrs, ref_time):
+    """Get the interpolated reference values at a given reference time
+    from the NR HDF5 File
+
+    Parameters
+    ----------
+    H5File : file object
+             The waveform h5 file handle.
+    ReqTSAttrs : list
+               A list of attribute keys.
+    ref_time : float
+            Reference time.
+    Returns
+    -------
+    params : dict
+             The parameter values at the reference time.
+    """
+    from scipy.interpolate import interp1d
+
+    params = {}
+
+    for key in ReqTSAttrs:
+        time, var = H5File.attrs[key]
+        RefVal = interp1d(time, var, kind="cubic")[ref_time]
+        params.update({key: RefVal})
+    return params
+
+
+def get_ref_vals(
+    MetadataObject, ReqAttrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"]
+):
+    """Get the reference values from a NR HDF5 file
+    or a metadata dictionary.
+
+    Parameters
+    ----------
+    MetadataObject : h5 file object, dict
+                     The NR h5py file handle or metadata.
+    ReqAttrs : list
+               A list of attribute keys.
+    Returns
+    -------
+    params : dict
+             The parameter values at the reference time.
+    """
+    if isinstance(MetadataObject, h5py.File):
+        Source = MetadataObject.attrs
+
+    elif isinstance(MetadataObject, dict):
+        Source = MetadataObject
+    else:
+        raise TypeError("Please supply an open h5py file handle or a dictionary")
+
+    params = {}
+
+    # print(MetadataObject.keys())
+    for key in ReqAttrs:
+        RefVal = Source[key]
+        params.update({key: RefVal})
+    return params
+
+
+def compute_lal_source_frame_from_sxs_metadata(Metadata):
+    """Compute the LAL source frame vectors at the
+    available reference time from the SXS metadata.
+
+    Parameters
+    ----------
+    Metadata : dict
+               The NR metadata.
+    Returns
+    -------
+    params : dict
+             A dictionary containing the LAL source frame
+             vectors.
+    """
+
+    M1 = Metadata["reference_mass1"]
+    M2 = Metadata["reference_mass2"]
+    M = M1 + M2
+    Omega = np.array(Metadata["reference_orbital_frequency"])
+
+    Pos1 = np.array(Metadata["reference_position1"])
+    Pos2 = np.array(Metadata["reference_position2"])
+
+    # CoM position
+    CoMPos = (M1 * Pos1 + M2 * Pos2) / (M)
+
+    Pos1 = Pos1 - CoMPos
+    Pos2 = Pos2 - CoMPos
+
+    # This should point from
+    # smaller to larger BH
+    # Assumed here is 1 for smaller
+    # BH
+    DPos = Pos2 - Pos1
+
+    # Oribital angular momentum, Eucledian
+    P1 = M1 * np.cross(Omega, Pos1)
+    P2 = M2 * np.cross(Omega, Pos2)
+
+    Lbar = np.cross(Pos1, P1) + np.cross(Pos2, P2)
+
+    # Orbital normal LNhat
+    LNhat = Lbar / np.linalg.norm(Lbar)
+    # LNhatx, LNhaty, LNhatz = LNhat
+
+    # Position vector nhat
+    nhat = (DPos) / np.linalg.norm(DPos)
+    # nhatx, nhaty, nhatz = Nhat
+
+    params = {
+        "LNhatx": LNhatx,
+        "LNhaty": LNhaty,
+        "LNhatz": LNhatz,
+        "nhatx": nhatx,
+        "nhaty": nhaty,
+        "nhatz": nhatz,
+    }
+    # params = {"LNhat": LNhat, "nhat": nhat}
+
+    return params
+
+
+def compute_lal_source_frame_by_interp(H5File, ReqTSAttrs, TRef):
+    """
+    Compute the LAL source frame vectors at a given reference time
+    by interpolation of time series data.
+
+    Parameters
+    ----------
+    H5File : h5 file object
+             The NR h5py file handle that contains the metadata.
+    Tref : float
+           The reference time.
+    Returns
+    -------
+    params : dict
+             The LAL source frame vectors at the reference time.
+
+    """
+    # For reference: attributes required for interpolation.
+    # ReqTSAttrs = ['LNhatx-vs-time', 'LNhaty-vs-time', 'LNhatz-vs-time', \
+    #            'position1x-vs-time', 'position1y-vs-time', 'position1z-vs-time', \
+    #            'position2x-vs-time', 'position2y-vs-time', 'position2z-vs-time']
+
+    IntParams = GetInterpRefValuesFromH5File(H5File, ReqTSAttrs, TRef)
+
+    # r21 vec
+    r21_x = RefParams["position1x-vs-time"] - RefParams["position2x-vs-time"]
+    r21_y = RefParams["position1y-vs-time"] - RefParams["position2y-vs-time"]
+    r21_z = RefParams["position1z-vs-time"] - RefParams["position2z-vs-time"]
+
+    # Position unit vector nhat
+    dPos = np.array([r21_x, r21_y, r21_z])
+    nhat = dPos / np.linalg.norm(dPos)
+    # nhatx, nhaty, nhatz = Nhat
+
+    # Orbital unit normal LNhat
+    LNhat_x = RefParams["LNhatx-vs-time"]
+    LNhat_y = RefParams["LNhaty-vs-time"]
+    LNhat_z = RefParams["LNhatz-vs-time"]
+
+    LNhat = np.array([LNhat_x, LNhat_y, LNhat_z])
+    LNhat = LNhat / np.linalg.norm(LNhat)
+    # LNhatx, LNhaty, LNhatz = LNhat
+
+    # params = {"LNhat": LNhat, "nhat": nhat}
+    params = {
+        "LNhatx": LNhatx,
+        "LNhaty": LNhaty,
+        "LNhatz": LNhatz,
+        "nhatx": nhatx,
+        "nhaty": nhaty,
+        "nhatz": nhatz,
+    }
+
+    return params
+
+
+def normalize_metadata(Metadata):
+    """Ensure that the keys of the metadata are
+    as required
+
+    Parameters
+    ----------
+    Metadata : dict
+               The NR metadata.
+
+    Returns
+    -------
+    NMetadata : dict
+               The normalized metadata
+    """
+
+    NMetadata = {}
+
+    for key, val in Metadata.items():
+        NMetadata.update({key.replace("relaxed-", ""): val})
+
+    return NMetadata
+
+
+def get_ref_time_from_metadata(Metadata):
+    """Get the reference time of definition of the LAL
+    frame from metadata, if available
+    Parameters
+    ----------
+
+
+    Returns
+    -------
+    TRef : float
+           The reference time
+    """
+
+    MdataKeys = list(Metadata.keys())
+
+    if "relaxed-time" in MdataKeys:
+        # RIT style
+        TRef = Metadata["relaxed-time"]
+    elif "reference_time" in MdataKeys:
+        # SXS Style
+        TRef = Metadata["reference_time"]
+    else:
+        TRef = -1
+
+    return TRef
+
+
 def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
     """Trnasform the spins of the NR simulation from the
     NR frame to the  frame.
