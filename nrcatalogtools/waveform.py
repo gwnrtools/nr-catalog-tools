@@ -302,19 +302,19 @@ class WaveformModes(sxs_WaveformModes):
         # Note: 02 May 23 (VP)
         # Presently, coa_phase is not implemented.
         print(
-            "Note: coa_phase is not presently implemented. The reference phase will be used."
+            "Warining! coa_phase is not implemented yet. The reference phase will be used."
         )
 
         # Compute angles
-        with h5py.File(self.filepath) as H5File:
+        with h5py.File(self.filepath) as h5_file:
             # print(H5File.attrs.keys())
             angles = GetNRToLALRotationAngles(
-                H5File=H5File,
-                Metadata=self._sim_metadata,
-                Inclination=inclination,
-                PhiRef=phi_ref,
-                FRef=f_ref,
-                TRef=t_ref,
+                h5_file=h5_file,
+                sim_metadata=self._sim_metadata,
+                inclination=inclination,
+                phi_ref=phi_ref,
+                f_ref=f_ref,
+                t_ref=t_ref,
             )
 
         return angles
