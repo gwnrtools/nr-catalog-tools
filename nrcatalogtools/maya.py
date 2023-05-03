@@ -1,7 +1,6 @@
 import os
 import functools
 import pandas as pd
-import sxs
 
 from . import catalog, utils
 
@@ -81,11 +80,11 @@ class MayaCatalog(catalog.CatalogBase):
                 # The `missing_ok` argument to `unlink` would be much nicer, but was added in python 3.8
                 try:
                     temp_txt.unlink()
-                except FileNotFoundError as e:
+                except FileNotFoundError:
                     pass
                 try:
                     temp_zip.unlink()
-                except FileNotFoundError as e:
+                except FileNotFoundError:
                     pass
 
         if not cache_path.exists():

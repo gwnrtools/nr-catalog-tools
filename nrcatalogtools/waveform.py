@@ -91,14 +91,9 @@ class WaveformModes(sxs_WaveformModes):
         if type(file_path_or_open_file) == h5py._hl.files.File:
             h5_file = file_path_or_open_file
             close_input_file = False
-            nr_group = "UNKNOWN"
         elif os.path.exists(file_path_or_open_file):
             h5_file = h5py.File(file_path_or_open_file, "r")
             close_input_file = True
-            file_path_str = str(file_path_or_open_file)
-            for tag in utils.nr_group_tags:
-                if utils.nr_group_tags[tag] in file_path_str:
-                    nr_group = utils.nr_group_tags[tag]
         else:
             raise RuntimeError(f"Could not use or open {file_path_or_open_file}")
 
@@ -139,9 +134,9 @@ class WaveformModes(sxs_WaveformModes):
             h5_file.close()
         if len(LM) == 0:
             raise RuntimeError(
-                f"We did not find even one mode in the file. Perhaps the "
-                f" format `amp_l?_m?` and `phase_l?_m?` is not the "
-                f"nomenclature of datagroups in the input file?"
+                "We did not find even one mode in the file. Perhaps the "
+                "format `amp_l?_m?` and `phase_l?_m?` is not the "
+                "nomenclature of datagroups in the input file?"
             )
 
         times = np.arange(t_min, t_max + 0.5 * dt, dt)

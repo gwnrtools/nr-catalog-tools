@@ -4,6 +4,7 @@ import lalsimulation as lalsim
 import numpy as np
 from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 from pycbc.types import TimeSeries
+import numpy as np
 
 
 def get_lal_mode_dictionary(mode_array):
@@ -30,7 +31,7 @@ def get_lal_mode_dictionary(mode_array):
 
 
 def get_lal_mode_dictionary_from_lmax(lmax):
-    """
+    r"""
     Get LALDict with modes derived from `lmax`.
 
 
@@ -51,7 +52,7 @@ def get_lal_mode_dictionary_from_lmax(lmax):
 
 
 def get_modes_from_lvcnr_file(path_to_file, Mtot, distance, srate, lmax=4, f_low=None):
-    """
+    r"""
     Get individual modes from LVCNR format file.
 
 
@@ -273,7 +274,7 @@ def get_ref_freq_from_ref_time(h5_file, ref_time):
                Reference time.
     Returns
     -------
-    fRef : float
+    f_ref : float
            Reference frequency.
     """
 
@@ -281,9 +282,9 @@ def get_ref_freq_from_ref_time(h5_file, ref_time):
 
     from scipy.interpolate import interp1d
 
-    RefFreq = interp1d(time, freq, kind="cubic")[ref_time]
+    ref_freq = interp1d(time, freq, kind="cubic")[ref_time]
 
-    return RefFreq
+    return ref_freq
 
 
 def get_ref_time_from_ref_freq(h5_file, ref_freq):
@@ -304,9 +305,9 @@ def get_ref_time_from_ref_freq(h5_file, ref_freq):
 
     time, freq = h5_file.attrs["Omega-vs-time"]
 
-    RefTime = interp1d(freq, time, kind="cubic")[ref_freq]
+    ref_time = interp1d(freq, time, kind="cubic")[ref_freq]
 
-    return RefTime
+    return ref_time
 
 
 def check_nr_attrs(
@@ -324,7 +325,7 @@ def check_nr_attrs(
                A list of attribute keys.
     Returns
     -------
-    Present : bool
+    present : bool
               Whether or not all specified attributes are present.
     absent_attrs : list
                  The attributes that are absent.
@@ -338,14 +339,14 @@ def check_nr_attrs(
         raise TypeError("Please supply an open h5py file handle or a dictionary")
 
     absent_attrs = []
-    Present = True
+    present = True
 
     for item in req_attrs:
         if item not in all_attrs:
-            Present = False
+            present = False
             absent_attrs.append(item)
 
-    return Present, absent_attrs
+    return present, absent_attrs
 
 
 def get_interp_ref_values_from_h5_file(h5_file, req_ts_attrs, ref_time):
@@ -633,7 +634,7 @@ def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
 def get_nr_to_lal_rotation_angles(
     h5_file, sim_metadata, inclination, phi_ref=0, f_ref=None, t_ref=None
 ):
-    """Get the angular coordinates :math:`\theta, \phi`
+    r"""Get the angular coordinates :math:`\theta, \phi`
     and the rotation angle :math:`\alpha` from the H5 file
 
     Parameters
@@ -728,11 +729,13 @@ def get_nr_to_lal_rotation_angles(
             # Try to get the reference time from orbital frequency
             try:
                 t_ref = get_ref_time_from_ref_freq(h5_file, f_ref)
+                
                 # Check if interpolation is required
                 interp, avail_ref_time = check_interp_req(h5_file, t_ref)
             except:
                 print(
                     f"Could not obtain reference time from given reference frequency {f_ref}."
+
                 )
                 print("Choosing available reference time")
                 interp = False
@@ -740,6 +743,7 @@ def get_nr_to_lal_rotation_angles(
         interp, avail_ref_time = check_interp_req(h5_file, t_ref)
 
     if interp is False:
+
         # Then load default values from the NR data
         # at hard coded reference time.
 
@@ -752,6 +756,7 @@ def get_nr_to_lal_rotation_angles(
         ref_check_def_h5, absent_attrs_h5 = check_nr_attrs(h5_file)
 
         if ref_check_def_h5 is False:
+
             # Then the LAL source frame information is not present in the H5 file.
             # Then this could be SXS or GT data. The LAL source frame need to be computed from
             # the H5 File or simulation metadata.
@@ -781,6 +786,7 @@ def get_nr_to_lal_rotation_angles(
                 ref_params = get_ref_vals(sim_metadata)
         else:
             ref_params = get_ref_vals(h5_file)
+            
     elif interp is True:
         # Experimental; This assumes all the required atributes  needed
         # to compute the LAL source frame at the given reference time
