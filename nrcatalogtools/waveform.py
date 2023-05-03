@@ -199,7 +199,7 @@ class WaveformModes(sxs_WaveformModes):
         )
         return fr22[0] / lal.MTSUN_SI
 
-    def get_polarizations(self, inclination, coa_phase):
+    def get_polarizations(self, inclination, coa_phase, f_ref=None, t_ref=None):
         """Sum over modes data and return plus and cross GW polarizations
 
         Args:
@@ -213,7 +213,7 @@ class WaveformModes(sxs_WaveformModes):
         """
 
         # Get angles
-        angles = self.get_angles(inclination, coa_phase, FRef, TRef)
+        angles = self.get_angles(inclination, coa_phase, f_ref, t_ref)
 
         polarizations = self.evaluate([angles["theta"], angles["psi"], angles["alpha"]])
 
@@ -264,7 +264,7 @@ class WaveformModes(sxs_WaveformModes):
             new_time = np.arange(min(self.time), max(self.time), delta_t / m_secs)
 
         # Get angles
-        angles = self.get_angles(inclination, coa_phase, FRef, TRef)
+        angles = self.get_angles(inclination, coa_phase, f_ref, t_ref)
 
         h = self.interpolate(new_time).evaluate(
             [angles["theta"], angles["psi"], angles["alpha"]]
@@ -273,7 +273,7 @@ class WaveformModes(sxs_WaveformModes):
         return self.to_pycbc(h)
 
     def get_angles(
-        self, inclination, coa_phase, phi_ref=np.pi / 2, f_ref=None, t_ref=None
+        self, inclination, coa_phase, phi_ref=0, f_ref=None, t_ref=None
     ):
         """Get the inclination, azimuthal and polarization angles
         of the observer in the NR source frame.
