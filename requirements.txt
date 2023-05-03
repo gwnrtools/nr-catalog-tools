@@ -1,0 +1,9 @@
+# Modules to install
+
+numpy
+scipy
+lalsuite
+ligo-common
+pycbc
+pandas
+sxs[ecosystem]
