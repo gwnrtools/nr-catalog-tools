@@ -132,9 +132,9 @@ class WaveformModes(sxs_WaveformModes):
             h5_file.close()
         if len(LM) == 0:
             raise RuntimeError(
-                f"We did not find even one mode in the file. Perhaps the "
-                f" format `amp_l?_m?` and `phase_l?_m?` is not the "
-                f"nomenclature of datagroups in the input file?"
+                "We did not find even one mode in the file. Perhaps the "
+                "format `amp_l?_m?` and `phase_l?_m?` is not the "
+                "nomenclature of datagroups in the input file?"
             )
 
         times = np.arange(t_min, t_max + 0.5 * dt, dt)

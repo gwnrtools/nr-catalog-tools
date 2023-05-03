@@ -6,7 +6,6 @@ import lal
 import requests
 import sxs
 
-## --------------------------------------------------------------
 nrcatalog_cache_dir = pathlib.Path("~/.cache/").expanduser().resolve()
 nr_group_tags = {}
 nr_group_tags["SXS"] = "SXS"
@@ -41,8 +40,6 @@ maya_catalog_info["data_dir"] = maya_catalog_info["cache_dir"] / "data"
 maya_catalog_info["metadata_dir"] = maya_catalog_info["cache_dir"] / "metadata"
 maya_catalog_info["data_url"] = maya_catalog_info["url"]
 
-## --------------------------------------------------------------
-
 
 def url_exists(link, num_retries=100):
     """Check if a given URL exists on the web.
@@ -61,7 +58,7 @@ def url_exists(link, num_retries=100):
                 return True
             else:
                 return False
-        except:
+        except Exception:
             continue
     return False
 
@@ -72,7 +69,7 @@ def download_file(url, path, progress=False, if_newer=True):
             return sxs.utilities.downloads.download_file(
                 url, path, progress=progress, if_newer=if_newer
             )
-        except:
+        except Exception:
             requests.packages.urllib3.disable_warnings()
             for n in range(100):
                 try:
@@ -80,7 +77,7 @@ def download_file(url, path, progress=False, if_newer=True):
                         url, verify=False, stream=True, allow_redirects=True
                     )
                     break
-                except:
+                except Exception:
                     continue
             if r.status_code != 200:
                 print(f"An error occurred when trying to access <{url}>.")
@@ -125,7 +122,7 @@ def call_with_timeout(myfunc, args=(), kwargs={}, timeout=5):
     try:
         result = queue.get(timeout=0)
         return result
-    except:
+    except Exception:
         raise Exception("Timeout")
 
 

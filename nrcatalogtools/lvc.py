@@ -29,7 +29,7 @@ def get_lal_mode_dictionary(mode_array):
 
 
 def get_lal_mode_dictionary_from_lmax(lmax):
-    """
+    r"""
     Get LALDict with modes derived from `lmax`.
 
 
@@ -50,7 +50,7 @@ def get_lal_mode_dictionary_from_lmax(lmax):
 
 
 def get_modes_from_lvcnr_file(path_to_file, Mtot, distance, srate, lmax=4, f_low=None):
-    """
+    r"""
     Get individual modes from LVCNR format file.
 
 

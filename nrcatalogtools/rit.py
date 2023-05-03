@@ -57,10 +57,9 @@ class RITCatalog(catalog.CatalogBase):
         if len(catalog_df) < acceptable_scraping_fraction * num_sims_to_crawl:
             if verbosity > 2:
                 print(
-                    """..Refreshing catalog file from cache did not work.
-...Falling back to downloading metadata for the full 
-...catalog. This will take some time.
-                    """
+                    "Refreshing catalog file from cache did not work.",
+                    "...Falling back to downloading metadata for the full",
+                    "...catalog. This will take some time.",
                 )
             if download:
                 catalog_df = helper.fetch_metadata_for_catalog(
@@ -215,7 +214,7 @@ class RITCatalogHelper(object):
         res_number = int(file_name.split("-")[1][1:])
         try:
             id_val = int(file_name.split("-")[2].split("_")[0][2:])
-        except:
+        except Exception:
             id_val = -1
         return (sim_number, res_number, id_val)
 
@@ -272,7 +271,7 @@ class RITCatalogHelper(object):
             # If this works, its a quasicircular sim
             id_val = int(txt[-1])
             mf = self.metadata_file_fmts[0].format(idx, res, id_val)
-        except:
+        except Exception:
             mf = self.metadata_file_fmts[1].format(idx, res)
         parts = mf.split(":")
         return (
@@ -331,7 +330,7 @@ class RITCatalogHelper(object):
             kv = s.split("=")
             try:
                 opts[kv[0].strip()] = float(kv[1].strip())
-            except:
+            except Exception:
                 opts[kv[0].strip()] = str(kv[1].strip())
         return next, opts
 
@@ -345,7 +344,7 @@ class RITCatalogHelper(object):
                 try:
                     response = requests.get(link, verify=False)
                     break
-                except:
+                except Exception:
                     continue
             return self.parse_metadata_txt(response.content.decode().split("\n"))
 
@@ -500,10 +499,11 @@ class RITCatalogHelper(object):
                             f_idx, res, id_val = self.sim_info_from_metadata_filename(
                                 name
                             )
-                            assert (
-                                f_idx == idx
-                            ), """Index found for sim from metadata is not the same as we were searching for ({} vs {}).""".format(
-                                f_idx, idx
+                            assert f_idx == idx, (
+                                "Index found for sim from metadata is not",
+                                " the same as we were searching for ({} vs {}).".format(
+                                    f_idx, idx
+                                ),
                             )
                             if self.verbosity > 3:
                                 print(
@@ -557,7 +557,7 @@ class RITCatalogHelper(object):
         with open(metadata_df_fpath, "w+") as f:
             try:
                 self.metadata.to_csv(f)
-            except:
+            except Exception:
                 self.metadata.reset_index(drop=True, inplace=True)
                 self.metadata.to_csv(f)
 
@@ -655,7 +655,7 @@ class RITCatalogHelper(object):
                 "/bin/cat {}/metadata.csv | wc -l".format(str(self.metadata_dir))
             )
             num_metadata_df = int(x.read().strip())
-        except:
+        except Exception:
             # dummy values to force refresh below
             num_metadata_txt_files, num_metadata_df = 10, 0
 
