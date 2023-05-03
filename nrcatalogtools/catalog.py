@@ -10,6 +10,22 @@ class CatalogABC(ABC):
     def waveform_filepath_from_simname(self, sim_name):
         raise NotImplementedError()
 
+    @abstractmethod
+    def metadata_filename_from_simname(self, sim_name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def metadata_filepath_from_simname(self, sim_name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def download_waveform_data(self, sim_name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def waveform_url_from_simname(self, sim_name):
+        raise NotImplementedError()
+
 
 import os
 import sxs
@@ -18,11 +34,10 @@ from . import waveform
 
 class CatalogBase(CatalogABC, sxs.Catalog):
     def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+        sxs.Catalog.__init__(self, *args, **kwargs)
 
     def get(self, sim_name):
-        if sim_name not in self.simulations_dataframe[
-                'simulation_name'].to_list():
+        if sim_name not in self.simulations_dataframe.index.to_list():
             raise IOError(f"Simulation {sim_name} not found in catalog."
                           f"Please check that it exists")
         filepath = self.waveform_filepath_from_simname(sim_name)
@@ -39,8 +54,23 @@ class CatalogBase(CatalogABC, sxs.Catalog):
         return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
 
     def get_metadata(self, sim_name):
-        df = self.simulations_dataframe
-        if sim_name not in df['simulation_name'].to_list():
+        sim_dict = self.simulations
+        if sim_name not in list(sim_dict.keys()):
             raise IOError(f"Simulation {sim_name} not found in catalog."
                           f"Please check that it exists")
-        return df.loc[sim_name]
+        return sim_dict[sim_name]
+
+    def set_attribute_in_waveform_data_file(self, sim_name, attr_name, attr_value):
+        """Set attributes in the HDF5 file holding waveform data for a given
+        simulation
+
+        Args:
+            sim_name (str): Name/Tag of the simulation
+            attr_name (str): Name of the attribute to set
+            attr_value (any/serializable): Value of the attribute
+        """
+        import h5py
+        file_path = self.waveform_filepath_from_simname(sim_name)
+        with h5py.File(file_path, 'a') as fp:
+            if attr_name not in fp.attrs:
+                fp.attrs[attr_name] = attr_value

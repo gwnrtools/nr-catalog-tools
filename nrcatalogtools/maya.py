@@ -1,6 +1,7 @@
 import os
 import functools
 import pandas as pd
+import sxs
 
 from . import (catalog, utils)
 
@@ -14,7 +15,8 @@ class MayaCatalog(catalog.CatalogBase):
         if catalog is not None:
             super().__init__(catalog)
         else:
-            type(self).load(verbosity=verbosity, **kwargs)
+            obj = type(self).load(verbosity=verbosity, **kwargs)
+            super().__init__(obj._dict)
         self._verbosity = verbosity
         self._dict["catalog_file_description"] = "scraped from website"
         self._dict["modified"] = {}
@@ -33,6 +35,8 @@ class MayaCatalog(catalog.CatalogBase):
         self.waveform_data = {}
         self.waveform_data_url = utils.maya_catalog_info["data_url"]
         self.waveform_data_dir = utils.maya_catalog_info["data_dir"]
+
+        self._add_paths_to_metadata()
 
         internal_dirs = [
             self.cache_dir, self.metadata_dir, self.waveform_data_dir
@@ -152,6 +156,32 @@ class MayaCatalog(catalog.CatalogBase):
         catalog["simulations"] = simulations
         return cls(catalog=catalog, verbosity=verbosity)
 
+    def _add_paths_to_metadata(self):
+        metadata_dict = self._dict["simulations"]
+        existing_cols = list(metadata_dict[list(
+            metadata_dict.keys())[0]].keys())
+        new_cols = [
+            'metadata_link', 'metadata_location', 'waveform_data_link',
+            'waveform_data_location'
+        ]
+
+        if any([col not in existing_cols for col in new_cols]):
+            for sim_name in metadata_dict:
+                if 'metadata_location' not in existing_cols:
+                    metadata_dict[sim_name][
+                        'metadata_location'] = self.metadata_filepath_from_simname(
+                            sim_name)
+                if 'metadata_link' not in existing_cols:
+                    metadata_dict[sim_name][
+                        'metadata_link'] = self.metadata_url
+                if 'waveform_data_link' not in existing_cols:
+                    metadata_dict[sim_name][
+                        'waveform_data_link'] = self.waveform_data_url + "/" + f"{sim_name}.h5"
+                if 'waveform_data_location' not in existing_cols:
+                    metadata_dict[sim_name][
+                        'waveform_data_location'] = self.waveform_filepath_from_simname(
+                            sim_name)
+
     @property
     @functools.lru_cache()
     def simulations_dataframe(self):
@@ -195,12 +225,23 @@ class MayaCatalog(catalog.CatalogBase):
         return sim_name + '.h5'
 
     def waveform_filepath_from_simname(self, sim_name):
-        return self.waveform_data_dir / self.waveform_filename_from_simname(
+        file_path = self.waveform_data_dir / self.waveform_filename_from_simname(
             sim_name)
+        if not os.path.exists(file_path):
+            if self._verbosity > 2:
+                print(f"WARNING: Could not resolve path for {sim_name}"
+                      f"..best calculated path = {file_path}")
+        return file_path.as_posix()
 
     def waveform_url_from_simname(self, sim_name):
         return self.waveform_data_url + "/" + self.waveform_filename_from_simname(
             sim_name)
+
+    def metadata_filename_from_simname(self, sim_name):
+        return os.path.basename(self.metadata_filepath_from_simname(sim_name))
+
+    def metadata_filepath_from_simname(self, sim_name, ext='txt'):
+        return str(self.metadata_dir / f"{sim_name}.{ext}")
 
     def download_waveform_data(self, sim_name, use_cache=None):
         if use_cache is None:

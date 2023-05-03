@@ -7,7 +7,15 @@ binary mergers. At the moment of writing, different
 research groups have separate formats of data and/or
 tools to interface with them. This package will be a
 convenience layer atop those for downstream research
-applications. 
+applications. This package derives where it can from
+the [`sxs`](https://github.com/sxs-collaboration/sxs)
+package of the [Simulating eXtreme Spacetimes](https://github.com/sxs-collaboration)
+collaboration, as that 
+has much of the capabilities for handling Numerical
+Relativity data that we need in general for all catalogs.
+Much of the interface here is deliberately identical to
+that in the `sxs` package to facilitate their interuse.
+
 
 We currently support the following catalogs:
 - [Simulating eXtreme Spacetimes Waveforms Catalog](https://data.black-holes.org/waveforms/catalog.html)
