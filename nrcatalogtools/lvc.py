@@ -3,6 +3,7 @@ import lal
 import lalsimulation as lalsim
 from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 from pycbc.types import TimeSeries
+import numpy as np
 
 
 def get_lal_mode_dictionary(mode_array):
@@ -625,7 +626,7 @@ def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
 def get_nr_to_lal_rotation_angles(
     H5File, Metadata, Inclination, PhiRef=0, FRef=None, TRef=None
 ):
-    """Get the angular coordinates :math:`\theta, \phi`
+    r"""Get the angular coordinates :math:`\theta, \phi`
     and the rotation angle :math:`\alpha` from the H5 file
 
     Parameters
@@ -719,15 +720,16 @@ def get_nr_to_lal_rotation_angles(
                 TRef = GetRefTimeFromRefFreq(H5File, FRef)
                 # Check if interpolation is required
                 Interp, avail_ref_time = CheckInterpReq(H5File, TRef)
-            except:
+            except Exception:
                 print(
-                    f"Could not obtain reference time from given reference frequency {FRef} \n Choosing available reference time"
+                    f"Could not obtain reference time from given reference frequency {FRef}",
+                    "Choosing available reference time",
                 )
                 Interp = False
     else:
         Interp, avail_ref_time = CheckInterpReq(H5File, TRef)
 
-    if Interp == False:
+    if Interp is False:
         # Then load default values from the NR data
         # at hard coded reference time.
 
@@ -743,7 +745,7 @@ def get_nr_to_lal_rotation_angles(
 
         # RefCheckDefMeta, AbsentAttrsMeta  = CheckNRAttrs(Metadata, ReqDefAttrs)
 
-        if RefCheckDefH5 == False:
+        if RefCheckDefH5 is False:
             # Then the LAL source frame information is not present in the H5 file.
             # Then this could be SXS or GT data. The LAL source frame need to be computed from
             # the H5 File or metadata.
@@ -751,14 +753,15 @@ def get_nr_to_lal_rotation_angles(
             # Check if LAL source frame info is present in the metadata.
             RefCheckDefMeta, AbsentAttrsMeta = CheckNRAttrs(Metadata)
 
-            if RefCheckDefMeta == False:
+            if RefCheckDefMeta is False:
                 # Then this is SXS data.
                 try:
                     # Compute the LAL source frame from metadata
                     RefParams = ComputeLALSourceFrameFromSXSMetadata(Metadata)
                 except Exception as ex:
                     ex(
-                        f"Insufficient information to compute the LAL source frame. Missing information is {AbsentAttrsH5}."
+                        "Insufficient information to compute the LAL source frame.",
+                        f"Missing information is {AbsentAttrsH5}.",
                     )
             else:
                 # LAL source frame is present in the metadata
@@ -767,7 +770,7 @@ def get_nr_to_lal_rotation_angles(
             # print(RefCheckDefH5, AbsentAttrsH5)
             RefParams = GetRefVals(H5File)
             # print(RefParams)
-    elif Interp == True:
+    elif Interp is True:
         # Experimental; This assumes all the required atributes  needed
         # to compute the LAL source frame at the given reference time
         # are present in the H5file only.
@@ -788,9 +791,10 @@ def get_nr_to_lal_rotation_angles(
         # Check if time series data of required reference data is present
         RefCheckInterpReq, AbsentInterpAttrs = CheckNRAttrs(H5File, ReqTSAttrs)
 
-        if RefCheckInterpReq == False:
+        if RefCheckInterpReq is False:
             raise Exception(
-                f"Insufficient information to compute the LAL source frame at given reference time. Missing information is {AbsentInterpAttrs}."
+                "Insufficient information to compute the LAL source frame at given reference time.",
+                f"Missing information is {AbsentInterpAttrs}.",
             )
         else:
             RefParams = ComputeLALSourceFrameByInterp(H5File, ReqTSAttrs, TRef)
