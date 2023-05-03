@@ -43,8 +43,6 @@ from waveformtools.waveformtools import (interp_resam_wfs, message,
 # unittest helper funcs
 from helper import *
 
-home = str(Path.home())
-
 # import matplotlib.pyplot as plt
 
 ######################################
@@ -61,7 +59,7 @@ message(f"Simulation {sim_name}")
 ######################################
 
 
-def GetModesToCompare(ell, emm):
+def GetModesToCompare(ell, emm, Plot=False):
     """Get modes time-series to compare from
     two different methods.
 
@@ -138,36 +136,39 @@ def GetModesToCompare(ell, emm):
     wf2_rlm_p = TimeSeries(wf2_rlm.real, delta_t=delta_t)
     wf2_rlm_x = TimeSeries(wf2_rlm.imag, delta_t=delta_t)
 
-    # dphase = wf1_rPlm - wf2_rPlm
+    if Plot==True:
+        # Phase difference
+        dphase = wf1_rPlm - wf2_rPlm
 
-    # aerrs.append(res_amp)
-    # perrs.append(res_phase)
+        # Errors in amp and phase
+        amp_residues.append(res_amp)
+        phase_residues.append(res_phase)
 
-    # errs.update({f'l{ell}m{emm}' : [res_amp, res_phase]})
+        residues.update({f'l{ell}m{emm}' : [res_amp, res_phase]})
 
-    # fig, ax = plt.subplots()
-    # ax.set_yscale('log')
+        # Plots 
+        fig, ax = plt.subplots()
 
-    # ax.plot(taxis, wf1_rlm_p, label='nrcat')
-    # ax.plot(taxis, wf2_rlm_p, label='wftools', linestyle='--')
-    # ax.set_title(f'waveforms l{ell}m{emm}')
-    # plt.grid()
-    # plt.show()
+        ax.plot(taxis, wf1_rlm_p, label='nrcat')
+        ax.plot(taxis, wf2_rlm_p, label='wftools', linestyle='--')
+        ax.set_title(f'waveforms l{ell}m{emm}')
+        plt.legend()
+        plt.grid()
+        plt.show()
 
-    # fig, ax = plt.subplots()
-    # ax.set_yscale('log')
+        fig, ax = plt.subplots()
+        ax.set_yscale('log')
+        ax.plot(taxis, np.absolute(dAmp_frac))
+        ax.set_title(f'Amplitude fractional diff l{ell}m{emm}')
+        plt.grid()
+        plt.show()
 
-    # ax.plot(taxis, np.absolute(dAmp_frac))
-    # ax.set_title(f'Amp diff l{ell}m{emm}')
-    # plt.grid()
-    # plt.show()
-
-    # fig, ax = plt.subplots()
-    # ax.set_yscale('log')
-    # ax.plot(taxis, np.absolute(dphase))
-    # ax.set_title(f'Phase diff l{ell}m{emm}')
-    # plt.grid()
-    # plt.show()
+        fig, ax = plt.subplots()
+        ax.set_yscale('log')
+        ax.plot(taxis, np.absolute(dphase))
+        ax.set_title(f'Phase diff l{ell}m{emm}')
+        plt.grid()
+        plt.show()
 
     waveforms = {
         "wf1p": wf1_rlm_p,
@@ -274,7 +275,7 @@ class TestSXSModes(unittest.TestCase):
             message(f"Mode l{ell}m{emm}")
             message("--------------------------")
 
-            waveforms = GetModesToCompare(ell, emm)
+            waveforms = GetModesToCompare(ell, emm, Plot=False)
 
             wf1_p = waveforms["wf1p"]
             wf1_x = waveforms["wf1x"]
@@ -299,7 +300,7 @@ class TestSXSModes(unittest.TestCase):
 
             max_mismatch = max(mismatch_p, mismatch_x)
 
-            message(f"Mismatch is {max_mismatch}")
+            message(f"Mismatch is {max_mismatch}%")
 
             prec = 2
             # RMS error should be less than 0.01 x Amax(wf1)
