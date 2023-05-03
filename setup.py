@@ -56,7 +56,7 @@ def write_version_file(version):
         with open(version_file, "w") as f:
             print(git_version, file=f)
             print("created {}".format(version_file))
-    except:
+    except Exception:
         with open(str(version_file), "w") as f:
             print(git_version, file=f)
             print("created {}".format(version_file))
@@ -83,13 +83,12 @@ else:
         version = (
             check_output(
                 """git log -1 --format=%cd --date=format:'%Y.%m.%d.%H.%M.%S'""",
-                shell=use_shell,
             )
             .decode("ascii")
             .rstrip()
         )
         print("Setup.py using git log version='{0}'".format(version))
-    except:
+    except Exception:
         from time import gmtime, strftime
 
         version = strftime("%Y.%m.%d.%H.%M.%S", gmtime())
