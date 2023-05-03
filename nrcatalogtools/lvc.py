@@ -613,7 +613,7 @@ def TransformSpinsNRtoLAL(nrSpin1, nrSpin2, n_hat, ln_hat):
 
 
 def GetNRToLALRotationAngles(
-    H5File, Metadata, Inclination, PhiRef=np.pi / 2, FRef=None, TRef=None
+    H5File, Metadata, Inclination, PhiRef=0, FRef=None, TRef=None
 ):
     """Get the angular coordinates :math:`\theta, \phi`
     and the rotation angle :math:`\alpha` from the H5 file
