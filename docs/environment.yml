@@ -1,0 +1,13 @@
+name: nrcatalogs
+
+dependencies:
+    - python<3.11
+    - pycbc
+    - lalsuite
+    - ligo-common
+    - sxs-ecosystem
+    - pandas
+        
+channels:
+    - defaults
+    - conda-forge
