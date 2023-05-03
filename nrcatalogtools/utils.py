@@ -1,8 +1,9 @@
-import lal
-import pathlib
-import requests
-import shutil
 import functools
+import pathlib
+import shutil
+
+import lal
+import requests
 import sxs
 
 ## --------------------------------------------------------------
