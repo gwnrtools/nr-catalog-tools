@@ -4,7 +4,6 @@ import lalsimulation as lalsim
 import numpy as np
 from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 from pycbc.types import TimeSeries
-import numpy as np
 
 
 def get_lal_mode_dictionary(mode_array):
@@ -729,13 +728,13 @@ def get_nr_to_lal_rotation_angles(
             # Try to get the reference time from orbital frequency
             try:
                 t_ref = get_ref_time_from_ref_freq(h5_file, f_ref)
-                
+
                 # Check if interpolation is required
                 interp, avail_ref_time = check_interp_req(h5_file, t_ref)
-            except:
+            except Exception as excep:
                 print(
-                    f"Could not obtain reference time from given reference frequency {f_ref}."
-
+                    f"Could not obtain reference time from given reference frequency {f_ref}.",
+                    excep,
                 )
                 print("Choosing available reference time")
                 interp = False
@@ -743,7 +742,6 @@ def get_nr_to_lal_rotation_angles(
         interp, avail_ref_time = check_interp_req(h5_file, t_ref)
 
     if interp is False:
-
         # Then load default values from the NR data
         # at hard coded reference time.
 
@@ -756,7 +754,6 @@ def get_nr_to_lal_rotation_angles(
         ref_check_def_h5, absent_attrs_h5 = check_nr_attrs(h5_file)
 
         if ref_check_def_h5 is False:
-
             # Then the LAL source frame information is not present in the H5 file.
             # Then this could be SXS or GT data. The LAL source frame need to be computed from
             # the H5 File or simulation metadata.
@@ -779,14 +776,15 @@ def get_nr_to_lal_rotation_angles(
                     )
                 else:
                     raise Exception(
-                        f"Insufficient information to compute the LAL source frame.\n Missing information is {absent_attrs_meta_sxs}."
+                        "Insufficient information to compute the LAL source frame."
+                        f"\n Missing information is {absent_attrs_meta_sxs}."
                     )
             else:
                 # LAL source frame is present in the simulation metadata
                 ref_params = get_ref_vals(sim_metadata)
         else:
             ref_params = get_ref_vals(h5_file)
-            
+
     elif interp is True:
         # Experimental; This assumes all the required atributes  needed
         # to compute the LAL source frame at the given reference time
@@ -811,8 +809,9 @@ def get_nr_to_lal_rotation_angles(
         )
 
         if ref_check_interp_req is False:
-            raise Exception(
-                f"Insufficient information to compute the LAL source frame at given reference time. Missing information is {absent_interp_attrs}."
+            raise KeyError(
+                "Insufficient information to compute the LAL source frame at given reference time."
+                f"Missing information is {absent_interp_attrs}."
             )
         else:
             ref_params = compute_lal_source_frame_by_interp(
