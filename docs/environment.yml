@@ -1,4 +1,4 @@
-name: nrcat_test
+name: nrcatalogs
 
 dependencies:
     - python<3.11
