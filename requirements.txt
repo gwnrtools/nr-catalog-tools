@@ -1,7 +1,0 @@
-# Modules to install
-
-lalsuite
-ligo-common
-pycbc
-pandas
-sxs[ecosystem]
