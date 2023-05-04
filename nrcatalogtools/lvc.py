@@ -235,14 +235,16 @@ def get_strain_from_lvcnr_file(
     )
 
 
-def check_interp_req(h5_file, ref_time):
+def check_interp_req(h5_file=None, metadata=None, ref_time):
     """Check if the required reference time is different from
-    the available reference time in the NR HDF5 file
+    the available reference time in the NR HDF5 file or the 
+	simulation metadata.
 
     Parameters
     ----------
     h5_file : file object
                 The waveform h5 file handle.
+	metadata : 
     ref_time : float
                Reference time.
 
@@ -254,7 +256,9 @@ def check_interp_req(h5_file, ref_time):
                     The ref_time available in the NR HDF5 file.
     """
 
-    avail_ref_time = h5_file.attrs("ref_time")
+	if h5_file is not None:
+		
+    	avail_ref_time = h5_file.attrs("ref_time")
 
     if abs(avail_ref_time - ref_time) < 1e-5:
         return False, avail_ref_time
@@ -629,6 +633,24 @@ def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
 
     return S1, S2
 
+
+def compute_phi_ref(h5_file, sim_metadata, nr_orb_phase, t_ref=None, f_ref=None):
+	""" Compute the orbital phase at reference time given 
+	the observer coalescence phase.
+
+	Parameters
+	----------
+	h5_file : h5py.File
+			  An open h5 file handle.
+	sim_metadata : dict
+				   The NR simulation metadata.
+	nr_orb_phase : 1darray
+				   The orbital phasing of the 2,2 mode.
+	t_ref, f_ref : float, optional
+					The reference time and phase respectively.
+	"""
+	# First, get the available reference time
+	avail_t_ref
 
 def get_nr_to_lal_rotation_angles(
     h5_file, sim_metadata, inclination, phi_ref=0, f_ref=None, t_ref=None
