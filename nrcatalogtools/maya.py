@@ -31,7 +31,7 @@ class MayaCatalog(catalog.CatalogBase):
         self.waveform_data_url = utils.maya_catalog_info["data_url"]
         self.waveform_data_dir = utils.maya_catalog_info["data_dir"]
 
-		self._add_paths_to_metadata()
+        self._add_paths_to_metadata()
 
         internal_dirs = [self.cache_dir, self.metadata_dir, self.waveform_data_dir]
         for d in internal_dirs:

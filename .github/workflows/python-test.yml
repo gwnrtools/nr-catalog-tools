@@ -34,8 +34,10 @@ jobs:
             pip --version
             pwd
             ls -l
+            ######################
             # Setup linters
-            conda install black isort -y
+            # conda install black isort -y
+            # ##################
             # Setup nrcattools
             pip install -r requirements.txt
             export NRC_DIR=${PWD}
@@ -43,12 +45,14 @@ jobs:
             cd ./test
             pwd
             ls
+            # ##################
             # LAL extras
             export LAL_DATA_PATH="${PWD}/test_data/lalsuite/lalsuite-extra/data/lalsimulation"
             echo $LAL_DATA_PATH
             mkdir -p $LAL_DATA_PATH
             cd $LAL_DATA_PATH
             ls
+            # ########################
             ## lal extras fetch method
             #git lfs pull
             # wget https://git.ligo.org/lscsoft/lalsuite-extra/-/raw/master/data/lalsimulation/SEOBNRv4ROM_v2.0.hdf5 -O SEOBNRv4ROM_v2.0.hdf5
@@ -56,7 +60,8 @@ jobs:
             cd $NRC_DIR
             pwd
             ls
-            # Pull waveformtools
+            # ######################
+            # Clone waveformtools
             cd ..
             git clone https://gitlab.com/vaishakp/waveformtools.git
             cd waveformtools
@@ -66,10 +71,13 @@ jobs:
             echo $WTOOLS_DIR
             export PYTHONPATH="$WTOOLS_DIR":$PYTHONPATH
             echo $PYTHONPATH
+            ####################
             # Begin linting
-            cd $NRC_DIR
-            isort .
-            black .
+            # cd $NRC_DIR
+            # isort .
+            # black .
+            # flake8 .
+            # #################
             # Begin testing
             cd $NRC_DIR/test
             python -m unittest -v

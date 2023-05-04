@@ -4,7 +4,7 @@ import h5py
 import lal
 import numpy as np
 from sxs import WaveformModes as sxs_WaveformModes
-from nrcatalogtools.lvc import get_nr_to_lal_rotation_angles
+from nrcatalogtools.lvc import compute_phi_ref, get_nr_to_lal_rotation_angles
 from . import utils
 
 
@@ -177,8 +177,8 @@ class WaveformModes(sxs_WaveformModes):
     @property
     def filepath(self):
         """Return the data file path"""
-		if not self._filepath:
-			self._filepath = self._metadata['waveform_data_location']
+        if not self._filepath:
+            self._filepath = self._metadata["waveform_data_location"]
 
         return self._filepath
 
@@ -215,11 +215,6 @@ class WaveformModes(sxs_WaveformModes):
                 time-series
         """
 
-		# Get coa_phase
-		nr_coa_phase = self.get_coa_phase()
-		
-		# Compute phi_ref
-		phi_ref = 
         # Get angles
         angles = self.get_angles(inclination, coa_phase, f_ref, t_ref)
 
@@ -272,7 +267,9 @@ class WaveformModes(sxs_WaveformModes):
             new_time = np.arange(min(self.time), max(self.time), delta_t / m_secs)
 
         # Get angles
-        angles = self.get_angles(inclination, coa_phase, f_ref, t_ref)
+        angles = self.get_angles(
+            inclination=inclination, coa_phase=coa_phase, f_ref=f_ref, t_ref=t_ref
+        )
 
         h = self.interpolate(new_time).evaluate(
             [angles["theta"], angles["psi"], angles["alpha"]]
@@ -280,9 +277,7 @@ class WaveformModes(sxs_WaveformModes):
         h.time *= m_secs
         return self.to_pycbc(h)
 
-    def get_angles(
-        self, inclination, coa_phase, phi_ref=0, f_ref=None, t_ref=None
-    ):
+    def get_angles(self, inclination, coa_phase, f_ref=None, t_ref=None):
         """Get the inclination, azimuthal and polarization angles
         of the observer in the NR source frame.
 
@@ -293,9 +288,7 @@ class WaveformModes(sxs_WaveformModes):
                       in the LAL source frame
         coa_phase : float
                     The coalescence phase. This will be
-                    the same as reference orbital phase.
-        phi_ref  : float, optional
-                   The reference orbital phase.
+                    used to compute the reference orbital phase.
         fref, tref : float, optional
                     The reference frquency and time to define the LAL source frame.
                      Defaults to the available frequency in the data file.
@@ -307,20 +300,19 @@ class WaveformModes(sxs_WaveformModes):
                  The angular corrdinates Theta, Psi,  and the rotation angle Alpha.
                  If available, this also contains the reference time and frequency.
         """
-        # Note: 02 May 23 (VP)
-        # Presently, coa_phase is not implemented.
-        print(
-            "Warining! coa_phase is not implemented yet. The reference phase will be used."
+
+        # Get observer phi_ref
+        obs_phi_ref = self.get_obs_phi_ref_from_coa_phase(
+            coa_phase=coa_phase, t_ref=t_ref, f_ref=f_ref
         )
 
         # Compute angles
         with h5py.File(self.filepath) as h5_file:
-            # print(H5File.attrs.keys())
             angles = get_nr_to_lal_rotation_angles(
                 h5_file=h5_file,
                 sim_metadata=self._sim_metadata,
                 inclination=inclination,
-                phi_ref=phi_ref,
+                phi_ref=obs_phi_ref,
                 f_ref=f_ref,
                 t_ref=t_ref,
             )
@@ -342,31 +334,39 @@ class WaveformModes(sxs_WaveformModes):
             copy=True,
         )
 
-	def get_nr_coa_phase(self):
-		''' Get the NR coalescence orbital phase from the 2,2 mode. '''
-		
-		# Get the complex waveform.
-		waveform_22 = self.get_mode(2, 2)
-		# Get the waveform phase.
-		phase_22 = np.angle(waveform_22)
-		# Get the localtion of max amplitude.
-		maxloc = np.argmax(np.absolute(waveform_22))
-		# Compute the orbital phase at max amplitude.
-		coa_phase = phase_22[maxloc]/2
+    def get_nr_coa_phase(self):
+        """Get the NR coalescence orbital phase from the 2,2 mode."""
 
-		return coa_phase
+        # Get the complex waveform.
+        waveform_22 = self.get_mode(2, 2)
+        # Get the waveform phase.
+        phase_22 = np.angle(waveform_22)
+        # Get the localtion of max amplitude.
+        maxloc = np.argmax(np.absolute(waveform_22))
+        # Compute the orbital phase at max amplitude.
+        coa_phase = phase_22[maxloc] / 2
 
-	def get_phi_ref_from_coa_phase(self, coa_phase, t_ref=None, f_ref=None):
-		''' Get the observer reference phase given 
-		coa_phase '''
-		
-		nr_coa_phase = self.get_nr_coa_phase()
-		nr_orb_phase = np.angle(self.get_mode(2, 2))/2
-		
-		with h5py.File(self.filepath) as h5_file:
-			phi_ref = compute_phi_ref(nr_orb_phase, t_ref, f_ref, h5_file, self.sim_metadata)
-		
-		return phi_ref
+        return coa_phase
+
+    def get_obs_phi_ref_from_coa_phase(self, coa_phase, t_ref=None, f_ref=None):
+        """Get the observer reference phase given
+        coa_phase"""
+
+        nr_coa_phase = self.get_nr_coa_phase()
+        nr_orb_phase = np.angle(self.get_mode(2, 2)) / 2
+
+        with h5py.File(self.filepath) as h5_file:
+            obs_phi_ref = compute_phi_ref(
+                h5_file,
+                self.sim_metadata,
+                nr_orb_phase=nr_orb_phase,
+                nr_coa_phase=nr_coa_phase,
+                obs_coa_phase=coa_phase,
+                t_ref=t_ref,
+                f_ref=f_ref,
+            )
+
+        return obs_phi_ref
 
     def to_lal(self):
         raise NotImplementedError()
