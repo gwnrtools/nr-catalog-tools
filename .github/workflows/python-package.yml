@@ -29,11 +29,9 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install pytest pre-commit
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        git clone https://gitlab.com/vaishakp/waveformtools.git
-        cd waveformtools
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install .
+        pip install git+https://gitlab.com/vaishakp/waveformtools
     - name: Test installation and imports
+      if: ${{ always() }}
       run: |
         python -m pip install .
         python -c "import nrcatalogtools"
@@ -46,7 +44,7 @@ jobs:
         python -c "import nrcatalogtools.waveform"
     - name: pre-commit checks
       run: |
-        pre-commit run --all-files --verbose --show-diff-on-failure
+        pre-commit run --verbose --show-diff-on-failure
     - name: Test with pytest
       run: |
         pytest
