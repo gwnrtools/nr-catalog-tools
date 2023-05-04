@@ -247,8 +247,8 @@ class WaveformModes(sxs_WaveformModes):
                 orbital angular momentum vector [radians]
             coa_phase (float): Coalesence orbital phase [radians]
             delta_t (_type_, optional): _description_. Defaults to None.
-            FRef (float, optional) : The reference frequency.
-            TRef (float, optional) : The reference time.
+            f_ref (float, optional) : The reference frequency.
+            t_ref (float, optional) : The reference time.
         Returns:
             pycbc.TimeSeries(numpy.complex128): Complex polarizations
                 stored in `pycbc` container `TimeSeries`
@@ -289,7 +289,7 @@ class WaveformModes(sxs_WaveformModes):
         coa_phase : float
                     The coalescence phase. This will be
                     used to compute the reference orbital phase.
-        fref, tref : float, optional
+        f_ref, t_ref : float, optional
                     The reference frquency and time to define the LAL source frame.
                      Defaults to the available frequency in the data file.
 
