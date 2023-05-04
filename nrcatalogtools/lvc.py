@@ -356,7 +356,7 @@ def check_nr_attrs(
         -------
         present : bool
                   Whether or not all specified attributes are present.
-    h = self.interpo    absent_attrs : list
+        absent_attrs : list
                      The attributes that are absent.
     """
     if isinstance(sim_metadata_object, h5py.File):
