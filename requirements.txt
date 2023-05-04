@@ -7,3 +7,4 @@ ligo-common
 pycbc
 pandas
 sxs[ecosystem]
+waveformtools @ git+https://gitlab.com/vaishakp/waveformtools@main
