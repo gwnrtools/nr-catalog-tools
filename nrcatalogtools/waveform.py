@@ -4,7 +4,7 @@ import h5py
 import lal
 import numpy as np
 from sxs import WaveformModes as sxs_WaveformModes
-from nrcatalogtools.lvc import GetNRToLALRotationAngles
+from nrcatalogtools.lvc import get_nr_to_lal_rotation_angles
 from . import utils
 
 
@@ -308,7 +308,7 @@ class WaveformModes(sxs_WaveformModes):
         # Compute angles
         with h5py.File(self.filepath) as h5_file:
             # print(H5File.attrs.keys())
-            angles = GetNRToLALRotationAngles(
+            angles = get_nr_to_lal_rotation_angles(
                 h5_file=h5_file,
                 sim_metadata=self._sim_metadata,
                 inclination=inclination,
