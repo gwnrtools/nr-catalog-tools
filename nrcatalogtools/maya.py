@@ -2,7 +2,7 @@ import os
 import functools
 import pandas as pd
 
-from . import catalog, utils
+from nrcatalogtools import catalog, utils
 
 
 class MayaCatalog(catalog.CatalogBase):
