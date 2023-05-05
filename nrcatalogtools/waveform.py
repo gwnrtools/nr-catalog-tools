@@ -5,7 +5,7 @@ import lal
 import numpy as np
 from sxs import WaveformModes as sxs_WaveformModes
 from nrcatalogtools.lvc import compute_phi_ref, get_nr_to_lal_rotation_angles
-from . import utils
+from nrcatalogtools import utils
 
 
 class WaveformModes(sxs_WaveformModes):

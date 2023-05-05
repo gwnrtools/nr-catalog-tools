@@ -5,7 +5,7 @@ from tqdm import tqdm
 import pandas as pd
 import requests
 
-from . import catalog, utils
+from nrcatalogtools import catalog, utils
 
 
 class RITCatalog(catalog.CatalogBase):

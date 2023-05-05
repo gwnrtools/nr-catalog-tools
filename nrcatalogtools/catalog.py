@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+import os
+import sxs
+from nrcatalogtools import waveform
 
 
 class CatalogABC(ABC):
@@ -25,11 +28,6 @@ class CatalogABC(ABC):
     @abstractmethod
     def waveform_url_from_simname(self, sim_name):
         raise NotImplementedError()
-
-
-import os
-import sxs
-from . import waveform
 
 
 class CatalogBase(CatalogABC, sxs.Catalog):
@@ -78,6 +76,6 @@ class CatalogBase(CatalogABC, sxs.Catalog):
         import h5py
 
         file_path = self.waveform_filepath_from_simname(sim_name)
-        with h5py.File(file_path, 'a') as fp:
+        with h5py.File(file_path, "a") as fp:
             if attr_name not in fp.attrs:
                 fp.attrs[attr_name] = attr_value
