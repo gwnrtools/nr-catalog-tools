@@ -2,8 +2,8 @@
 
 It was noted that the RAW modes data loaded from H5 files
 were exactly equal. Howeverm after resampling to an axis,
-there can be differences due to a differencein the 
-time axis and interpolation. This script demonstrates the 
+there can be differences due to a difference in the
+time axis and interpolation. This script demonstrates the
 level of precision that can be expected from comparison
 of waveforms that requires interpolation and resampling.
 """
@@ -11,7 +11,6 @@ of waveforms that requires interpolation and resampling.
 import os
 import sys
 
-import h5py
 import numpy as np
 
 cwd = os.getcwd()
@@ -29,19 +28,25 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from nrcatalogtools.sxs import SXSCatalog
+
 # from pycbc.waveform.utils import coalign_waveforms
-from pycbc import pnutils
 from pycbc.filter.matchedfilter import match
+
 # pycbc
 # from pycbc.waveform import td_approximants
 from pycbc.types.timeseries import TimeSeries
+
 # waveformtools
 from waveformtools.waveforms import modes_array
-from waveformtools.waveformtools import (interp_resam_wfs, message,
-                                         xtract_camp_phase)
+from waveformtools.waveformtools import (
+    interp_resam_wfs,
+    match_wfs,
+    message,
+    xtract_camp_phase,
+)
 
 # unittest helper funcs
-from helper import *
+from helper import rms_errs
 
 # import matplotlib.pyplot as plt
 
@@ -78,18 +83,14 @@ def GetModesToCompare(ell, emm, Plot=False):
     # Prepare modes
     ####################
 
-    errs = {}
-
-    aerrs = []
-    perrs = []
-
     wf1_tlm = sxsw.get_mode(ell, emm)[:, 0] - mtime
 
     if not (wf1_tlm - taxis1 == 0).all():
-        message('Difference in axis', wf1_tlm - taxis1)
+        message("Difference in axis", wf1_tlm - taxis1)
         raise ValueError("Time axis is different across modes!")
 
     # nrcat
+    # nr cat loads negative of the modes??
     wf1_plm = sxsw.get_mode(ell, emm)[:, 1]
     wf1_xlm = sxsw.get_mode(ell, emm)[:, 2]
 
@@ -136,37 +137,40 @@ def GetModesToCompare(ell, emm, Plot=False):
     wf2_rlm_p = TimeSeries(wf2_rlm.real, delta_t=delta_t)
     wf2_rlm_x = TimeSeries(wf2_rlm.imag, delta_t=delta_t)
 
-    if Plot==True:
+    match_det = match_wfs([taxis, taxis], [wf1_rlm, wf2_rlm])
+    message(match_det["match_score"])
+
+    if Plot is True:
         # Phase difference
         dphase = wf1_rPlm - wf2_rPlm
-
+        dAmp_frac = wf1_rAlm / wf2_rAlm - 1
         # Errors in amp and phase
-        amp_residues.append(res_amp)
-        phase_residues.append(res_phase)
+        # amp_residues.append(res_amp)
+        # phase_residues.append(res_phase)
 
-        residues.update({f'l{ell}m{emm}' : [res_amp, res_phase]})
+        # residues.update({f'l{ell}m{emm}' : [res_amp, res_phase]})
 
-        # Plots 
+        # Plots
         fig, ax = plt.subplots()
 
-        ax.plot(taxis, wf1_rlm_p, label='nrcat')
-        ax.plot(taxis, wf2_rlm_p, label='wftools', linestyle='--')
-        ax.set_title(f'waveforms l{ell}m{emm}')
+        ax.plot(taxis, wf1_rlm_p, label="nrcat")
+        ax.plot(taxis, wf2_rlm_p, label="wftools", linestyle="--")
+        ax.set_title(f"waveforms l{ell}m{emm}")
         plt.legend()
         plt.grid()
         plt.show()
 
         fig, ax = plt.subplots()
-        ax.set_yscale('log')
+        ax.set_yscale("log")
         ax.plot(taxis, np.absolute(dAmp_frac))
-        ax.set_title(f'Amplitude fractional diff l{ell}m{emm}')
+        ax.set_title(f"Amplitude fractional diff l{ell}m{emm}")
         plt.grid()
         plt.show()
 
         fig, ax = plt.subplots()
-        ax.set_yscale('log')
+        ax.set_yscale("log")
         ax.plot(taxis, np.absolute(dphase))
-        ax.set_title(f'Phase diff l{ell}m{emm}')
+        ax.set_title(f"Phase diff l{ell}m{emm}")
         plt.grid()
         plt.show()
 
@@ -286,8 +290,8 @@ class TestSXSModes(unittest.TestCase):
             wf2_wftools = wf2_p + 1j * wf2_x
 
             # L2 errors
-            Res_p, Amin_p, Amax_p = RMSerrs(np.array(wf1_p), np.array(wf2_p))
-            Res_x, Amin_x, Amax_x = RMSerrs(np.array(wf1_x), np.array(wf2_x))
+            Res_p, Amin_p, Amax_p = rms_errs(np.array(wf1_p), np.array(wf2_p))
+            Res_x, Amin_x, Amax_x = rms_errs(np.array(wf1_x), np.array(wf2_x))
 
             # Amin_p/=A1max
             # Amin
@@ -308,13 +312,15 @@ class TestSXSModes(unittest.TestCase):
                 Res_p,
                 0,
                 prec,
-                f"The RMS error between the + components of the waveforms must be atmost 1e-{prec} times Max amplitude of the normalized waveform",
+                "The RMS error between the + components of the waveforms must be"
+                f"atmost 1e-{prec} times Max amplitude of the normalized waveform",
             )
             self.assertAlmostEqual(
                 Res_x,
                 0,
                 prec,
-                f"The RMS error between the x components of the waveforms must be almost 1e-{prec} times Max amplitude of the normalized waveform",
+                "The RMS error between the x components of the waveforms must be"
+                f"almost 1e-{prec} times Max amplitude of the normalized waveform",
             )
 
             prec = 0
