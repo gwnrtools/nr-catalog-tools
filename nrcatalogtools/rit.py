@@ -4,8 +4,9 @@ import functools
 from tqdm import tqdm
 import pandas as pd
 import requests
-
-from . import catalog, utils
+import collections
+from nrcatalogtools import catalog, utils
+import subprocess
 
 
 class RITCatalog(catalog.CatalogBase):
@@ -114,8 +115,6 @@ class RITCatalog(catalog.CatalogBase):
                 "download": row["waveform_data_link"],
             }
             file_infos[path_str] = file_info
-
-        import collections
 
         unique_files = collections.defaultdict(list)
         for k, v in file_infos.items():
@@ -387,7 +386,6 @@ class RITCatalogHelper(object):
         return pd.DataFrame({})
 
     def fetch_metadata(self, idx, res, id_val=-1):
-        import pandas as pd
 
         possible_file_names = [
             self.metadata_file_fmts[0].format(idx, res, id_val),
@@ -612,7 +610,6 @@ class RITCatalogHelper(object):
                 if self.verbosity > 2:
                     print("...downloading {}".format(file_path_web))
                 # wget.download(str(file_path_web), str(local_file_path))
-                import subprocess
 
                 subprocess.call(
                     [
