@@ -1,8 +1,9 @@
 import os
 import functools
 import pandas as pd
-
-from . import catalog, utils
+import zipfile
+import collections
+from nrcatalogtools import catalog, utils
 
 
 class MayaCatalog(catalog.CatalogBase):
@@ -40,8 +41,6 @@ class MayaCatalog(catalog.CatalogBase):
     @classmethod
     @functools.lru_cache()
     def load(cls, download=None, verbosity=0):
-        import zipfile
-
         progress = True
         utils.maya_catalog_info["cache_dir"].mkdir(parents=True, exist_ok=True)
         catalog_url = utils.maya_catalog_info["metadata_url"]
@@ -208,8 +207,6 @@ class MayaCatalog(catalog.CatalogBase):
                 "download": row["waveform_data_link"],
             }
             file_infos[path_str] = file_info
-
-        import collections
 
         unique_files = collections.defaultdict(list)
         for k, v in file_infos.items():

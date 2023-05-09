@@ -4,6 +4,7 @@ import lalsimulation as lalsim
 import numpy as np
 from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 from pycbc.types import TimeSeries
+from scipy.interpolate import interp1d
 
 
 def get_lal_mode_dictionary(mode_array):
@@ -23,10 +24,8 @@ def get_lal_mode_dictionary(mode_array):
     waveform_dictionary = lal.CreateDict()
     mode_array_lal = lalsim.SimInspiralCreateModeArray()
     for mode in mode_array:
-        lalsim.SimInspiralModeArrayActivateMode(mode_array_lal, mode[0],
-                                                mode[1])
-    lalsim.SimInspiralWaveformParamsInsertModeArray(waveform_dictionary,
-                                                    mode_array_lal)
+        lalsim.SimInspiralModeArrayActivateMode(mode_array_lal, mode[0], mode[1])
+    lalsim.SimInspiralWaveformParamsInsertModeArray(waveform_dictionary, mode_array_lal)
 
     return waveform_dictionary
 
@@ -46,17 +45,13 @@ def get_lal_mode_dictionary_from_lmax(lmax):
 
     """
 
-    mode_array = [[ell, emm] for ell in range(2, lmax + 1)
-                  for emm in range(-ell, ell + 1)]
+    mode_array = [
+        [ell, emm] for ell in range(2, lmax + 1) for emm in range(-ell, ell + 1)
+    ]
     return get_lal_mode_dictionary(mode_array)
 
 
-def get_modes_from_lvcnr_file(path_to_file,
-                              Mtot,
-                              distance,
-                              srate,
-                              lmax=4,
-                              f_low=None):
+def get_modes_from_lvcnr_file(path_to_file, Mtot, distance, srate, lmax=4, f_low=None):
     r"""
     Get individual modes from LVCNR format file.
 
@@ -108,21 +103,23 @@ def get_modes_from_lvcnr_file(path_to_file,
 
         if h5file.attrs["Format"] < 3:
             spin_args = lalsim.SimInspiralNRWaveformGetSpinsFromHDF5File(
-                -1, Mtot, path_to_file)
+                -1, Mtot, path_to_file
+            )
         else:
             spin_args = lalsim.SimInspiralNRWaveformGetSpinsFromHDF5File(
-                f_low, Mtot, path_to_file)
+                f_low, Mtot, path_to_file
+            )
 
         mass_args = list(
-            mtotal_eta_to_mass1_mass2(Mtot * lal.MSUN_SI, h5file.attrs["eta"]))
+            mtotal_eta_to_mass1_mass2(Mtot * lal.MSUN_SI, h5file.attrs["eta"])
+        )
 
         try:
             eccentricity = float(h5file.attrs["eccentricity"])
         except ValueError:
             eccentricity = None
 
-    values_mode_array = lalsim.SimInspiralWaveformParamsLookupModeArray(
-        waveform_dict)
+    values_mode_array = lalsim.SimInspiralWaveformParamsLookupModeArray(waveform_dict)
     _, modes = lalsim.SimInspiralNRWaveformGetHlms(
         1 / srate,
         *mass_args,
@@ -154,13 +151,9 @@ def get_modes_from_lvcnr_file(path_to_file,
     )
 
 
-def get_strain_from_lvcnr_file(path_to_file,
-                               Mtot,
-                               distance,
-                               inclination,
-                               phi_ref,
-                               srate,
-                               mode_array=None):
+def get_strain_from_lvcnr_file(
+    path_to_file, Mtot, distance, inclination, phi_ref, srate, mode_array=None
+):
     """
     Get full strain from LVCNR format file.
 
@@ -204,19 +197,21 @@ def get_strain_from_lvcnr_file(path_to_file,
         else:
             waveform_dict = lal.CreateDict()
 
-        lalsim.SimInspiralWaveformParamsInsertNumRelData(
-            waveform_dict, path_to_file)
+        lalsim.SimInspiralWaveformParamsInsertNumRelData(waveform_dict, path_to_file)
         f_low = h5file.attrs["f_lower_at_1MSUN"] / Mtot
 
         if h5file.attrs["Format"] < 3:
             spin_args = lalsim.SimInspiralNRWaveformGetSpinsFromHDF5File(
-                -1, Mtot, path_to_file)
+                -1, Mtot, path_to_file
+            )
         else:
             spin_args = lalsim.SimInspiralNRWaveformGetSpinsFromHDF5File(
-                f_low, Mtot, path_to_file)
+                f_low, Mtot, path_to_file
+            )
 
         mass_args = list(
-            mtotal_eta_to_mass1_mass2(Mtot * lal.MSUN_SI, h5file.attrs["eta"]))
+            mtotal_eta_to_mass1_mass2(Mtot * lal.MSUN_SI, h5file.attrs["eta"])
+        )
 
     hp, hc = lalsim.SimInspiralChooseTDWaveform(
         *mass_args,
@@ -309,8 +304,6 @@ def get_ref_freq_from_ref_time(h5_file, ref_time):
 
     time, freq = h5_file.attrs["Omega-vs-time"]
 
-    from scipy.interpolate import interp1d
-
     ref_freq = interp1d(time, freq, kind="cubic")[ref_time]
 
     return ref_freq
@@ -330,7 +323,6 @@ def get_ref_time_from_ref_freq(h5_file, ref_freq):
     fTime : float
            Reference time.
     """
-    from scipy.interpolate import interp1d
 
     time, freq = h5_file.attrs["Omega-vs-time"]
 
@@ -344,20 +336,20 @@ def check_nr_attrs(
     req_attrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"],
 ):
     """Check if the NR h5 file or a simulation metadata dictionary
-            contains all the attributes required.
+        contains all the attributes required.
 
-        Parameters
-        ----------
-        sim_metadata_object : h5 file object, dict
-                         The NR h5py file handle or simulation metadata.
-        req_attrs : list
-                   A list of attribute keys.
-        Returns
-        -------
-        present : bool
-                  Whether or not all specified attributes are present.
-        absent_attrs : list
-                     The attributes that are absent.
+    Parameters
+    ----------
+    sim_metadata_object : h5 file object, dict
+                     The NR h5py file handle or simulation metadata.
+    req_attrs : list
+               A list of attribute keys.
+    Returns
+    -------
+    present : bool
+              Whether or not all specified attributes are present.
+    absent_attrs : list
+                 The attributes that are absent.
     """
     if isinstance(sim_metadata_object, h5py.File):
         all_attrs = list(sim_metadata_object.attrs.keys())
@@ -365,8 +357,7 @@ def check_nr_attrs(
     elif isinstance(sim_metadata_object, dict):
         all_attrs = list(sim_metadata_object.keys())
     else:
-        raise TypeError(
-            "Please supply an open h5py file handle or a dictionary")
+        raise TypeError("Please supply an open h5py file handle or a dictionary")
 
     absent_attrs = []
     present = True
@@ -396,7 +387,6 @@ def get_interp_ref_values_from_h5_file(h5_file, req_ts_attrs, ref_time):
     params : dict
              The parameter values at the reference time.
     """
-    from scipy.interpolate import interp1d
 
     params = {}
 
@@ -432,8 +422,7 @@ def get_ref_vals(
     elif isinstance(sim_metadata_object, dict):
         source = sim_metadata_object
     else:
-        raise TypeError(
-            "Please supply an open h5py file handle or a dictionary")
+        raise TypeError("Please supply an open h5py file handle or a dictionary")
 
     params = {}
 
@@ -530,8 +519,7 @@ def compute_lal_source_frame_by_interp(h5_file, req_ts_attrs, t_ref):
     #            'position1x-vs-time', 'position1y-vs-time', 'position1z-vs-time', \
     #            'position2x-vs-time', 'position2y-vs-time', 'position2z-vs-time']
 
-    ref_params = get_interp_ref_values_from_h5_file(h5_file, req_ts_attrs,
-                                                    t_ref)
+    ref_params = get_interp_ref_values_from_h5_file(h5_file, req_ts_attrs, t_ref)
 
     # r21 vec
     r21_x = ref_params["position1x-vs-time"] - ref_params["position2x-vs-time"]
@@ -640,16 +628,20 @@ def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
 
     S1x = nrSpin1x * n_hat_x + nrSpin1y * n_hat_y + nrSpin1z * n_hat_z
 
-    S1y = (nrSpin1x * (-ln_hat_z * n_hat_y + ln_hat_y * n_hat_z) + nrSpin1y *
-           (ln_hat_z * n_hat_x - ln_hat_x * n_hat_z) + nrSpin1z *
-           (-ln_hat_y * n_hat_x + ln_hat_x * n_hat_y))
+    S1y = (
+        nrSpin1x * (-ln_hat_z * n_hat_y + ln_hat_y * n_hat_z)
+        + nrSpin1y * (ln_hat_z * n_hat_x - ln_hat_x * n_hat_z)
+        + nrSpin1z * (-ln_hat_y * n_hat_x + ln_hat_x * n_hat_y)
+    )
 
     S1z = nrSpin1x * ln_hat_x + nrSpin1y * ln_hat_y + nrSpin1z * ln_hat_z
 
     S2x = nrSpin2x * n_hat_x + nrSpin2y * n_hat_y + nrSpin2z * n_hat_z
-    S2y = (nrSpin2x * (-ln_hat_z * n_hat_y + ln_hat_y * n_hat_z) + nrSpin2y *
-           (ln_hat_z * n_hat_x - ln_hat_x * n_hat_z) + nrSpin2z *
-           (-ln_hat_y * n_hat_x + ln_hat_x * n_hat_y))
+    S2y = (
+        nrSpin2x * (-ln_hat_z * n_hat_y + ln_hat_y * n_hat_z)
+        + nrSpin2y * (ln_hat_z * n_hat_x - ln_hat_x * n_hat_z)
+        + nrSpin2z * (-ln_hat_y * n_hat_x + ln_hat_x * n_hat_y)
+    )
 
     S2z = nrSpin2x * ln_hat_x + nrSpin2y * ln_hat_y + nrSpin2z * ln_hat_z
 
@@ -659,13 +651,15 @@ def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
     return S1, S2
 
 
-def compute_phi_ref(h5_file,
-                    sim_metadata,
-                    nr_orb_phase,
-                    nr_coa_phase,
-                    obs_coa_phase,
-                    t_ref=None,
-                    f_ref=None):
+def compute_phi_ref(
+    h5_file,
+    sim_metadata,
+    nr_orb_phase,
+    nr_coa_phase,
+    obs_coa_phase,
+    t_ref=None,
+    f_ref=None,
+):
     """Compute the orbital phase at reference time given
     the observer coalescence phase.
 
@@ -698,11 +692,10 @@ def compute_phi_ref(h5_file,
     interp, avail_t_ref = check_interp_req(h5_file, sim_metadata, t_ref)
 
     # Second, get the NR reference phase
-    from scipy.interpolate import interp1d
 
-    nr_phi_ref = interp1d(nr_orb_phase.time_axis,
-                          np.array(nr_orb_phase),
-                          kind="cubic")[avail_t_ref]
+    nr_phi_ref = interp1d(nr_orb_phase.time_axis, np.array(nr_orb_phase), kind="cubic")[
+        avail_t_ref
+    ]
 
     # Third, compute the offset in coa_phase
     delta_phi_ref = obs_coa_phase - nr_coa_phase
@@ -713,12 +706,9 @@ def compute_phi_ref(h5_file,
     return obs_phi_ref
 
 
-def get_nr_to_lal_rotation_angles(h5_file,
-                                  sim_metadata,
-                                  inclination,
-                                  phi_ref=0,
-                                  f_ref=None,
-                                  t_ref=None):
+def get_nr_to_lal_rotation_angles(
+    h5_file, sim_metadata, inclination, phi_ref=0, f_ref=None, t_ref=None
+):
     r"""Get the angular coordinates :math:`\theta, \phi`
     and the rotation angle :math:`\alpha` from the H5 file
 
@@ -845,24 +835,26 @@ def get_nr_to_lal_rotation_angles(h5_file,
             # the H5 File or simulation metadata.
 
             # Check if LAL source frame info is present in the simulation metadata.
-            ref_check_def_meta, absent_attrs_meta = check_nr_attrs(
-                sim_metadata)
+            ref_check_def_meta, absent_attrs_meta = check_nr_attrs(sim_metadata)
 
             if ref_check_def_meta is False:
                 # Then this is SXS data.
 
                 # Check for raw information in metadata to compute the LAL source frame.
                 ref_check_def_meta_sxs, absent_attrs_meta_sxs = check_nr_attrs(
-                    sim_metadata, req_def_attrs_sxs)
+                    sim_metadata, req_def_attrs_sxs
+                )
 
                 if ref_check_def_meta_sxs is True:
                     # Compute the LAL source frame from simulation metadata
                     ref_params = compute_lal_source_frame_from_sxs_metadata(
-                        sim_metadata)
+                        sim_metadata
+                    )
                 else:
                     raise Exception(
                         "Insufficient information to compute the LAL source frame."
-                        f"\n Missing information is {absent_attrs_meta_sxs}.")
+                        f"\n Missing information is {absent_attrs_meta_sxs}."
+                    )
             else:
                 # LAL source frame is present in the simulation metadata
                 ref_params = get_ref_vals(sim_metadata)
@@ -889,15 +881,18 @@ def get_nr_to_lal_rotation_angles(h5_file,
 
         # Check if time series data of required reference data is present
         ref_check_interp_req, absent_interp_attrs = check_nr_attrs(
-            h5_file, req_ts_attrs)
+            h5_file, req_ts_attrs
+        )
 
         if ref_check_interp_req is False:
             raise KeyError(
                 "Insufficient information to compute the LAL source frame at given reference time."
-                f"Missing information is {absent_interp_attrs}.")
+                f"Missing information is {absent_interp_attrs}."
+            )
         else:
             ref_params = compute_lal_source_frame_by_interp(
-                h5_file, req_ts_attrs, t_ref)
+                h5_file, req_ts_attrs, t_ref
+            )
 
         # Warning 1
         # Implement this Warning
@@ -926,12 +921,9 @@ def get_nr_to_lal_rotation_angles(h5_file,
     ln_cross_n = np.cross(ln_hat, n_hat)
     ln_cross_n_x, ln_cross_n_y, ln_cross_n_z = ln_cross_n
 
-    z_wave_x = sinclination * (sorb_phase * n_hat_x +
-                               corb_phase * ln_cross_n_x)
-    z_wave_y = sinclination * (sorb_phase * n_hat_y +
-                               corb_phase * ln_cross_n_y)
-    z_wave_z = sinclination * (sorb_phase * n_hat_z +
-                               corb_phase * ln_cross_n_z)
+    z_wave_x = sinclination * (sorb_phase * n_hat_x + corb_phase * ln_cross_n_x)
+    z_wave_y = sinclination * (sorb_phase * n_hat_y + corb_phase * ln_cross_n_y)
+    z_wave_z = sinclination * (sorb_phase * n_hat_z + corb_phase * ln_cross_n_z)
 
     z_wave_x += cinclination * ln_hat_x
     z_wave_y += cinclination * ln_hat_y
@@ -989,8 +981,7 @@ def get_nr_to_lal_rotation_angles(h5_file,
             print(
                 f"y_val = {y_val}, z_wave_y = {z_wave_y}, abs(y_val - z_wave_y) = {abs(y_val - z_wave_y)}"
             )
-            raise ValueError(
-                "Math consistency failure! Please contact the developers.")
+            raise ValueError("Math consistency failure! Please contact the developers.")
 
     # 3.2: Compute the vectors theta_hat and psi_hat
     # stheta = np.sin(theta)

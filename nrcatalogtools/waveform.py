@@ -1,11 +1,19 @@
 import os
-
 import h5py
 import lal
 import numpy as np
 from sxs import WaveformModes as sxs_WaveformModes
 from nrcatalogtools.lvc import compute_phi_ref, get_nr_to_lal_rotation_angles
-from . import utils
+from nrcatalogtools import utils
+from pycbc.types import TimeSeries
+from pycbc.waveform import frequency_from_polarizations
+from scipy.interpolate import InterpolatedUnivariateSpline
+from scipy.stats import mode as stat_mode
+from sxs.waveforms.nrar import (
+    h,
+    translate_data_type_to_spin_weight,
+    translate_data_type_to_sxs_string,
+)
 
 
 class WaveformModes(sxs_WaveformModes):
@@ -80,13 +88,6 @@ class WaveformModes(sxs_WaveformModes):
             WaveformModes: Object containing time-series of SWSH modes.
         """
         import quaternionic
-        from scipy.interpolate import InterpolatedUnivariateSpline
-        from scipy.stats import mode as stat_mode
-        from sxs.waveforms.nrar import (
-            h,
-            translate_data_type_to_spin_weight,
-            translate_data_type_to_sxs_string,
-        )
 
         if type(file_path_or_open_file) == h5py._hl.files.File:
             h5_file = file_path_or_open_file
@@ -192,8 +193,6 @@ class WaveformModes(sxs_WaveformModes):
 
     @property
     def f_lower_at_1Msun(self):
-        from pycbc.types import TimeSeries
-        from pycbc.waveform import frequency_from_polarizations
 
         mode22 = self.get_mode(2, 2)
         fr22 = frequency_from_polarizations(
@@ -254,8 +253,6 @@ class WaveformModes(sxs_WaveformModes):
                 stored in `pycbc` container `TimeSeries`
         """
         if delta_t is None:
-            from scipy.stats import mode as stat_mode
-
             delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
         m_secs = utils.time_to_physical(total_mass)
         # we assume that we generally do not sample at a rate below 128Hz.
@@ -322,8 +319,6 @@ class WaveformModes(sxs_WaveformModes):
     def to_pycbc(self, input_array=None):
         if input_array is None:
             input_array = self
-        from pycbc.types import TimeSeries
-        from scipy.stats import mode as stat_mode
 
         delta_t = stat_mode(np.diff(input_array.time), keepdims=True)[0][0]
         return TimeSeries(

@@ -1,6 +1,6 @@
 import os
 import sxs
-from . import catalog, waveform
+from nrcatalogtools import catalog, waveform
 
 
 class SXSCatalog(catalog.CatalogBase):

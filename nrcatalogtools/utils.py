@@ -1,7 +1,6 @@
 import functools
 import pathlib
 import shutil
-
 import lal
 import requests
 import sxs
@@ -103,6 +102,7 @@ def call_with_timeout(myfunc, args=(), kwargs={}, timeout=5):
     `timeout` seconds, the results are fetched from the `Queue` and
     returned.
     """
+
     from multiprocessing import Process, Queue
 
     def funcwrapper(p, *args, **kwargs):
