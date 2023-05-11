@@ -28,22 +28,15 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 from nrcatalogtools.sxs import SXSCatalog
-
 # from pycbc.waveform.utils import coalign_waveforms
 from pycbc.filter.matchedfilter import match
-
 # pycbc
 # from pycbc.waveform import td_approximants
 from pycbc.types.timeseries import TimeSeries
-
 # waveformtools
 from waveformtools.waveforms import modes_array
-from waveformtools.waveformtools import (
-    interp_resam_wfs,
-    match_wfs,
-    message,
-    xtract_camp_phase,
-)
+from waveformtools.waveformtools import (interp_resam_wfs, match_wfs, message,
+                                         xtract_camp_phase)
 
 # unittest helper funcs
 from helper import rms_errs
@@ -101,11 +94,11 @@ def GetModesToCompare(ell, emm, Plot=False):
     wf1_Alm, wf1_Plm = xtract_camp_phase(wf1_lm.real, wf1_lm.imag)
     wf2_Alm, wf2_Plm = xtract_camp_phase(wf2_lm.real, wf2_lm.imag)
 
-    wf1_rAlm = interp_resam_wfs(wf1_Alm, taxis1, taxis, resam_kind="cubic")
-    wf2_rAlm = interp_resam_wfs(wf2_Alm, taxis2, taxis, resam_kind="cubic")
+    wf1_rAlm = interp_resam_wfs(wf1_Alm, taxis1, taxis, kind="cubic")
+    wf2_rAlm = interp_resam_wfs(wf2_Alm, taxis2, taxis, kind="cubic")
 
-    wf1_rPlm = interp_resam_wfs(wf1_Plm, taxis1, taxis, resam_kind="cubic")
-    wf2_rPlm = interp_resam_wfs(wf2_Plm, taxis2, taxis, resam_kind="cubic")
+    wf1_rPlm = interp_resam_wfs(wf1_Plm, taxis1, taxis, kind="cubic")
+    wf2_rPlm = interp_resam_wfs(wf2_Plm, taxis2, taxis, kind="cubic")
 
     # Get max locs
     # maxloc1 = np.argmax(wf1_rAlm)
@@ -197,6 +190,7 @@ def GetModesToCompare(ell, emm, Plot=False):
 # sc = sxs.Catalog.load(download=True)
 # rc = RITCatalog.load(verbosity=5, download=True)
 message("Loading SXS waveform through nrcatalogtools...")
+
 sxs1 = SXSCatalog.load(download=True)
 # mc = MayaCatalog.load(verbosity=5)
 # mwf = mc.get(sim_name)
@@ -216,7 +210,7 @@ wf1_22 = wf1_p22 + 1j * wf1_x22
 message("Finding Amax")
 tfine = np.arange(wf1_t22[0], wf1_t22[-1], 0.001)
 
-wf1_f22 = interp_resam_wfs(wf1_22, wf1_t22, tfine, resam_kind="cubic")
+wf1_f22 = interp_resam_wfs(wf1_22, wf1_t22, tfine, kind="cubic", k=None)
 
 # Recenter the axis of td waveform about max amp
 mloc = np.argmax(np.absolute(wf1_f22))
@@ -279,7 +273,7 @@ class TestSXSModes(unittest.TestCase):
             message(f"Mode l{ell}m{emm}")
             message("--------------------------")
 
-            waveforms = GetModesToCompare(ell, emm, Plot=False)
+            waveforms = GetModesToCompare(ell, emm, Plot=True)
 
             wf1_p = waveforms["wf1p"]
             wf1_x = waveforms["wf1x"]
