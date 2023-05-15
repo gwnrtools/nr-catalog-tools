@@ -1,19 +1,19 @@
 import os
+
 import h5py
 import lal
 import numpy as np
-from sxs import WaveformModes as sxs_WaveformModes
-from nrcatalogtools.lvc import compute_phi_ref, get_nr_to_lal_rotation_angles
-from nrcatalogtools import utils
 from pycbc.types import TimeSeries
 from pycbc.waveform import frequency_from_polarizations
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.stats import mode as stat_mode
-from sxs.waveforms.nrar import (
-    h,
-    translate_data_type_to_spin_weight,
-    translate_data_type_to_sxs_string,
-)
+
+from nrcatalogtools import utils
+from nrcatalogtools.lvc import (check_interp_req,
+                                get_nr_to_lal_rotation_angles, get_ref_vals)
+from sxs import WaveformModes as sxs_WaveformModes
+from sxs.waveforms.nrar import (h, translate_data_type_to_spin_weight,
+                                translate_data_type_to_sxs_string)
 
 
 class WaveformModes(sxs_WaveformModes):
@@ -38,6 +38,8 @@ class WaveformModes(sxs_WaveformModes):
             ell_max=ell_max,
             **w_attributes,
         )
+        self._t_ref_nr = None
+        self._filepath = None
         self.verbosity = verbosity
         return self
 
@@ -100,9 +102,14 @@ class WaveformModes(sxs_WaveformModes):
 
         # Set the file path attribute
         cls._filepath = h5_file.filename
-        # Note: to be activate after metdata has been loaded
-        # in SXS format.
-        cls._metadata_path = cls._metadata["metadata_path"]
+        # If _metadata is not already
+        # a set attribute, then set
+        # it here.
+
+        try:
+            cls._metadata
+        except AttributeError:
+            cls._metadata = metadata
 
         ELL_MIN, ELL_MAX = 2, 10
         ell_min, ell_max = 99, -1
@@ -179,7 +186,7 @@ class WaveformModes(sxs_WaveformModes):
     def filepath(self):
         """Return the data file path"""
         if not self._filepath:
-            self._filepath = self._metadata["waveform_data_location"]
+            self._filepath = self.sim_metadata["waveform_data_location"]
 
         return self._filepath
 
@@ -193,7 +200,6 @@ class WaveformModes(sxs_WaveformModes):
 
     @property
     def f_lower_at_1Msun(self):
-
         mode22 = self.get_mode(2, 2)
         fr22 = frequency_from_polarizations(
             TimeSeries(mode22[:, 1], delta_t=np.diff(self.time)[0]),
@@ -299,7 +305,7 @@ class WaveformModes(sxs_WaveformModes):
         """
 
         # Get observer phi_ref
-        obs_phi_ref = self.get_obs_phi_ref_from_coa_phase(
+        obs_phi_ref = self.get_obs_phi_ref_from_obs_coa_phase(
             coa_phase=coa_phase, t_ref=t_ref, f_ref=f_ref
         )
 
@@ -307,7 +313,7 @@ class WaveformModes(sxs_WaveformModes):
         with h5py.File(self.filepath) as h5_file:
             angles = get_nr_to_lal_rotation_angles(
                 h5_file=h5_file,
-                sim_metadata=self._sim_metadata,
+                sim_metadata=self.sim_metadata,
                 inclination=inclination,
                 phi_ref=obs_phi_ref,
                 f_ref=f_ref,
@@ -332,34 +338,44 @@ class WaveformModes(sxs_WaveformModes):
     def get_nr_coa_phase(self):
         """Get the NR coalescence orbital phase from the 2,2 mode."""
 
-        # Get the complex waveform.
-        waveform_22 = self.get_mode(2, 2)
         # Get the waveform phase.
-        phase_22 = np.angle(waveform_22)
+        phase_22 = self._get_phase(2, 2)
+
+        waveform_22 = self.get_mode(2, 2)[:, 1] + 1j * self.get_mode(2, 2)[:, 2]
+
+        # print(len(phase_22), len(waveform_22))
         # Get the localtion of max amplitude.
+
         maxloc = np.argmax(np.absolute(waveform_22))
         # Compute the orbital phase at max amplitude.
         coa_phase = phase_22[maxloc] / 2
 
         return coa_phase
 
-    def get_obs_phi_ref_from_coa_phase(self, coa_phase, t_ref=None, f_ref=None):
-        """Get the observer reference phase given
-        coa_phase"""
+    def get_obs_phi_ref_from_obs_coa_phase(self, coa_phase, t_ref=None, f_ref=None):
+        """Get the observer reference phase given the observer
+        coalescence phase."""
 
+        # Get the NR coalescence phase
         nr_coa_phase = self.get_nr_coa_phase()
-        nr_orb_phase = np.angle(self.get_mode(2, 2)) / 2
+        # Get the NR orbital phasing series
+        nr_orb_phase_ts = self._get_phase(2, 2) / 2
 
-        with h5py.File(self.filepath) as h5_file:
-            obs_phi_ref = compute_phi_ref(
-                h5_file,
-                self.sim_metadata,
-                nr_orb_phase=nr_orb_phase,
-                nr_coa_phase=nr_coa_phase,
-                obs_coa_phase=coa_phase,
-                t_ref=t_ref,
-                f_ref=f_ref,
-            )
+        # Compute the observer reference phase from
+        # this information.
+
+        avail_t_ref = self.t_ref_nr
+
+        # Second, get the NR reference phase
+        from scipy.interpolate import interp1d
+
+        nr_phi_ref = interp1d(self.time, nr_orb_phase_ts, kind="cubic")(avail_t_ref)
+
+        # Third, compute the offset in coa_phase
+        delta_phi_ref = coa_phase - nr_coa_phase
+
+        # Finally compute the obserer reference phase at NR reference time.
+        obs_phi_ref = nr_phi_ref + delta_phi_ref
 
         return obs_phi_ref
 
@@ -368,3 +384,73 @@ class WaveformModes(sxs_WaveformModes):
 
     def to_astropy(self):
         return self.to_pycbc().to_astropy()
+
+    def _get_phase(self, ell=2, emm=2):
+        """Get the phasing of a particular waveform mode."""
+
+        # Get the complex waveform.
+        wfm_array = self.get_mode(ell, emm)
+        waveform_lm_re = wfm_array[:, 1]
+        waveform_lm_im = wfm_array[:, 2]
+        waveform_lm = waveform_lm_re + 1j * waveform_lm_im
+        # Get the waveform phase.
+        phase_lm = np.angle(waveform_lm)
+        return phase_lm
+
+    def _compute_reference_time(self):
+        """Obtain the reference time from the
+        simulation data. Interpolate and get the reference
+        time if only reference frequency is given"""
+
+        # To get from available data
+
+        with h5py.File(self.filepath) as h5_file:
+            # First, check if interp is required and get the available reference time .
+            interp, avail_t_ref = check_interp_req(
+                h5_file, self.sim_metadata, ref_time=None
+            )
+
+        if avail_t_ref is None:
+            ref_omega = None
+            # If the reference time is not available,
+            # compute from reference phase!
+            # Omega is the key of interest.
+            try:
+                ref_omega = get_ref_vals(self.sim_metadata, req_attrs=["Omega"])[
+                    "Omega"
+                ]
+            except Exception as excep:
+                print(
+                    "Reference orbital phase not found in simulation metadata."
+                    "Proceeding to retrieve from the h5 file..",
+                    excep,
+                )
+                with h5py.File(self.filepath) as h5_file:
+                    ref_omega = get_ref_vals(h5_file, req_attrs=["Omega"])["Omega"]
+            if ref_omega is None:
+                raise KeyError("Could not compute reference omega!")
+
+            nr_orb_phase_ts = self._get_phase(2, 2) / 2
+
+            # Differentiate the phase to get orbital angular frequency
+            from waveformtools.differentiate import derivative
+
+            nr_omega_ts = derivative(self.time, nr_orb_phase_ts, method="FD", degree=2)
+            # Identify the location in time where nr_omega = ref_omega
+            ref_loc = np.argmin(np.absolute(nr_omega_ts - ref_omega))
+            avail_t_ref = self.time[ref_loc]
+
+        self._t_ref_nr = avail_t_ref
+
+        # print(avail_t_ref, self._t_ref_nr)
+        return avail_t_ref
+
+    @property
+    def t_ref_nr(self):
+        """Fetch the reference time of a simulation"""
+
+        if not isinstance(self._t_ref_nr, float):
+            print("Computing reference time..")
+            self._compute_reference_time()
+
+        return self._t_ref_nr

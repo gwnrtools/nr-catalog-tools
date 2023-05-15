@@ -1,8 +1,10 @@
-import os
-import functools
-import pandas as pd
-import zipfile
 import collections
+import functools
+import os
+import zipfile
+
+import pandas as pd
+
 from nrcatalogtools import catalog, utils
 
 
