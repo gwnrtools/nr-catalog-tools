@@ -73,7 +73,7 @@ def message(
     return 1
 
 
-def RMSerrs(func1, func2, Norm=False):
+def rms_errs(func1, func2, Norm=False):
     """Compute and return the error estimates between two arrays
 
     Parameters

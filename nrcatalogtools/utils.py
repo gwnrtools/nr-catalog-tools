@@ -1,8 +1,10 @@
 import functools
 import pathlib
 import shutil
+
 import lal
 import requests
+
 import sxs
 
 nrcatalog_cache_dir = pathlib.Path("~/.cache/").expanduser().resolve()

@@ -1,5 +1,6 @@
-from abc import ABC, abstractmethod
 import os
+from abc import ABC, abstractmethod
+
 import sxs
 from nrcatalogtools import waveform
 
