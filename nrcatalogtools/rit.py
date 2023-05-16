@@ -1,12 +1,14 @@
-import os
-import glob
+import collections
 import functools
-from tqdm import tqdm
+import glob
+import os
+import subprocess
+
 import pandas as pd
 import requests
-import collections
+from tqdm import tqdm
+
 from nrcatalogtools import catalog, utils
-import subprocess
 
 
 class RITCatalog(catalog.CatalogBase):
@@ -386,7 +388,6 @@ class RITCatalogHelper(object):
         return pd.DataFrame({})
 
     def fetch_metadata(self, idx, res, id_val=-1):
-
         possible_file_names = [
             self.metadata_file_fmts[0].format(idx, res, id_val),
             self.metadata_file_fmts[1].format(idx, res),

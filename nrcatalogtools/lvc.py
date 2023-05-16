@@ -236,7 +236,7 @@ def get_strain_from_lvcnr_file(
     )
 
 
-def check_interp_req(h5_file=None, metadata=None, ref_time=None):
+def check_interp_req(h5_file=None, metadata=None, ref_time=None, avail_ref_time=None):
     """Check if the required reference time is different from
     the available reference time in the NR HDF5 file or the
     simulation metadata.
@@ -246,8 +246,8 @@ def check_interp_req(h5_file=None, metadata=None, ref_time=None):
     h5_file : file object
                 The waveform h5 file handle.
     metadata :
-    ref_time : float
-               Reference time.
+    ref_time, avail_ref_time : float
+                                The use and  available nr reference time.
 
     Returns
     -------
@@ -257,27 +257,38 @@ def check_interp_req(h5_file=None, metadata=None, ref_time=None):
                     The ref_time available in the NR HDF5 file.
     """
 
-    if h5_file is not None:
-        keys = list(h5_file.attrs.keys())
+    if avail_ref_time is None:
+        # CCheck for ref time in h5 file
+        if h5_file is not None:
+            keys = list(h5_file.attrs.keys())
 
-        if "reference_time" in keys:
-            avail_ref_time = h5_file.attrs["reference_time"]
-        elif "ref_time" in keys:
-            avail_ref_time = h5_file.attrs["ref_time"]
-        elif "relaxed_time" in keys:
-            avail_ref_time = h5_file.attrs["relaxed_time"]
-        else:
-            print("Reference time not found in waveform h5 file.")
+            if "reference_time" in keys:
+                avail_ref_time = h5_file.attrs["reference_time"]
+            elif "ref_time" in keys:
+                avail_ref_time = h5_file.attrs["ref_time"]
+            elif "relaxed_time" in keys:
+                avail_ref_time = h5_file.attrs["relaxed_time"]
+            else:
+                print("Reference time not found in waveform h5 file.")
 
-    if metadata is not None:
-        keys = list(metadata.keys())
+        if not avail_ref_time:
+            # If not found, continue search in metadata.
+            if metadata is not None:
+                keys = list(metadata.keys())
 
-        if "reference_time" in keys:
-            avail_ref_time = metadata["reference_time"]
-        elif "relaxed_time" in keys:
-            avail_ref_time = metadata["relaxed_time"]
-        else:
-            print("Reference time not found in simulation metadata file.")
+                if "reference_time" in keys:
+                    avail_ref_time = metadata["reference_time"]
+                elif "relaxed_time" in keys:
+                    avail_ref_time = metadata["relaxed_time"]
+                else:
+                    print("Reference time not found in simulation metadata file.")
+
+        if not avail_ref_time:
+            # Then this is GT simulation!
+            print(
+                "Reference time should be computed from"
+                "the reference orbital frequency!"
+            )
 
     interp = True
     if isinstance(ref_time, float):
@@ -649,61 +660,6 @@ def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
     S2 = [S2x, S2y, S2z]
 
     return S1, S2
-
-
-def compute_phi_ref(
-    h5_file,
-    sim_metadata,
-    nr_orb_phase,
-    nr_coa_phase,
-    obs_coa_phase,
-    t_ref=None,
-    f_ref=None,
-):
-    """Compute the orbital phase at reference time given
-    the observer coalescence phase.
-
-    Parameters
-    ----------
-    h5_file : h5py.File
-              An open h5 file handle.
-    sim_metadata : dict
-                   The NR simulation metadata.
-    nr_orb_phase : 1darray
-                   The orbital phasing of the 2,2 mode.
-    nr_coa_phase, obs_coa_phase : float
-                                  The NR and the observer (required)
-                                  coalescence phases respectively.
-    t_ref, f_ref : float, optional
-                    The reference time and phase respectively.
-    Returns
-    -------
-    obs_phi_ref : float
-                  The orbital reference phase for the observer at NR
-                  reference time.
-    """
-    if (t_ref is not None) or (f_ref is not None):
-        # Compute t_ref from f_ref
-        raise NotImplementedError("f_ref input is presently not supported!")
-
-        # ToDo : Use waveformtools.differentiate here (04.05.23, VP)
-
-    # First, check if interp is required and get the available reference time .
-    interp, avail_t_ref = check_interp_req(h5_file, sim_metadata, t_ref)
-
-    # Second, get the NR reference phase
-
-    nr_phi_ref = interp1d(nr_orb_phase.time_axis, np.array(nr_orb_phase), kind="cubic")[
-        avail_t_ref
-    ]
-
-    # Third, compute the offset in coa_phase
-    delta_phi_ref = obs_coa_phase - nr_coa_phase
-
-    # Finally compute the obserer reference phase at NR reference time.
-    obs_phi_ref = nr_phi_ref + delta_phi_ref
-
-    return obs_phi_ref
 
 
 def get_nr_to_lal_rotation_angles(
