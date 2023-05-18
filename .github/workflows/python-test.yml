@@ -54,7 +54,7 @@ jobs:
             # ########################
             ## lal extras fetch method
             #git lfs pull
-            # wget https://git.ligo.org/lscsoft/lalsuite-extra/-/raw/master/data/lalsimulation/SEOBNRv4ROM_v2.0.hdf5 -O SEOBNRv4ROM_v2.0.hdf5
+            wget https://git.ligo.org/lscsoft/lalsuite-extra/-/raw/master/data/lalsimulation/SEOBNRv4ROM_v2.0.hdf5 -O SEOBNRv4ROM_v2.0.hdf5
             #cd ../../../../../
             cd $NRC_DIR
             pwd
