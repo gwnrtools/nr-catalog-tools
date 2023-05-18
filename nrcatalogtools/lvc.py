@@ -981,8 +981,6 @@ def get_nr_to_lal_rotation_angles(
                 "Seems like something is wring with the polarization angle. Please contact the developers!"
             )
 
-    print("calpha", calpha)
-
     alpha = np.arccos(calpha)
 
     angles = {
