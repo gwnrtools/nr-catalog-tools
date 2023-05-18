@@ -969,6 +969,20 @@ def get_nr_to_lal_rotation_angles(
     # salpha = corb_phase * n_dot_theta - sorb_phase * ln_cross_n_dot_theta
     calpha = corb_phase * n_dot_psi - sorb_phase * ln_cross_n_dot_psi
 
+    if abs(calpha) > 1:
+        calpha_err = abs(calpha) - 1
+        if calpha_err < tol:
+            print(
+                f"Correcting the polarization angle for finite precision error {calpha_err}"
+            )
+            calpha = calpha / abs(calpha)
+        else:
+            raise ValueError(
+                "Seems like something is wring with the polarization angle. Please contact the developers!"
+            )
+
+    print("calpha", calpha)
+
     alpha = np.arccos(calpha)
 
     angles = {
