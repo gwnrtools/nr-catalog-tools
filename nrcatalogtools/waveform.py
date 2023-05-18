@@ -274,9 +274,9 @@ class WaveformModes(sxs_WaveformModes):
             inclination=inclination, coa_phase=coa_phase, f_ref=f_ref, t_ref=t_ref
         )
 
-        h = self.interpolate(new_time).evaluate(
+        h = sel.evaluate(
             [angles["theta"], angles["psi"], angles["alpha"]]
-        ) * utils.amp_to_physical(total_mass, distance)
+        ).interpolate(new_time) * utils.amp_to_physical(total_mass, distance)
         h.time *= m_secs
         return self.to_pycbc(h)
 
