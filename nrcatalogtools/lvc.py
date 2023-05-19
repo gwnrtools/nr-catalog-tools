@@ -981,7 +981,7 @@ def get_nr_to_lal_rotation_angles(
             calpha = calpha / abs(calpha)
         else:
             raise ValueError(
-                "Seems like something is wring with the polarization angle. Please contact the developers!"
+                "Seems like something is wrong with the polarization angle. Please contact the developers!"
             )
 
     alpha = np.arccos(calpha)
