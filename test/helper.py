@@ -1,14 +1,21 @@
 """ Helper and diagnostic function for tests """
 
-import numpy as np
-import config
 import datetime
-from inspect import getframeinfo, getmodule, stack
 import os
+import traceback
+from inspect import getframeinfo, stack
+
+import numpy as np
+
+import config
 
 
 def message(
-    *args, message_verbosity=2, print_verbosity=config.print_verbosity, log_verbosity=config.log_verbosity, **kwargs
+    *args,
+    message_verbosity=2,
+    print_verbosity=config.print_verbosity,
+    log_verbosity=config.log_verbosity,
+    **kwargs
 ):
     """The print function with verbosity levels and logging facility.
 
@@ -17,7 +24,8 @@ def message(
 
     Verbosity choices:
 
-                    message_verbosity   :   Each message carries with it a verbosity level. More the verbosity more the priority. Default value is 2
+                    message_verbosity   :   Each message carries with it a verbosity level.
+                                            More the verbosity more the priority. Default value is 2
 
                     print_verbosity     :   prints all messages above this level of verbosity.
 
@@ -35,7 +43,7 @@ def message(
     ----------
 
                     ``*args`            :   non-keyword arguments
-                                                                                                                    same arguments as to that of the print functions,
+                                            same arguments as to that of the print functions,
 
                     message_verbosity   :   int
 
@@ -44,20 +52,22 @@ def message(
                     log_verbosity       :   int
 
                     ``**kwargs``        :   keyword arguments
-                                                                                                                    Same as that of the print function.
+                                            Same as that of the print function.
 
     Returns
     -------
 
                     1                   :   int
-                                                                                                                    messages to stdout and logging of messages, while the function returns 1."""
+                                            messages to stdout and logging of messages,
+                                            while the function just returns 1.
+    """
 
     # If message verbosity matches the global verbosity level, then print
     if message_verbosity <= print_verbosity:
         print(*args, **kwargs)
     if log_verbosity <= message_verbosity:
         now = str(datetime.datetime.now())
-        tstamp = (now[:10] + "_" + now[11:16]).replace(':', '-')
+        tstamp = (now[:10] + "_" + now[11:16]).replace(":", "-")
         caller = getframeinfo(stack()[1][0])
         # frameinfo = getframeinfo(currentframe())
         if not os.path.isdir("logs"):
@@ -93,8 +103,8 @@ def rms_errs(func1, func2, Norm=False):
     """
     # Normalize the waveforms wrt the first
     n1 = np.linalg.norm(func1)
-    func1 = func1/n1
-    func2 = func2/n1
+    func1 = func1 / n1
+    func2 = func2 / n1
 
     A1max = np.amax(np.absolute(func1))
 
