@@ -9,16 +9,18 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.stats import mode as stat_mode
 
 from nrcatalogtools import utils
-from nrcatalogtools.lvc import (check_interp_req,
-                                get_nr_to_lal_rotation_angles, get_ref_vals)
-from nrcatalogtools.utils import interpolate_in_amp_phase
+from nrcatalogtools.lvc import (
+    check_interp_req,
+    get_nr_to_lal_rotation_angles,
+    get_ref_vals,
+)
 from sxs import WaveformModes as sxs_WaveformModes
 from sxs.time_series import TimeSeries as SXSTimeSeries
-from sxs.waveforms.nrar import (h, translate_data_type_to_spin_weight,
-                                translate_data_type_to_sxs_string)
-
-# Add method to SXS TimeSeries class
-SXSTimeSeries.interpolate_in_amp_phase = interpolate_in_amp_phase
+from sxs.waveforms.nrar import (
+    h,
+    translate_data_type_to_spin_weight,
+    translate_data_type_to_sxs_string,
+)
 
 
 class WaveformModes(sxs_WaveformModes):
@@ -413,7 +415,7 @@ class WaveformModes(sxs_WaveformModes):
         waveform_lm_im = wfm_array[:, 2]
         waveform_lm = waveform_lm_re + 1j * waveform_lm_im
         # Get the waveform phase.
-        phase_lm = np.angle(waveform_lm)
+        phase_lm = np.unwrap(np.angle(waveform_lm))
         return phase_lm
 
     def _compute_reference_time(self):
@@ -473,3 +475,69 @@ class WaveformModes(sxs_WaveformModes):
             self._compute_reference_time()
 
         return self._t_ref_nr
+
+
+def interpolate_in_amp_phase(obj, new_time, k=3, kind=None):
+    """Interpolate in amplitude and phase
+    using a variety of interpolation methods.
+
+    Paramters
+    ---------
+    obj: sxs.TimeSeries
+        The TimeSeries object that holds the complex
+        waveform to be interpolated.
+    new_time: array_like
+          The new time axis to interpolate onto.
+
+    k: int, optional
+       The order of interpolation when
+        `scipy.interpolated.InterpolatedUnivariateSpline` is used.
+        This gets preference over `kind` parameter when both are
+        specified. The default is 3.
+
+    kind: str, optional
+        The interpolation kind parameter when `scipy.interpolate.interp1d`
+        is used. Can be `linear`, `quadratic` or `cubic` for`scipy.interpolate.interp1d`,
+        or 'CubicSpline' to use `scipy.interpolate.CubicSpline`. Default is None
+        i.e. the parameter `k` will be used instead.
+    See Also
+    --------
+    waveformtools.waveformtools.interp_resam_wfs :
+        The function that interpolates in amplitude
+        and phases using scipy interpolators.
+
+    scipy.interpolate.CubicSpline:
+        One of the possible methods that can
+        be used for interpolation.
+    scipy.interpolate.interp1d:
+        Can be used in linear, quadratic and cubic mode.
+    scipy.interpolate.InterpolatedUnivariateSpline:
+        Can be used with orders k from 1 to 5.
+
+    Notes
+    -----
+    These interpolation methods ensure that the
+    interpolated function passes through all the
+    data points.
+    """
+    from waveformtools.waveformtools import interp_resam_wfs
+
+    resam_data = interp_resam_wfs(
+        wavf_data=np.array(obj),
+        old_taxis=obj.time,
+        new_taxis=new_time,
+        k=k,
+        kind=kind,
+    )
+
+    resam_data = SXSTimeSeries(resam_data, new_time)
+
+    metadata = obj._metadata.copy()
+    metadata["time"] = new_time
+    metadata["time_axis"] = obj.time_axis
+
+    return type(obj)(resam_data, **metadata)
+
+
+# Add method to SXS TimeSeries class
+SXSTimeSeries.interpolate_in_amp_phase = interpolate_in_amp_phase
