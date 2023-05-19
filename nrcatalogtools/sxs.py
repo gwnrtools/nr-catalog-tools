@@ -44,9 +44,19 @@ class SXSCatalog(catalog.CatalogBase):
                 )
         return file_path.as_posix()
 
-    def get(self, sim_name, extrapolation_order=2):
+    def get(self, sim_name, extrapolation_order=2, download=None):
         extrap_key = f"Extrapolated_N{extrapolation_order}.dir"
-        raw_obj = sxs.load(f"{sim_name}/Lev/rhOverM")
+
+        # Download only if not available
+        if download is None:
+            try:
+                raw_obj = sxs.load(f"{sim_name}/Lev/rhOverM", download=False)
+            except Exception as excep:
+                excep("Waveform data not available. Setting download to True")
+                raw_obj = sxs.load(f"{sim_name}/Lev/rhOverM", download=True)
+        else:
+            raw_obj = sxs.load(f"{sim_name}/Lev/rhOverM", download=download)
+
         raw_obj = raw_obj.get(extrap_key)
         # Get the sim metadata
         sim_metadata = self.get_metadata(sim_name)
