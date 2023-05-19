@@ -72,6 +72,12 @@ def get_long_description():
     return long_description
 
 
+def get_requirements():
+    with open("requirements.txt") as ff:
+        requirements = ff.readlines()
+    return requirements
+
+
 if "package_version" in environ:
     version = environ["package_version"]
     print("Setup.py using environment version='{0}'".format(version))
@@ -113,6 +119,6 @@ if __name__ == "__main__":
             NAME: [write_version_file(VERSION)],
             "template.data": [],
         },
-        install_requires=[],
+        install_requires=get_requirements(),
         scripts=[],
     )
