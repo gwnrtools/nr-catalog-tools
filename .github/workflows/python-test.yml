@@ -81,12 +81,16 @@ jobs:
             # flake8 .
             # #################
             # Begin testing
+            pip install coverage
             echo "Begin testing"
             cd $NRC_DIR/test
-            python -m unittest -v
+            # python -m unittest -v
+            coverage run -m discover
+            coverage html
       - name: Upload logs
         uses: actions/upload-artifact@v3
         with:
-          name: logs
+          name: logs_n_coverage
           path: |
             ./test/logs/*
+            ./test/htmlcov
