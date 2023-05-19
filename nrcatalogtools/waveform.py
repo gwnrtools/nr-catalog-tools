@@ -207,13 +207,19 @@ class WaveformModes(sxs_WaveformModes):
         )
         return fr22[0] / lal.MTSUN_SI
 
-    def get_polarizations(self, inclination, coa_phase, f_ref=None, t_ref=None):
+    def get_polarizations(
+        self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6
+    ):
         """Sum over modes data and return plus and cross GW polarizations
 
         Args:
             inclination (float): Inclination angle between the line-of-sight
                 orbital angular momentum vector [radians]
             coa_phase (float): Coalesence orbital phase [radians]
+            tol (float, optional) : The tolerance to allow for
+                                    floating point precision errors
+                                    in the computation of rotation
+                                    angles. Default value is 1e-6.
 
         Returns:
             Tuple(numpy.ndarray): Numpy Arrays containing polarizations
@@ -221,7 +227,7 @@ class WaveformModes(sxs_WaveformModes):
         """
 
         # Get angles
-        angles = self.get_angles(inclination, coa_phase, f_ref, t_ref)
+        angles = self.get_angles(inclination, coa_phase, f_ref, t_ref, tol)
 
         polarizations = self.evaluate([angles["theta"], angles["psi"], angles["alpha"]])
 
@@ -236,6 +242,7 @@ class WaveformModes(sxs_WaveformModes):
         delta_t=None,
         f_ref=None,
         t_ref=None,
+        tol=1e-6,
     ):
         """Sum over modes data and return plus and cross GW polarizations,
         rescaled appropriately for a compact-object binary with given
@@ -254,6 +261,10 @@ class WaveformModes(sxs_WaveformModes):
             delta_t (_type_, optional): _description_. Defaults to None.
             f_ref (float, optional) : The reference frequency.
             t_ref (float, optional) : The reference time.
+            tol (float, optional) : The tolerance to allow for
+                                    floating point precision errors
+                                    in the computation of rotation
+                                    angles. Default value is 1e-6.
         Returns:
             pycbc.TimeSeries(numpy.complex128): Complex polarizations
                 stored in `pycbc` container `TimeSeries`
@@ -271,7 +282,11 @@ class WaveformModes(sxs_WaveformModes):
 
         # Get angles
         angles = self.get_angles(
-            inclination=inclination, coa_phase=coa_phase, f_ref=f_ref, t_ref=t_ref
+            inclination=inclination,
+            coa_phase=coa_phase,
+            f_ref=f_ref,
+            t_ref=t_ref,
+            tol=tol,
         )
 
         h = self.interpolate(new_time).evaluate(
@@ -280,7 +295,7 @@ class WaveformModes(sxs_WaveformModes):
         h.time *= m_secs
         return self.to_pycbc(h)
 
-    def get_angles(self, inclination, coa_phase, f_ref=None, t_ref=None):
+    def get_angles(self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6):
         """Get the inclination, azimuthal and polarization angles
         of the observer in the NR source frame.
 
@@ -296,6 +311,10 @@ class WaveformModes(sxs_WaveformModes):
                     The reference frquency and time to define the LAL source frame.
                      Defaults to the available frequency in the data file.
 
+        tol (float, optional) : The tolerance to allow for
+                                    floating point precision errors
+                                    in the computation of rotation
+                                    angles. Default value is 1e-6.
         Returns
         -------
         angles : dict
@@ -318,6 +337,7 @@ class WaveformModes(sxs_WaveformModes):
                 phi_ref=obs_phi_ref,
                 f_ref=f_ref,
                 t_ref=t_ref,
+                tol=tol,
             )
 
         return angles
