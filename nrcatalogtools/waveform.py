@@ -278,7 +278,8 @@ class WaveformModes(sxs_WaveformModes):
             [angles["theta"], angles["psi"], angles["alpha"]]
         ) * utils.amp_to_physical(total_mass, distance)
         h.time *= m_secs
-        return self.to_pycbc(h)
+        # Return conjugated waveform to comply with lal
+        return self.to_pycbc(np.conjugate(h))
 
     def get_angles(self, inclination, coa_phase, f_ref=None, t_ref=None):
         """Get the inclination, azimuthal and polarization angles
