@@ -11,9 +11,14 @@ from scipy.stats import mode as stat_mode
 from nrcatalogtools import utils
 from nrcatalogtools.lvc import (check_interp_req,
                                 get_nr_to_lal_rotation_angles, get_ref_vals)
+from nrcatalogtools.utils import interpolate_in_amp_phase
 from sxs import WaveformModes as sxs_WaveformModes
+from sxs.time_series import TimeSeries as SXSTimeSeries
 from sxs.waveforms.nrar import (h, translate_data_type_to_spin_weight,
                                 translate_data_type_to_sxs_string)
+
+# Add method to SXS TimeSeries class
+SXSTimeSeries.interpolate_in_amp_phase = interpolate_in_amp_phase
 
 
 class WaveformModes(sxs_WaveformModes):
@@ -236,6 +241,8 @@ class WaveformModes(sxs_WaveformModes):
         delta_t=None,
         f_ref=None,
         t_ref=None,
+        k=3,
+        kind=None,
     ):
         """Sum over modes data and return plus and cross GW polarizations,
         rescaled appropriately for a compact-object binary with given
@@ -254,6 +261,16 @@ class WaveformModes(sxs_WaveformModes):
             delta_t (_type_, optional): _description_. Defaults to None.
             f_ref (float, optional) : The reference frequency.
             t_ref (float, optional) : The reference time.
+            k (int, optional) : The interpolation order to use with
+                                `scipy.interpolate.InterpolatedUnivariateSpline`.
+                                This is the method used by default with value 3.
+                                This parameter `k` is given preference over
+                                `kind` (see below).
+            kind (str, optional) : The interpolation order to use with
+                                    `scipy.interpolate.interp1d`
+                                (`linear`, `quadratic`, `cubic`) or
+                                `CubicSpline` to use `scipy.interpolate.CubicSpline`.
+
         Returns:
             pycbc.TimeSeries(numpy.complex128): Complex polarizations
                 stored in `pycbc` container `TimeSeries`
@@ -274,11 +291,13 @@ class WaveformModes(sxs_WaveformModes):
             inclination=inclination, coa_phase=coa_phase, f_ref=f_ref, t_ref=t_ref
         )
 
-        h = self.interpolate(new_time).evaluate(
+        h = self.evaluate(
             [angles["theta"], angles["psi"], angles["alpha"]]
-        ) * utils.amp_to_physical(total_mass, distance)
+        ).interpolate_in_amp_phase(new_time, k=k, kind=kind) * utils.amp_to_physical(
+            total_mass, distance
+        )
         h.time *= m_secs
-        return self.to_pycbc(h)
+        return self.to_pycbc(np.conjugate(h))
 
     def get_angles(self, inclination, coa_phase, f_ref=None, t_ref=None):
         """Get the inclination, azimuthal and polarization angles
