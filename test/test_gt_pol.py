@@ -22,19 +22,23 @@ if libpath not in sys.path:
 import unittest
 from pathlib import Path
 
-# import matplotlib.pyplot as plt
+#############################
+# nrcatalogtools
+#############################
+
 from nrcatalogtools.maya import MayaCatalog
 from nrcatalogtools.utils import maya_catalog_info
 from pycbc import pnutils
+from nrcatalogtools.lvc import transform_spins_nr_to_lal
 
 ##############################
-# Pycbc
+# PyCBC
 ##############################
 from pycbc.filter.matchedfilter import match
 
 # pycbc
-# from pycbc.waveform import td_approximants
 from pycbc.types.timeseries import TimeSeries
+from pycbc.waveform import get_td_waveform
 
 #################################
 # waveformtools
@@ -44,11 +48,6 @@ from waveformtools.waveformtools import message, roll, xtract_camp_phase
 
 # unittest helper funcs
 from helper import rms_errs
-
-# from pycbc.waveform.utils import coalign_waveforms
-
-
-# import matplotlib.pyplot as plt
 
 
 ######################################
@@ -60,16 +59,11 @@ sim_name = "GT0001"
 # Parameters
 total_mass = 40
 distance = 1000
-# inc = np.pi/3
-# np.pi/3 - 0.0001
-# coa_phase = np.pi/6
-# coa_phase0 = np.pi/6
 delta_t = 1.0 / (4 * 2048)
 
 
 message(f"Simulation {sim_name}", message_verbosity=2)
 
-nrcat_use_lal_conven = True
 wftools_use_lal_conven = True
 lal_use_coa_phase_as_phi_ref = False
 test_wrt_wftools = False
@@ -109,9 +103,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     #######################
     # Get GT polarizations
     #######################
-
-    # sc = sxs.Catalog.load(download=True)
-    # rc = RITCatalog.load(verbosity=5, download=True)
     mc = MayaCatalog.load(verbosity=1, download=True)
 
     mwf1 = mc.get(sim_name)
@@ -123,13 +114,10 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
         coa_phase=coa_phase,
         delta_t=delta_t,
     )
-    hpc_pycbc = hpc  # mwf.to_pycbc(hpc)
+    hpc_pycbc = hpc
 
     # Minus sign to rotate by pi/2
     hp_n, hx_n = hpc_pycbc.real(), hpc_pycbc.imag()
-
-    if nrcat_use_lal_conven is True:
-        hp_n, hx_n = hp_n, -hx_n
 
     time_n = hp_n.sample_times
 
@@ -137,10 +125,9 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     mtime = time_n[np.argmax(np.array(hp_n) ** 2 + np.array(hx_n) ** 2)]
     time_n -= mtime
 
-    ####################
-    # Get LAL
-    ####################
-
+    ##############################
+    # Get waveform through PyCBC
+    ##############################
     phi_ref_obs = mwf1.get_obs_phi_ref_from_obs_coa_phase(coa_phase)
 
     if lal_use_coa_phase_as_phi_ref is False:
@@ -176,7 +163,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     params["distance"] = distance  # 100.0
 
     # Metadata parameters:
-
     params["eta"] = f.attrs["eta"]
 
     params["mass1"] = pnutils.mtotal_eta_to_mass1_mass2(
@@ -192,13 +178,11 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     params["spin1z"] = f.attrs["spin1z"]
 
     # BH2 spins
-
     params["spin2x"] = f.attrs["spin2x"]
     params["spin2y"] = f.attrs["spin2y"]
     params["spin2z"] = f.attrs["spin2z"]
 
     # Spin unit vectors
-
     params["nhat"] = [f.attrs["nhatx"], f.attrs["nhaty"], f.attrs["nhatz"]]
     params["lnhat"] = [f.attrs["LNhatx"], f.attrs["LNhaty"], f.attrs["LNhatz"]]
 
@@ -212,7 +196,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
             excep,
             message_verbosity=2,
         )
-        # raise AttributeError('Cannot find the attribute `coa_phase` in the file')
         params["coa_phase"] = lal_coa_phase
 
     # Transform spins
@@ -222,13 +205,10 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     s2 = [params["spin2x"], params["spin2y"], params["spin2z"]]
 
     # LAL frame
-    from nrcatalogtools.lvc import transform_spins_nr_to_lal
-
     S1, S2 = transform_spins_nr_to_lal(s1, s2, params["nhat"], params["lnhat"])
 
-    from pycbc.waveform import get_td_waveform
-
-    message("Loading waveform through LAL", message_verbosity=3)
+    
+    message("Loading waveform through PyCBC", message_verbosity=3)
 
     hp_l, hx_l = get_td_waveform(
         approximant="NR_hdf5",
@@ -253,16 +233,11 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     # Recenter
     mtime = time_l[np.argmax(hp_l**2 + hx_l**2)]
     time_l -= mtime
-    # pyplot.figure()
-    # plt.plot(time_l, hp_l, color=[0,0.7071,1])
-    # plt.plot(time_l, hx_l, color=[0.1,0,0])
-    # plt.show()
     f.close()
 
     #######################
     # waveformtools
     #######################
-
     resam_type = "auto"
     angles = mwf1.get_angles(inclination=inclination, coa_phase=coa_phase)
 
@@ -295,10 +270,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     wf_n = np.array(hp_n) + 1j * np.array(hx_n)
     wf_l = np.array(hp_l) + 1j * np.array(hx_l)
     wf_w3 = hp_w3 + 1j * hx_w3
-
-    # norm_n = np.linalg.norm(wf_n)
-    # norm_l = np.linalg.norm(wf_l)
-    # norm_w3 = np.linalg.norm(wf_w3)
 
     a_n, p_n = xtract_camp_phase(wf_n.real, wf_n.imag)
     a_l, p_l = xtract_camp_phase(wf_l.real, wf_l.imag)
@@ -362,11 +333,7 @@ class TestGTPol(unittest.TestCase):
             np.pi - 0.0015,
         ]
 
-        # inc_angles = np.arange(0, np.pi, 25)
         coa_phases = np.linspace(0, 2 * np.pi, 10)
-        # inc_angles = [np.pi/3]
-        # coa_phases = [np.pi/6]
-        # inc_angles = [0.5, 1, 1.5]
 
         all_mm = []
 
@@ -387,7 +354,7 @@ class TestGTPol(unittest.TestCase):
                     delta_t=delta_t,
                     distance=distance,
                 )
-
+                # Prepare TimeSeries
                 t_n, wf_n, a_n, p_n = waveforms["nrcat"]
 
                 hp_n = TimeSeries(wf_n.real, delta_t)
@@ -407,10 +374,7 @@ class TestGTPol(unittest.TestCase):
                 Res_l, Amin_l, Amax_l = rms_errs(np.array(wf_n), np.array(wf_l))
                 Res_w, Amin_w, Amax_w = rms_errs(np.array(wf_n), np.array(wf_l))
 
-                # Amin_p/=A1max
-                # Amin
                 # Match
-
                 mp_nl = match(hp_n, hp_l)[0]
                 mx_nl = match(hx_n, hx_l)[0]
                 m_nl = min(mp_nl, mx_nl)
