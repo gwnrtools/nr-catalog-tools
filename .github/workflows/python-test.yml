@@ -87,6 +87,7 @@ jobs:
             # python -m unittest -v
             coverage run -m unittest discover -v
             coverage html
+            python .generate_badge.py
       - name: Upload logs
         uses: actions/upload-artifact@v3
         with:
