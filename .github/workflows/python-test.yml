@@ -94,5 +94,5 @@ jobs:
           name: logs_n_coverage
           path: |
             ./test/logs/*
-            ./test/cov_badge.jpg
+            ./test/cov_badge.svg
             ./test/htmlcov
