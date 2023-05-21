@@ -299,6 +299,7 @@ class WaveformModes(sxs_WaveformModes):
             total_mass, distance
         )
         h.time *= m_secs
+        # Return conjugated waveform to comply with lal
         return self.to_pycbc(np.conjugate(h))
 
     def get_angles(self, inclination, coa_phase, f_ref=None, t_ref=None):
