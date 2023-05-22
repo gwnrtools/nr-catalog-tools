@@ -14,5 +14,5 @@ badge = f"""<svg width="120" height="20" xmlns="http://www.w3.org/2000/svg">
 </svg>
 """
 
-with open("svg_badge.svg", "w") as svgf:
+with open("cov_badge.svg", "w") as svgf:
     svgf.write(badge)
