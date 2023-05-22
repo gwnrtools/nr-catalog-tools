@@ -37,9 +37,8 @@ jobs:
         uses: actions/upload-pages-artifact@v1
         with:
           # Upload entire repository
-          path: |
-            '**/htmlcov/*'
-            '**/cov_badge.svg'
+          path:
+            all
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
