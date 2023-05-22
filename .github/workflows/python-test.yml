@@ -132,6 +132,7 @@ jobs:
           mv cov_badge.svg htmlcov/
           cd htmlcov
           ls
+          pwd
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
@@ -139,7 +140,7 @@ jobs:
         with:
           # Upload entire repository
           path: |
-            '.'
+            '$(cwd)'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
