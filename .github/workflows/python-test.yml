@@ -99,7 +99,7 @@ jobs:
             echo "Begin testing"
             cd $NRC_DIR/test
             # python -m unittest -v
-            coverage run -m unittest discover -v
+            coverage run --source=../ -m unittest discover -v
             coverage html
             python .generate_badge.py
       - name: Upload logs
