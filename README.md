@@ -1,3 +1,4 @@
+[![Code coverage](https://vaishakp.github.io/nr-catalog-tools/cov_badge.svg)](https://vaishakp.github.io/nr-catalog-tools/)
 # Interface to Numerical Relativity Catalogs
 
 The `nrcatalogtools` python package provides a unified
