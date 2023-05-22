@@ -119,6 +119,8 @@ jobs:
       run:
         shell: bash -el {0}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
       - name: Download artefacts from build
         uses: actions/download-artifact@v3
         with:
