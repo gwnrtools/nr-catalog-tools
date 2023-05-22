@@ -1,6 +1,6 @@
 # This workflow will setup and test the python code using miniconda
 
-name: Setup and test module, and publish coverage reports.
+name: Setup test publish reports
 
 on: [push, pull_request]
   # Allows you to run this workflow manually from the Actions tab
