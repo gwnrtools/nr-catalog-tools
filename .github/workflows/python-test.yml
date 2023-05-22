@@ -124,7 +124,7 @@ jobs:
         with:
           name: logs_n_coverage
       - name: Diagnostics
-      - run: |
+        run: |
           ls
           ls ../
       - name: Setup Pages
