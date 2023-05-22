@@ -139,8 +139,8 @@ jobs:
         uses: actions/upload-pages-artifact@v1
         with:
           # Upload entire repository
-          path: |
-            '$(cwd)'
+          path: 'home/runner/work/nr-catalog-tools/nr-catalog-tools/htmlcov'
+        
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v2
