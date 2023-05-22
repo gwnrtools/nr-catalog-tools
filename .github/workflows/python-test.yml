@@ -115,11 +115,18 @@ jobs:
     name: Publish coverage reports
     needs: build
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
     steps:
       - name: Download artefacts from build
         uses: actions/download-artifact@v3
         with:
           name: logs_n_coverage
+      - name: Diagnostics
+      - run: |
+          ls
+          ls ../
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
