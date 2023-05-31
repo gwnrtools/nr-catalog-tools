@@ -663,7 +663,7 @@ def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
 
 
 def get_nr_to_lal_rotation_angles(
-    h5_file, sim_metadata, inclination, phi_ref=0, f_ref=None, t_ref=None
+    h5_file, sim_metadata, inclination, phi_ref=0, f_ref=None, t_ref=None, tol=1e-6
 ):
     r"""Get the angular coordinates :math:`\theta, \phi`
     and the rotation angle :math:`\alpha` from the H5 file
@@ -682,6 +682,10 @@ def get_nr_to_lal_rotation_angles(
 
     sim_metadata : dict
                The sim_metadata of the waveform file.
+    tol : float
+          The tolerance to use to allow floating point
+            representation errors.
+
     Returns
     -------
     angles : dict
@@ -704,9 +708,6 @@ def get_nr_to_lal_rotation_angles(
 
     The reference epoch is defined close to the beginning of the simulation.
     """
-
-    # tolerence for sanity checks
-    tol = 1e-6
 
     # Compute the angles necessary to rotate from the intrinsic NR source frame
     # into the LAL frame. See DCC-T1600045 for details.
@@ -931,7 +932,7 @@ def get_nr_to_lal_rotation_angles(
             psi = 2 * np.pi - psi
             y_val = np.sin(psi) * np.sin(theta)
 
-        if abs(y_val - z_wave_y) > 5e-3:
+        if abs(y_val - z_wave_y) > (5e3 * tol):
             # LAL tol retained.
             print(f"orb_phase = {orb_phase}")
             print(
@@ -968,6 +969,20 @@ def get_nr_to_lal_rotation_angles(
 
     # salpha = corb_phase * n_dot_theta - sorb_phase * ln_cross_n_dot_theta
     calpha = corb_phase * n_dot_psi - sorb_phase * ln_cross_n_dot_psi
+
+    if abs(calpha) > 1:
+        calpha_err = abs(calpha) - 1
+        if calpha_err < tol:
+            # This tol could be very small. Just resuing the
+            # default for now.
+            print(
+                f"Correcting the polarization angle for finite precision error {calpha_err}"
+            )
+            calpha = calpha / abs(calpha)
+        else:
+            raise ValueError(
+                "Seems like something is wrong with the polarization angle. Please contact the developers!"
+            )
 
     alpha = np.arccos(calpha)
 
