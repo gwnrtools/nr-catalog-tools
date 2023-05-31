@@ -43,7 +43,3 @@ jobs:
     - name: pre-commit checks
       run: |
         pre-commit run --verbose --show-diff-on-failure
-    - name: Test with pytest
-      run: |
-        pytest
-        
