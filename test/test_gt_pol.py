@@ -22,37 +22,22 @@ if libpath not in sys.path:
 import unittest
 from pathlib import Path
 
-#############################
-# nrcatalogtools
-#############################
-
 from nrcatalogtools.maya import MayaCatalog
 from nrcatalogtools.utils import maya_catalog_info
 from pycbc import pnutils
 from nrcatalogtools.lvc import transform_spins_nr_to_lal
 
-##############################
-# PyCBC
-##############################
 from pycbc.filter.matchedfilter import match
 
 # pycbc
 from pycbc.types.timeseries import TimeSeries
 from pycbc.waveform import get_td_waveform
 
-#################################
-# waveformtools
-#################################
 from waveformtools.waveforms import modes_array
 from waveformtools.waveformtools import message, roll, xtract_camp_phase
 
 # unittest helper funcs
 from helper import rms_errs
-
-
-######################################
-# Simulation properties
-######################################
 
 sim_name = "GT0001"
 
@@ -61,17 +46,11 @@ total_mass = 40
 distance = 1000
 delta_t = 1.0 / (4 * 2048)
 
-
 message(f"Simulation {sim_name}", message_verbosity=2)
 
 wftools_use_lal_conven = True
 lal_use_coa_phase_as_phi_ref = False
 test_wrt_wftools = False
-
-######################################
-# Waveform comparison function
-######################################
-
 
 def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, delta_t):
     """Get polarization time-series to compare from
@@ -99,10 +78,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
                 The waveform polarizations from nrcatalogtools,
                 waveformtools and lal.
     """
-
-    #######################
-    # Get GT polarizations
-    #######################
     mc = MayaCatalog.load(verbosity=1, download=True)
 
     mwf1 = mc.get(sim_name)
@@ -116,7 +91,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     )
     hpc_pycbc = hpc
 
-    # Minus sign to rotate by pi/2
     hp_n, hx_n = hpc_pycbc.real(), hpc_pycbc.imag()
 
     time_n = hp_n.sample_times
@@ -125,9 +99,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     mtime = time_n[np.argmax(np.array(hp_n) ** 2 + np.array(hx_n) ** 2)]
     time_n -= mtime
 
-    ##############################
-    # Get waveform through PyCBC
-    ##############################
     phi_ref_obs = mwf1.get_obs_phi_ref_from_obs_coa_phase(coa_phase)
 
     if lal_use_coa_phase_as_phi_ref is False:
@@ -235,9 +206,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     time_l -= mtime
     f.close()
 
-    #######################
-    # waveformtools
-    #######################
     resam_type = "auto"
     angles = mwf1.get_angles(inclination=inclination, coa_phase=coa_phase)
 
@@ -310,7 +278,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
         "wftools": [t_w3, wf_w3, a_w3, p_w3],
         "lal": [t_l, wf_l, a_l, p_l],
     }
-
 
 class TestGTPol(unittest.TestCase):
     """Test the computation of polarizattions"""
