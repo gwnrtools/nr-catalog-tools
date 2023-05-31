@@ -90,8 +90,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
         delta_t=delta_t,
     )
     hpc_pycbc = hpc
-
-    # Minus sign to rotate by pi/2
     hp_n, hx_n = hpc_pycbc.real(), hpc_pycbc.imag()
 
     time_n = hp_n.sample_times
