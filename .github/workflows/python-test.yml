@@ -1,9 +1,23 @@
 # This workflow will setup and test the python code using miniconda
 
-name: Setup and Test module
+name: Setup test publish reports
 
 on: [push, pull_request]
+  # Allows you to run this workflow manually from the Actions tab
 
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+  
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -85,7 +99,7 @@ jobs:
             echo "Begin testing"
             cd $NRC_DIR/test
             # python -m unittest -v
-            coverage run -m unittest discover -v
+            coverage run --source=../nrcatalogtools -m unittest discover -v
             coverage html
             python .generate_badge.py
       - name: Upload logs
@@ -94,5 +108,39 @@ jobs:
           name: logs_n_coverage
           path: |
             ./test/logs/*
-            ./test/cov_badge.jpg
+            ./test/cov_badge.svg
             ./test/htmlcov
+            
+  cov_reports:
+    name: Publish coverage reports
+    needs: build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Download artefacts from build
+        uses: actions/download-artifact@v3
+        with:
+          name: logs_n_coverage
+      - name: Diagnostics
+        run: |
+          ls
+          ls ../
+          mv cov_badge.svg htmlcov/
+          cd htmlcov
+          ls
+          pwd
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          # Upload entire repository
+          path: '/home/runner/work/nr-catalog-tools/nr-catalog-tools/htmlcov'
+        
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
