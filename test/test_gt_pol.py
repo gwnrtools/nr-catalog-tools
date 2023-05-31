@@ -90,7 +90,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
         delta_t=delta_t,
     )
     hpc_pycbc = hpc
-
     hp_n, hx_n = hpc_pycbc.real(), hpc_pycbc.imag()
 
     time_n = hp_n.sample_times
@@ -98,7 +97,7 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     # Recenter
     mtime = time_n[np.argmax(np.array(hp_n) ** 2 + np.array(hx_n) ** 2)]
     time_n -= mtime
-
+    
     phi_ref_obs = mwf1.get_obs_phi_ref_from_obs_coa_phase(coa_phase)
 
     if lal_use_coa_phase_as_phi_ref is False:
