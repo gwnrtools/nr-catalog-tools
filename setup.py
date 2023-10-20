@@ -113,6 +113,15 @@ if __name__ == "__main__":
             NAME: [write_version_file(VERSION)],
             "template.data": [],
         },
-        install_requires=[],
+        install_requires=[
+            "numpy",
+            "scipy",
+            "lalsuite",
+            "ligo-common",
+            "pycbc",
+            "pandas",
+            "sxs[ecosystem]",
+            "waveformtools @ git+https://gitlab.com/vaishakp/waveformtools@main",
+        ],
         scripts=[],
     )
