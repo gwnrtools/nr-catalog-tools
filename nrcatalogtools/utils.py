@@ -1,4 +1,5 @@
 import functools
+import os
 import pathlib
 import shutil
 
@@ -7,7 +8,12 @@ import requests
 
 import sxs
 
-nrcatalog_cache_dir = pathlib.Path("~/.cache/").expanduser().resolve()
+if os.getenv("NR_CATALOG_CACHE"):
+    nrcatalog_cache_dir = (
+        pathlib.Path(os.getenv("NR_CATALOG_CACHE")).expanduser().resolve()
+    )
+else:
+    nrcatalog_cache_dir = pathlib.Path("~/.cache/").expanduser().resolve()
 nr_group_tags = {}
 nr_group_tags["SXS"] = "SXS"
 nr_group_tags["RIT"] = "RIT"
