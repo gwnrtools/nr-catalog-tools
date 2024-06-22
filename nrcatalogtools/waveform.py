@@ -18,7 +18,7 @@ from nrcatalogtools.lvc import (
 
 from sxs import TimeSeries as sxs_TimeSeries
 from sxs import WaveformModes as sxs_WaveformModes
-from sxs.waveforms.nrar import (
+from sxs.waveforms.format_handlers.nrar import (
     h,
     translate_data_type_to_spin_weight,
     translate_data_type_to_sxs_string,
