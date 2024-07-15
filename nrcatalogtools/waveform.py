@@ -9,11 +9,18 @@ from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.stats import mode as stat_mode
 
 from nrcatalogtools import utils
-from nrcatalogtools.lvc import (check_interp_req,
-                                get_nr_to_lal_rotation_angles, get_ref_vals)
+from nrcatalogtools.lvc import (
+    check_interp_req,
+    get_nr_to_lal_rotation_angles,
+    get_ref_vals,
+)
+from sxs import TimeSeries as sxs_TimeSeries
 from sxs import WaveformModes as sxs_WaveformModes
-from sxs.waveforms.nrar import (h, translate_data_type_to_spin_weight,
-                                translate_data_type_to_sxs_string)
+from sxs.waveforms.nrar import (
+    h,
+    translate_data_type_to_spin_weight,
+    translate_data_type_to_sxs_string,
+)
 
 
 class WaveformModes(sxs_WaveformModes):
@@ -195,12 +202,92 @@ class WaveformModes(sxs_WaveformModes):
         """Return the simulation metadata dictionary"""
         return self._metadata["metadata"]
 
-    def get_mode(self, ell, em):
+    def get_mode_data(self, ell, em):
         return self[f"Y_l{ell}_m{em}.dat"]
+
+    def get_mode(
+        self,
+        ell,
+        em,
+        total_mass,
+        distance=1,
+        coa_phase=0,
+        delta_t=None,
+        f_ref=None,
+        t_ref=None,
+        to_pycbc=True,
+    ):
+        """Sum over modes data and return plus and cross GW polarizations,
+        rescaled appropriately for a compact-object binary with given
+        total mass and distance from GW detectors.
+
+        Returns:
+            Tuple(numpy.ndarray): Numpy Arrays containing polarizations
+                time-series
+
+        Args:
+            total_mass (_type_): _description_
+            distance (_type_): _description_
+            inclination (float): Inclination angle between the line-of-sight
+                orbital angular momentum vector [radians]
+            coa_phase (float): Coalesence orbital phase [radians]
+            delta_t (_type_, optional): _description_. Defaults to None.
+            f_ref (float, optional) : The reference frequency.
+            t_ref (float, optional) : The reference time.
+        Returns:
+            pycbc.TimeSeries(numpy.complex128): Complex polarizations
+                stored in `pycbc` container `TimeSeries`
+        """
+        if delta_t is None:
+            delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
+
+        # we assume that we generally do not sample at a rate below 128Hz.
+        # Therefore, depending on the numerical value of dt, we deduce whether
+        # dt is in dimensionless units or in seconds.
+        if delta_t > 1.0 / 128:
+            m_secs = 1
+            new_time = np.arange(min(self.time), max(self.time), delta_t)
+        else:
+            m_secs = utils.time_to_physical(total_mass)
+            new_time = np.arange(min(self.time), max(self.time), delta_t / m_secs)
+
+        h = self.interpolate(new_time)
+
+        h_mode = h.get_mode_data(ell, em)
+        h_mode[:, 1:] *= utils.amp_to_physical(total_mass, distance)
+        h_mode[:, 0] *= m_secs
+
+        # Find peak of 22-mode
+        h_mode22 = h.get_mode_data(2, 2)
+        h_mode22[:, 0] *= m_secs
+
+        from scipy.interpolate import InterpolatedUnivariateSpline
+
+        x_axis = h_mode22[:, 0]
+        y_axis = (h_mode22[:, 1] ** 2 + h_mode22[:, 2] ** 2) ** 0.5
+
+        f = InterpolatedUnivariateSpline(x_axis, y_axis, k=4)
+        cr_pts = f.derivative().roots()
+        cr_pts = np.append(
+            cr_pts, (x_axis[0], x_axis[-1])
+        )  # also check the endpoints of the interval
+        cr_vals = f(cr_pts)
+        max_index = np.argmax(cr_vals)
+
+        epoch = h_mode[0, 0] - cr_pts[max_index]
+
+        retval = self.to_pycbc(
+            input_array=h_mode[:, 1] + 1j * h_mode[:, 2],
+            delta_t=delta_t,
+            epoch=epoch,
+        )
+        if not to_pycbc:
+            retval = sxs_TimeSeries(retval.data, time=retval.sample_times)
+        return retval
 
     @property
     def f_lower_at_1Msun(self):
-        mode22 = self.get_mode(2, 2)
+        mode22 = self.get_mode_data(2, 2)
         fr22 = frequency_from_polarizations(
             TimeSeries(mode22[:, 1], delta_t=np.diff(self.time)[0]),
             TimeSeries(-1 * mode22[:, 2], delta_t=np.diff(self.time)[0]),
@@ -322,16 +409,18 @@ class WaveformModes(sxs_WaveformModes):
 
         return angles
 
-    def to_pycbc(self, input_array=None):
+    def to_pycbc(self, input_array=None, delta_t=None, epoch=None):
         if input_array is None:
             input_array = self
-
-        delta_t = stat_mode(np.diff(input_array.time), keepdims=True)[0][0]
+        if epoch is None:
+            epoch = input_array.time[0]
+        if delta_t is None:
+            delta_t = stat_mode(np.diff(input_array.time), keepdims=True)[0][0]
         return TimeSeries(
             np.array(input_array),
             delta_t=delta_t,
             dtype=self.ndarray.dtype,
-            epoch=input_array.time[0],
+            epoch=epoch,
             copy=True,
         )
 
@@ -341,7 +430,9 @@ class WaveformModes(sxs_WaveformModes):
         # Get the waveform phase.
         phase_22 = self._get_phase(2, 2)
 
-        waveform_22 = self.get_mode(2, 2)[:, 1] + 1j * self.get_mode(2, 2)[:, 2]
+        waveform_22 = (
+            self.get_mode_data(2, 2)[:, 1] + 1j * self.get_mode_data(2, 2)[:, 2]
+        )
 
         # print(len(phase_22), len(waveform_22))
         # Get the localtion of max amplitude.
@@ -389,7 +480,7 @@ class WaveformModes(sxs_WaveformModes):
         """Get the phasing of a particular waveform mode."""
 
         # Get the complex waveform.
-        wfm_array = self.get_mode(ell, emm)
+        wfm_array = self.get_mode_data(ell, emm)
         waveform_lm_re = wfm_array[:, 1]
         waveform_lm_im = wfm_array[:, 2]
         waveform_lm = waveform_lm_re + 1j * waveform_lm_im
