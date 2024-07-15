@@ -210,33 +210,25 @@ class WaveformModes(sxs_WaveformModes):
         ell,
         em,
         total_mass,
-        distance=1,
-        coa_phase=0,
+        distance=1, # Megaparsecs
         delta_t=None,
-        f_ref=None,
-        t_ref=None,
         to_pycbc=True,
     ):
-        """Sum over modes data and return plus and cross GW polarizations,
-        rescaled appropriately for a compact-object binary with given
-        total mass and distance from GW detectors.
-
-        Returns:
-            Tuple(numpy.ndarray): Numpy Arrays containing polarizations
-                time-series
+        """In individual mode, rescaled appropriately for a compact-object
+        binary with given total mass and distance from GW detectors.
 
         Args:
-            total_mass (_type_): _description_
-            distance (_type_): _description_
-            inclination (float): Inclination angle between the line-of-sight
-                orbital angular momentum vector [radians]
-            coa_phase (float): Coalesence orbital phase [radians]
-            delta_t (_type_, optional): _description_. Defaults to None.
-            f_ref (float, optional) : The reference frequency.
-            t_ref (float, optional) : The reference time.
+            ell (int): mode l value
+            em (int): mode m value
+            total_mass (float): Total Mass (Solar Masses)
+            distance (float): Distance to Source (Megaparsecs)
+            delta_t (float, optional): Sample rate (in Hz or M). Defaults to None.
+            to_pycbc (bool, optional) : Return `pycbc.types.TimeSeries` or 
+                `sxs.TimeSeries`. Defaults to True.
         Returns:
-            pycbc.TimeSeries(numpy.complex128): Complex polarizations
-                stored in `pycbc` container `TimeSeries`
+            `pycbc.types.TimeSeries(numpy.complex128)` or 
+                `sxs.TimeSeries(numpy.complex128)`:
+                Complex waveform mode time series
         """
         if delta_t is None:
             delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
