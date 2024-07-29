@@ -26,7 +26,7 @@ class MayaCatalog(catalog.CatalogBase):
         self.cache_dir = utils.maya_catalog_info["cache_dir"]
         self.use_cache = use_cache
 
-        self.metadata = pd.DataFrame.from_dict({})
+        self.metadata = pd.DataFrame.from_dict(catalog)
         self.metadata_url = utils.maya_catalog_info["metadata_url"]
         self.metadata_dir = utils.maya_catalog_info["metadata_dir"]
 
@@ -169,9 +169,9 @@ class MayaCatalog(catalog.CatalogBase):
         if any([col not in existing_cols for col in new_cols]):
             for sim_name in metadata_dict:
                 if "metadata_location" not in existing_cols:
-                    metadata_dict[sim_name][
-                        "metadata_location"
-                    ] = self.metadata_filepath_from_simname(sim_name)
+                    metadata_dict[sim_name]["metadata_location"] = (
+                        self.metadata_filepath_from_simname(sim_name)
+                    )
                 if "metadata_link" not in existing_cols:
                     metadata_dict[sim_name]["metadata_link"] = self.metadata_url
                 if "waveform_data_link" not in existing_cols:
@@ -179,9 +179,9 @@ class MayaCatalog(catalog.CatalogBase):
                         self.waveform_data_url + "/" + f"{sim_name}.h5"
                     )
                 if "waveform_data_location" not in existing_cols:
-                    metadata_dict[sim_name][
-                        "waveform_data_location"
-                    ] = self.waveform_filepath_from_simname(sim_name)
+                    metadata_dict[sim_name]["waveform_data_location"] = (
+                        self.waveform_filepath_from_simname(sim_name)
+                    )
 
     @property
     @functools.lru_cache()
