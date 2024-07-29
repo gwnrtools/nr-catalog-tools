@@ -16,7 +16,7 @@ class CatalogABC(ABC):
 
     @abstractmethod
     def metadata_filename_from_simname(self, sim_name):
-        raise NotImplementedError()
+        raise NotImplementedError ()
 
     @abstractmethod
     def metadata_filepath_from_simname(self, sim_name):

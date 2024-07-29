@@ -26,7 +26,7 @@ class MayaCatalog(catalog.CatalogBase):
         self.cache_dir = utils.maya_catalog_info["cache_dir"]
         self.use_cache = use_cache
 
-        self.metadata = pd.DataFrame.from_dict({})
+        self.metadata = pd.DataFrame.from_dict(catalog)
         self.metadata_url = utils.maya_catalog_info["metadata_url"]
         self.metadata_dir = utils.maya_catalog_info["metadata_dir"]
 
