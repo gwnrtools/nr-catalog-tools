@@ -3,6 +3,7 @@ import os
 import h5py
 import lal
 import numpy as np
+from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 from pycbc.types import TimeSeries
 from pycbc.waveform import frequency_from_polarizations
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -202,6 +203,74 @@ class WaveformModes(sxs_WaveformModes):
         """Return the simulation metadata dictionary"""
         return self._metadata["metadata"]
 
+    @property
+    def metadata(self):
+        """Return the simulation metadata dictionary"""
+        return self.sim_metadata
+
+    def get_parameters(self, total_mass=1.0):
+        metadata = self.metadata
+        parameters = dict()
+        if "relaxed_mass1" in metadata:
+            # RIT Catalog
+            q = metadata["relaxed_mass_ratio_1_over_2"]
+            m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, q / (1 + q) ** 2)
+            s1x = metadata["relaxed_chi1x"]
+            s1y = metadata["relaxed_chi1y"]
+            s1z = metadata["relaxed_chi1z"]
+            if np.isnan(s1x):
+                s1x = 0
+            if np.isnan(s1y):
+                s1y = 0
+            if np.isnan(s1z):
+                s1z = 0
+            s2x = metadata["relaxed_chi2x"]
+            s2y = metadata["relaxed_chi2y"]
+            s2z = metadata["relaxed_chi2z"]
+            if np.isnan(s2x):
+                s2x = 0
+            if np.isnan(s2y):
+                s2y = 0
+            if np.isnan(s2z):
+                s2z = 0
+            parameters.update(
+                mass1=m1,
+                mass2=m2,
+                spin1x=s1x,
+                spin1y=s1y,
+                spin1z=s1z,
+                spin2x=s2x,
+                spin2y=s2y,
+                spin2z=s2z,
+            )
+            # Now father initial frequency information
+            if not np.isnan(metadata["freq_start_22"]):
+                parameters.update(f_lower=float(metadata["freq_start_22"]))
+            else:
+                h = self.get_mode(2, 2, total_mass, distance=100, delta_t=1.0 / 4096)
+                fr = frequency_from_polarizations(h.real(), -h.imag())
+                parameters.update(f_lower=fr[0])
+        elif "GTID" in metadata:
+            q = metadata["q"]
+            m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, q / (1 + q) ** 2)
+            parameters.update(mass1=m1, mass2=m2)
+            for suffix in ["1x", "1y", "1z", "2x", "2y", "2z"]:
+                parameters["s" + suffix] = metadata["a" + suffix]
+            if not np.isnan(metadata["Momega"]):
+                parameters.update(
+                    f_lower=float(metadata["Momega"])
+                    / np.pi
+                    / (total_mass * lal.MTSUN_SI)
+                )
+            else:
+                h = self.get_mode(2, 2, total_mass, distance=100, delta_t=1.0 / 4096)
+                fr = frequency_from_polarizations(h.real(), -h.imag())
+                parameters.update(f_lower=fr[0])
+        else:
+            raise IOError("Method not implemented for SXS Catalog yet")
+
+        return parameters
+
     def get_mode_data(self, ell, em):
         return self[f"Y_l{ell}_m{em}.dat"]
 
@@ -210,7 +279,7 @@ class WaveformModes(sxs_WaveformModes):
         ell,
         em,
         total_mass,
-        distance=1, # Megaparsecs
+        distance=1,  # Megaparsecs
         delta_t=None,
         to_pycbc=True,
     ):
@@ -223,10 +292,10 @@ class WaveformModes(sxs_WaveformModes):
             total_mass (float): Total Mass (Solar Masses)
             distance (float): Distance to Source (Megaparsecs)
             delta_t (float, optional): Sample rate (in Hz or M). Defaults to None.
-            to_pycbc (bool, optional) : Return `pycbc.types.TimeSeries` or 
+            to_pycbc (bool, optional) : Return `pycbc.types.TimeSeries` or
                 `sxs.TimeSeries`. Defaults to True.
         Returns:
-            `pycbc.types.TimeSeries(numpy.complex128)` or 
+            `pycbc.types.TimeSeries(numpy.complex128)` or
                 `sxs.TimeSeries(numpy.complex128)`:
                 Complex waveform mode time series
         """
