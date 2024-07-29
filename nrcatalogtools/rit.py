@@ -36,18 +36,18 @@ class RITCatalog(catalog.CatalogBase):
     ):
         helper = RITCatalogHelper(use_cache=True, verbosity=verbosity)
         if verbosity > 2:
-            print("..Going to read catalog file from cache.")
+            print("..Going to read RIT catalog metadata from cache.")
         catalog_df = helper.read_metadata_df_from_disk()
         if len(catalog_df) == 0:
             if verbosity > 2:
-                print("..Catalog file not found on disk. Going to refresh from cache.")
+                print("..Catalog metadata not found on disk. Going to refresh from cache.")
             catalog_df = helper.refresh_metadata_df_on_disk(
                 num_sims_to_crawl=num_sims_to_crawl
             )
         elif len(catalog_df) < acceptable_scraping_fraction * num_sims_to_crawl:
             if verbosity > 2:
                 print(
-                    """..Catalog file on disk is likely incomplete with only {} sims.
+                    """..Catalog metadata on disk is likely incomplete with only {} sims.
                     ...Going to refresh from cache.
                     """.format(
                         len(catalog_df)
@@ -60,7 +60,7 @@ class RITCatalog(catalog.CatalogBase):
         if len(catalog_df) < acceptable_scraping_fraction * num_sims_to_crawl:
             if verbosity > 2:
                 print(
-                    "Refreshing catalog file from cache did not work.",
+                    "Refreshing catalog metadata from cache did not work.",
                     "...Falling back to downloading metadata for the full",
                     "...catalog. This will take some time.",
                 )
