@@ -35,6 +35,10 @@ class CatalogBase(CatalogABC, sxs.Catalog):
     def __init__(self, *args, **kwargs) -> None:
         sxs.Catalog.__init__(self, *args, **kwargs)
 
+    @property
+    def simulations_list(self):
+        return list(self.simulations)
+
     def get(self, sim_name):
         if sim_name not in self.simulations_dataframe.index.to_list():
             raise IOError(
