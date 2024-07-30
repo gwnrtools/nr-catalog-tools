@@ -1,8 +1,13 @@
 import os
 from abc import ABC, abstractmethod
 
+import numpy as np
+
+import lal
+from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 import sxs
 from nrcatalogtools import waveform
+from nrcatalogtools import metadata as md
 
 
 class CatalogABC(ABC):
@@ -84,3 +89,17 @@ class CatalogBase(CatalogABC, sxs.Catalog):
         with h5py.File(file_path, "a") as fp:
             if attr_name not in fp.attrs:
                 fp.attrs[attr_name] = attr_value
+
+    def get_parameters(self, sim_name, total_mass=1.0):
+        """Return the initial physical parameters for the simulation. Only for
+        quasicircular simulations are supported, orbital eccentricity is ignored
+
+        Args:
+            total_mass (float, optional): Total Mass of Binary (solar masses).
+                Defaults to 1.0.
+
+        Returns:
+            dict: Initial binary parameters with names compatible with PyCBC.
+        """
+        metadata = self.get_metadata(sim_name)
+        return md.get_source_parameters_from_metadata(metadata, total_mass=total_mass)
