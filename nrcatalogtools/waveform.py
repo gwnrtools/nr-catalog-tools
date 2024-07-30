@@ -9,6 +9,7 @@ from pycbc.waveform import frequency_from_polarizations
 from scipy.interpolate import InterpolatedUnivariateSpline
 from scipy.stats import mode as stat_mode
 
+from nrcatalogtools import metadata as md
 from nrcatalogtools import utils
 from nrcatalogtools.lvc import (
     check_interp_req,
@@ -210,65 +211,47 @@ class WaveformModes(sxs_WaveformModes):
         return self.sim_metadata
 
     def get_parameters(self, total_mass=1.0):
+        """Return the initial physical parameters for the simulation. Only for
+        quasicircular simulations are supported, orbital eccentricity is ignored
+
+        Args:
+            total_mass (float, optional): Total Mass of Binary (solar masses).
+                Defaults to 1.0.
+
+        Returns:
+            dict: Initial binary parameters with names compatible with PyCBC.
+        """
+
         metadata = self.metadata
-        parameters = dict()
+        parameters = md.get_source_parameters_from_metadata(
+            metadata, total_mass=total_mass
+        )
         if "relaxed_mass1" in metadata:
             # RIT Catalog
-            q = metadata["relaxed_mass_ratio_1_over_2"]
-            m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, q / (1 + q) ** 2)
-            s1x = metadata["relaxed_chi1x"]
-            s1y = metadata["relaxed_chi1y"]
-            s1z = metadata["relaxed_chi1z"]
-            if np.isnan(s1x):
-                s1x = 0
-            if np.isnan(s1y):
-                s1y = 0
-            if np.isnan(s1z):
-                s1z = 0
-            s2x = metadata["relaxed_chi2x"]
-            s2y = metadata["relaxed_chi2y"]
-            s2z = metadata["relaxed_chi2z"]
-            if np.isnan(s2x):
-                s2x = 0
-            if np.isnan(s2y):
-                s2y = 0
-            if np.isnan(s2z):
-                s2z = 0
-            parameters.update(
-                mass1=m1,
-                mass2=m2,
-                spin1x=s1x,
-                spin1y=s1y,
-                spin1z=s1z,
-                spin2x=s2x,
-                spin2y=s2y,
-                spin2z=s2z,
-            )
-            # Now father initial frequency information
-            if not np.isnan(metadata["freq_start_22"]):
-                parameters.update(f_lower=float(metadata["freq_start_22"]))
-            else:
-                h = self.get_mode(2, 2, total_mass, distance=100, delta_t=1.0 / 4096)
+            if parameters["f_lower"] == -1:
+                h = self.get_mode(2, 2, total_mass, distance=1, delta_t=1.0 / 8192)
                 fr = frequency_from_polarizations(h.real(), -h.imag())
                 parameters.update(f_lower=fr[0])
         elif "GTID" in metadata:
-            q = metadata["q"]
-            m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, q / (1 + q) ** 2)
-            parameters.update(mass1=m1, mass2=m2)
-            for suffix in ["1x", "1y", "1z", "2x", "2y", "2z"]:
-                parameters["s" + suffix] = metadata["a" + suffix]
-            if not np.isnan(metadata["Momega"]):
-                parameters.update(
-                    f_lower=float(metadata["Momega"])
-                    / np.pi
-                    / (total_mass * lal.MTSUN_SI)
-                )
-            else:
-                h = self.get_mode(2, 2, total_mass, distance=100, delta_t=1.0 / 4096)
+            # GT / MAYA CAtalog
+            if parameters["f_lower"] == -1:
+                h = self.get_mode(2, 2, total_mass, distance=1, delta_t=1.0 / 8192)
                 fr = frequency_from_polarizations(h.real(), -h.imag())
                 parameters.update(f_lower=fr[0])
         else:
-            raise IOError("Method not implemented for SXS Catalog yet")
+            # SXS Catalog
+            if parameters["f_lower"] == -1:
+                delta_t_secs = 1.0 / 8192
+                h = self.get_mode(2, 2, total_mass, distance=1, delta_t=delta_t_secs)
+                fr = frequency_from_polarizations(h.real(), -h.imag())
+                # Get the frequency at reference_time
+                reference_time_idx = int(
+                    np.round(
+                        (metadata["reference_time"] / (total_mass * lal.MTSUN_SI))
+                        / delta_t_secs
+                    )
+                )
+                parameters.update(f_lower=fr[reference_time_idx])
 
         return parameters
 
@@ -454,7 +437,7 @@ class WaveformModes(sxs_WaveformModes):
             k=k,
             kind=kind,
         ) * utils.amp_to_physical(total_mass, distance)
-        
+
         h.time *= m_secs
         # Return conjugated waveform to comply with lal
         return self.to_pycbc(np.conjugate(h))
@@ -697,7 +680,7 @@ def interpolate_in_amp_phase(obj, new_time, k=3, kind=None):
         kind=kind,
     )
 
-    resam_data = SXSTimeSeries(resam_data, new_time)
+    resam_data = sxs_TimeSeries(resam_data, new_time)
 
     metadata = obj._metadata.copy()
     metadata["time"] = new_time

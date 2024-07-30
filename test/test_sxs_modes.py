@@ -76,7 +76,7 @@ def GetModesToCompare(ell, emm, Plot=False):
     # Prepare modes
     ####################
 
-    wf1_tlm = sxsw.get_mode(ell, emm)[:, 0] - mtime
+    wf1_tlm = sxsw.get_mode_data(ell, emm)[:, 0] - mtime
 
     if not (wf1_tlm - taxis1 == 0).all():
         message("Difference in axis", wf1_tlm - taxis1)
@@ -84,8 +84,8 @@ def GetModesToCompare(ell, emm, Plot=False):
 
     # nrcat
     # nr cat loads negative of the modes??
-    wf1_plm = sxsw.get_mode(ell, emm)[:, 1]
-    wf1_xlm = sxsw.get_mode(ell, emm)[:, 2]
+    wf1_plm = sxsw.get_mode_data(ell, emm)[:, 1]
+    wf1_xlm = sxsw.get_mode_data(ell, emm)[:, 2]
 
     wf1_lm = wf1_plm + 1j * wf1_xlm
     wf2_lm = wf2.mode(ell, emm)
@@ -200,9 +200,9 @@ sxsw = sxs1.get(sim_name)
 # Load thru nrcat tools
 ######################################
 
-wf1_t22 = sxsw.get_mode(2, 2)[:, 0]
-wf1_p22 = sxsw.get_mode(2, 2)[:, 1]
-wf1_x22 = sxsw.get_mode(2, 2)[:, 2]
+wf1_t22 = sxsw.get_mode_data(2, 2)[:, 0]
+wf1_p22 = sxsw.get_mode_data(2, 2)[:, 1]
+wf1_x22 = sxsw.get_mode_data(2, 2)[:, 2]
 
 wf1_22 = wf1_p22 + 1j * wf1_x22
 
