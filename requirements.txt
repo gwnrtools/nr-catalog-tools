@@ -6,5 +6,5 @@ lalsuite
 ligo-common
 pycbc
 pandas
-sxs
+sxs>=v2023.0.0
 waveformtools @ git+https://gitlab.com/vaishakp/waveformtools@main
