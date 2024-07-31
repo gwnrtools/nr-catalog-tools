@@ -50,7 +50,9 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
         )
         # Now father initial frequency information
         if not np.isnan(metadata["freq_start_22"]):
-            parameters.update(f_lower=float(metadata["freq_start_22"]))
+            parameters.update(
+                f_lower=float(metadata["freq_start_22"]) / (total_mass * lal.MTSUN_SI)
+            )
         else:
             parameters.update(f_lower=-1)
     elif "GTID" in metadata:
