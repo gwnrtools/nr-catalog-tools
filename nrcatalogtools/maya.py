@@ -2,10 +2,11 @@ import collections
 import functools
 import os
 import zipfile
-
+from mayawaves.coalescence import Coalescence
+from mayawaves.utils.postprocessingutils import export_to_lvcnr_catalog
 import pandas as pd
-
 from nrcatalogtools import catalog, utils
+import numpy as np
 
 
 class MayaCatalog(catalog.CatalogBase):
@@ -239,10 +240,16 @@ class MayaCatalog(catalog.CatalogBase):
         return str(self.metadata_dir / f"{sim_name}.{ext}")
 
     def download_waveform_data(self, sim_name, use_cache=None):
+        sims = catalog["simulations"]
+        if np.all(np.isnan(sims.iloc[sims.index == sim_name]["lvcnr file size (GB)"])):
+            maya_format = True
+
         if use_cache is None:
             use_cache = self.use_cache
         file_name = self.waveform_filename_from_simname(sim_name)
-        file_path_web = self.waveform_url_from_simname(sim_name)
+        file_path_web = self.waveform_url_from_simname(
+            sim_name, maya_format=maya_format
+        )
         local_file_path = self.waveform_data_dir / file_name
         if (
             use_cache
@@ -261,6 +268,15 @@ class MayaCatalog(catalog.CatalogBase):
                 if self._verbosity > 2:
                     print("...downloading {}".format(file_path_web))
                 utils.download_file(file_path_web, local_file_path)
+                if maya_format:
+                    export_to_lvcnr_catalog(
+                        Coalescence(local_file_path),
+                        self.waveform_data_dir,
+                        NR_group="UT Austin",
+                        NR_code="MAYA",
+                        bibtex_keys="Jani:2016wkt",
+                        contact_email="email@email.com",
+                    )
             else:
                 if self._verbosity > 2:
                     print(
