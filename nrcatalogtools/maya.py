@@ -22,7 +22,6 @@ class MayaCatalog(catalog.CatalogBase):
 
         # Other info
         self.num_of_sims = 0
-        self.catalog_url = utils.maya_catalog_info["url"]
         self.cache_dir = utils.maya_catalog_info["cache_dir"]
         self.use_cache = use_cache
 
@@ -45,7 +44,7 @@ class MayaCatalog(catalog.CatalogBase):
     def load(cls, download=None, verbosity=0):
         progress = True
         utils.maya_catalog_info["cache_dir"].mkdir(parents=True, exist_ok=True)
-        catalog_url = utils.maya_catalog_info["metadata_url"]
+        metadata_url = utils.maya_catalog_info["metadata_url"]
         cache_path = utils.maya_catalog_info["cache_dir"] / "catalog.zip"
         if cache_path.exists():
             if_newer = cache_path
@@ -63,12 +62,12 @@ class MayaCatalog(catalog.CatalogBase):
             try:
                 try:
                     utils.download_file(
-                        catalog_url, temp_pkl, progress=progress, if_newer=if_newer
+                        metadata_url, temp_pkl, progress=progress, if_newer=if_newer
                     )
                 except Exception as e:
                     if download:
                         raise RuntimeError(
-                            f"Failed to download '{catalog_url}'; try setting `download=False`"
+                            f"Failed to download '{metadata_url}'; try setting `download=False`"
                         ) from e
                     download_failed = e  # We'll try the cache
                 else:
@@ -130,7 +129,7 @@ class MayaCatalog(catalog.CatalogBase):
         for col_name in catalog_df.columns:
             column = list(catalog_df[col_name])
             if "name" in col_name:
-                catalog_dict["name"] = [s.strip() for s in column]
+                catalog_dict["GT_Tag"] = [s.strip() for s in column]
             else:
                 catalog_dict[col_name.strip()] = [
                     float(s.strip().replace("-", "NAN")) if type(s) is str else float(s)
@@ -226,10 +225,12 @@ class MayaCatalog(catalog.CatalogBase):
                 )
         return file_path.as_posix()
 
-    def waveform_url_from_simname(self, sim_name):
-        return (
-            self.waveform_data_url + "/" + self.waveform_filename_from_simname(sim_name)
-        )
+    def waveform_url_from_simname(self, sim_name, maya_format=False):
+        if maya_format:
+            format = "maya_format"
+        else:
+            format = "lvcnr_format"
+        return f"{self.waveform_data_url}/{format}/{self.waveform_filename_from_simname(sim_name)}"
 
     def metadata_filename_from_simname(self, sim_name):
         return os.path.basename(self.metadata_filepath_from_simname(sim_name))
@@ -241,7 +242,7 @@ class MayaCatalog(catalog.CatalogBase):
         if use_cache is None:
             use_cache = self.use_cache
         file_name = self.waveform_filename_from_simname(sim_name)
-        file_path_web = self.waveform_data_url + "/" + file_name
+        file_path_web = self.waveform_url_from_simname(sim_name)
         local_file_path = self.waveform_data_dir / file_name
         if (
             use_cache
