@@ -53,17 +53,17 @@ class MayaCatalog(catalog.CatalogBase):
             if_newer = False
 
         if download or download is None:
-            # 1. Download the full txt file (zipped in flight, but auto-decompressed on arrival)
+            # 1. Download the full pickle file (zipped in flight, but auto-decompressed on arrival)
             # 2. Zip to a temporary file (using bzip2, which is better than the in-flight compression)
             # 3. Replace the original catalog.zip with the temporary zip file
-            # 4. Remove the full txt file
+            # 4. Remove the full pickle file
             # 5. Make sure the temporary zip file is gone too
-            temp_txt = cache_path.with_suffix(".temp.txt")
+            temp_pkl = cache_path.with_suffix(".temp.pkl")
             temp_zip = cache_path.with_suffix(".temp.zip")
             try:
                 try:
                     utils.download_file(
-                        catalog_url, temp_txt, progress=progress, if_newer=if_newer
+                        catalog_url, temp_pkl, progress=progress, if_newer=if_newer
                     )
                 except Exception as e:
                     if download:
@@ -73,16 +73,16 @@ class MayaCatalog(catalog.CatalogBase):
                     download_failed = e  # We'll try the cache
                 else:
                     download_failed = False
-                    if temp_txt.exists():
+                    if temp_pkl.exists():
                         with zipfile.ZipFile(
                             temp_zip, "w", compression=zipfile.ZIP_BZIP2
                         ) as catalog_zip:
-                            catalog_zip.write(temp_txt, arcname="catalog.txt")
+                            catalog_zip.write(temp_pkl, arcname="catalog.pickle")
                         temp_zip.replace(cache_path)
             finally:
                 # The `missing_ok` argument to `unlink` would be much nicer, but was added in python 3.8
                 try:
-                    temp_txt.unlink()
+                    temp_pkl.unlink()
                 except FileNotFoundError:
                     pass
                 try:
@@ -109,26 +109,16 @@ class MayaCatalog(catalog.CatalogBase):
         try:
             with zipfile.ZipFile(cache_path, "r") as catalog_zip:
                 try:
-                    with catalog_zip.open("catalog.txt") as catalog_txt:
+                    with catalog_zip.open("catalog.pickle") as catalog_pickle:
                         try:
-                            catalog_df = (
-                                pd.read_table(
-                                    catalog_txt,
-                                    sep="|",
-                                    header=0,
-                                    index_col=1,
-                                    skipinitialspace=True,
-                                )
-                                .dropna(axis=1, how="all")
-                                .iloc[1:]
-                            )
+                            catalog_df = pd.read_pickle(catalog_pickle)
                         except Exception as e:
                             raise ValueError(
                                 f"Failed to parse 'catalog.json' in '{cache_path}'"
                             ) from e
                 except Exception as e:
                     raise ValueError(
-                        f"Failed to open 'catalog.txt' in '{cache_path}'"
+                        f"Failed to open 'catalog.pickle' in '{cache_path}'"
                     ) from e
         except Exception as e:
             raise ValueError(f"Failed to open '{cache_path}' as a ZIP file") from e
@@ -139,8 +129,8 @@ class MayaCatalog(catalog.CatalogBase):
 
         for col_name in catalog_df.columns:
             column = list(catalog_df[col_name])
-            if "GT_Tag" in col_name:
-                catalog_dict["GT_Tag"] = [s.strip() for s in column]
+            if "name" in col_name:
+                catalog_dict["name"] = [s.strip() for s in column]
             else:
                 catalog_dict[col_name.strip()] = [
                     float(s.strip().replace("-", "NAN")) if type(s) is str else float(s)
