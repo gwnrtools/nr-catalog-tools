@@ -40,12 +40,11 @@ rit_catalog_info["max_id_val"] = 6
 
 maya_catalog_info = {
     "cache_dir": nrcatalog_cache_dir / "MAYA",
-    "url": "https://raw.githubusercontent.com/cevans216/gt-waveform-catalog/master/h5files",
-    "metadata_url": "https://raw.githubusercontent.com/cevans216/gt-waveform-catalog/master/catalog-table.txt",
+    "data_url": "https://cgpstorage.ph.utexas.edu/",
+    "metadata_url": "https://cgpstorage.ph.utexas.edu/MAYAmetadata.pkl",
 }
 maya_catalog_info["data_dir"] = maya_catalog_info["cache_dir"] / "data"
 maya_catalog_info["metadata_dir"] = maya_catalog_info["cache_dir"] / "metadata"
-maya_catalog_info["data_url"] = maya_catalog_info["url"]
 
 
 def url_exists(link, num_retries=100):
