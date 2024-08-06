@@ -6,7 +6,6 @@ from mayawaves.coalescence import Coalescence
 from mayawaves.utils.postprocessingutils import export_to_lvcnr_catalog
 import pandas as pd
 from nrcatalogtools import catalog, utils
-import numpy as np
 
 
 class MayaCatalog(catalog.CatalogBase):
@@ -239,11 +238,7 @@ class MayaCatalog(catalog.CatalogBase):
     def metadata_filepath_from_simname(self, sim_name, ext="txt"):
         return str(self.metadata_dir / f"{sim_name}.{ext}")
 
-    def download_waveform_data(self, sim_name, use_cache=None):
-        sims = catalog["simulations"]
-        if np.all(np.isnan(sims.iloc[sims.index == sim_name]["lvcnr file size (GB)"])):
-            maya_format = True
-
+    def download_waveform_data(self, sim_name, maya_format=True, use_cache=None):
         if use_cache is None:
             use_cache = self.use_cache
         file_name = self.waveform_filename_from_simname(sim_name)
@@ -269,13 +264,26 @@ class MayaCatalog(catalog.CatalogBase):
                     print("...downloading {}".format(file_path_web))
                 utils.download_file(file_path_web, local_file_path)
                 if maya_format:
+                    if self._verbosity > 2:
+                        print("...exporting to LVCNR catalog format")
                     export_to_lvcnr_catalog(
                         Coalescence(local_file_path),
                         self.waveform_data_dir,
+                        name=sim_name + "_LVCNR",
                         NR_group="UT Austin",
                         NR_code="MAYA",
                         bibtex_keys="Jani:2016wkt",
                         contact_email="email@email.com",
+                        center_of_mass_correction=True,
+                    )
+                    if self._verbosity > 2:
+                        print("...removing maya format file")
+                    os.remove(local_file_path)
+                    if self._verbosity > 2:
+                        print("...renaming LVCNR format file in the cache")
+                    os.rename(
+                        self.waveform_data_dir / (sim_name + "_LVCNR.h5"),
+                        local_file_path,
                     )
             else:
                 if self._verbosity > 2:
