@@ -51,6 +51,7 @@ class WaveformModes(sxs_WaveformModes):
         self._t_ref_nr = None
         self._filepath = None
         self.verbosity = verbosity
+        self._modes_with_no_junk = None
         return self
 
     @classmethod
@@ -209,6 +210,10 @@ class WaveformModes(sxs_WaveformModes):
     def metadata(self):
         """Return the simulation metadata dictionary"""
         return self.sim_metadata
+
+    @property
+    def modes_with_junk_removed(self):
+        return self._modes_with_junk_removed
 
     def get_parameters(self, total_mass=1.0):
         """Return the initial physical parameters for the simulation. Only for
@@ -377,6 +382,9 @@ class WaveformModes(sxs_WaveformModes):
         k=3,
         kind=None,
         tol=1e-6,
+        remove_junk=True,
+        remove_junk_fudge_factor=1,
+        junk_time=None,
     ):
         """Sum over modes data and return plus and cross GW polarizations,
         rescaled appropriately for a compact-object binary with given
@@ -412,17 +420,6 @@ class WaveformModes(sxs_WaveformModes):
             pycbc.TimeSeries(numpy.complex128): Complex polarizations
                 stored in `pycbc` container `TimeSeries`
         """
-        if delta_t is None:
-            delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
-        m_secs = utils.time_to_physical(total_mass)
-        # we assume that we generally do not sample at a rate below 128Hz.
-        # Therefore, depending on the numerical value of dt, we deduce whether
-        # dt is in dimensionless units or in seconds.
-        if delta_t > 1.0 / 128:
-            new_time = np.arange(min(self.time), max(self.time), delta_t)
-        else:
-            new_time = np.arange(min(self.time), max(self.time), delta_t / m_secs)
-
         # Get angles
         angles = self.get_angles(
             inclination=inclination,
@@ -431,16 +428,54 @@ class WaveformModes(sxs_WaveformModes):
             t_ref=t_ref,
             tol=tol,
         )
-        h = interpolate_in_amp_phase(
-            self.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
-            new_time,
-            k=k,
-            kind=kind,
-        ) * utils.amp_to_physical(total_mass, distance)
 
+        m_secs = utils.time_to_physical(total_mass)
+        
+        if remove_junk:
+            junk_time = junk_time / m_secs if junk_time is not None else None  # converting the provided junk_time to dimensionless units.
+            self.remove_junk_from_modes(junk_time, remove_junk_fudge_factor)
+            time_array = self._modes_with_no_junk.time
+        else:
+            time_array = self.time
+            
+        if delta_t is None:
+            delta_t = stat_mode(np.diff(time_array), keepdims=True)[0][0]
+        # we assume that we generally do not sample at a rate below 128Hz.
+        # Therefore, depending on the numerical value of dt, we deduce whether
+        # dt is in dimensionless units or in seconds.
+        if delta_t > 1.0 / 128:
+            new_time = np.arange(min(time_array), max(time_array), delta_t)
+        else:
+            new_time = np.arange(min(time_array), max(time_array), delta_t / m_secs)
+        
+        if remove_junk:     
+            h = interpolate_in_amp_phase(
+                self._modes_with_no_junk.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
+                new_time,
+                k=k,
+                kind=kind,
+            ) * utils.amp_to_physical(total_mass, distance)
+        else:
+            h = interpolate_in_amp_phase(
+                self.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
+                new_time,
+                k=k,
+                kind=kind,
+            ) * utils.amp_to_physical(total_mass, distance)
+            
         h.time *= m_secs
         # Return conjugated waveform to comply with lal
         return self.to_pycbc(np.conjugate(h))
+
+    def remove_junk_from_modes(self, junk_time=None, remove_junk_fudge_factor=1):
+        """ Remove the portion of data with junk radiation from WaveformModes """
+        if junk_time is None:
+            reference_time = remove_junk_fudge_factor * self.metadata["reference_time"]
+        else:
+            reference_time = junk_time
+        reference_index = self.index_closest_to(reference_time)
+        self._modes_with_no_junk = self[reference_index:]
+        return self
 
     def get_angles(self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6):
         """Get the inclination, azimuthal and polarization angles
