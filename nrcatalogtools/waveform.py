@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os
 
 import h5py
@@ -51,6 +52,7 @@ class WaveformModes(sxs_WaveformModes):
         self._t_ref_nr = None
         self._filepath = None
         self.verbosity = verbosity
+        self._modes_with_junk_removed = None
         return self
 
     @classmethod
@@ -339,6 +341,15 @@ class WaveformModes(sxs_WaveformModes):
         )
         return fr22[0] / lal.MTSUN_SI
 
+    @property
+    def modes_with_junk_removed(self):
+        if not isinstance(self._modes_with_junk_removed, sxs_WaveformModes):
+            ref_time = self.metadata["reference-time"]
+            ref_ind = np.argmin(abs(self.t - ref_time))
+            self._modes_with_junk_removed = self[ref_ind:]
+
+        return self._modes_with_junk_removed
+
     def get_polarizations(
         self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6
     ):
@@ -377,6 +388,7 @@ class WaveformModes(sxs_WaveformModes):
         k=3,
         kind=None,
         tol=1e-6,
+        remove_junk=True,
     ):
         """Sum over modes data and return plus and cross GW polarizations,
         rescaled appropriately for a compact-object binary with given
@@ -431,8 +443,14 @@ class WaveformModes(sxs_WaveformModes):
             t_ref=t_ref,
             tol=tol,
         )
+
+        wm_obj = self
+        if remove_junk:
+            print("Removing junk")
+            wm_obj = self.modes_with_junk_removed
+
         h = interpolate_in_amp_phase(
-            self.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
+            wm_obj.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
             new_time,
             k=k,
             kind=kind,
