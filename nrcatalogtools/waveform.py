@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os
 
 import h5py
@@ -51,7 +52,7 @@ class WaveformModes(sxs_WaveformModes):
         self._t_ref_nr = None
         self._filepath = None
         self.verbosity = verbosity
-        self._modes_with_no_junk = None
+        self._modes_with_junk_removed = None
         return self
 
     @classmethod
@@ -211,10 +212,6 @@ class WaveformModes(sxs_WaveformModes):
         """Return the simulation metadata dictionary"""
         return self.sim_metadata
 
-    @property
-    def modes_with_junk_removed(self):
-        return self._modes_with_junk_removed
-
     def get_parameters(self, total_mass=1.0):
         """Return the initial physical parameters for the simulation. Only for
         quasicircular simulations are supported, orbital eccentricity is ignored
@@ -344,6 +341,23 @@ class WaveformModes(sxs_WaveformModes):
         )
         return fr22[0] / lal.MTSUN_SI
 
+    @property
+    def modes_with_junk_removed(self):
+        """ Returns WaveformModes object with junks removed. """
+        if not isinstance(self._modes_with_junk_removed, sxs_WaveformModes):
+            reference_time = remove_junk_fudge_factor * self.metadata["reference_time"]
+            reference_index = self.index_closest_to(reference_time)
+            self._modes_with_junk_removed = self[reference_index:]
+            
+        return self._modes_with_junk_removed
+
+    def remove_junk_from_modes(self, remove_junk_fudge_factor=1):
+        """ Remove the portion of data with junk radiation from WaveformModes """
+        reference_time = remove_junk_fudge_factor * self.metadata["reference_time"]
+        reference_index = self.index_closest_to(reference_time)
+        self._modes_with_junk_removed = self[reference_index:]
+        return self
+        
     def get_polarizations(
         self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6
     ):
@@ -382,9 +396,8 @@ class WaveformModes(sxs_WaveformModes):
         k=3,
         kind=None,
         tol=1e-6,
-        remove_junk=True,
+        remove_junk=False,
         remove_junk_fudge_factor=1,
-        junk_time=None,
     ):
         """Sum over modes data and return plus and cross GW polarizations,
         rescaled appropriately for a compact-object binary with given
@@ -420,23 +433,13 @@ class WaveformModes(sxs_WaveformModes):
             pycbc.TimeSeries(numpy.complex128): Complex polarizations
                 stored in `pycbc` container `TimeSeries`
         """
-        # Get angles
-        angles = self.get_angles(
-            inclination=inclination,
-            coa_phase=coa_phase,
-            f_ref=f_ref,
-            t_ref=t_ref,
-            tol=tol,
-        )
-
         m_secs = utils.time_to_physical(total_mass)
-        
+
+        time_array = self.time
         if remove_junk:
-            junk_time = junk_time / m_secs if junk_time is not None else None  # converting the provided junk_time to dimensionless units.
-            self.remove_junk_from_modes(junk_time, remove_junk_fudge_factor)
-            time_array = self._modes_with_no_junk.time
-        else:
-            time_array = self.time
+            self.remove_junk_from_modes(remove_junk_fudge_factor)
+            time_array = self.modes_with_junk_removed.time
+            
             
         if delta_t is None:
             delta_t = stat_mode(np.diff(time_array), keepdims=True)[0][0]
@@ -447,35 +450,31 @@ class WaveformModes(sxs_WaveformModes):
             new_time = np.arange(min(time_array), max(time_array), delta_t)
         else:
             new_time = np.arange(min(time_array), max(time_array), delta_t / m_secs)
-        
-        if remove_junk:     
-            h = interpolate_in_amp_phase(
-                self._modes_with_no_junk.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
-                new_time,
-                k=k,
-                kind=kind,
-            ) * utils.amp_to_physical(total_mass, distance)
-        else:
-            h = interpolate_in_amp_phase(
-                self.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
-                new_time,
-                k=k,
-                kind=kind,
-            ) * utils.amp_to_physical(total_mass, distance)
-            
+
+        # Get angles
+        angles = self.get_angles(
+            inclination=inclination,
+            coa_phase=coa_phase,
+            f_ref=f_ref,
+            t_ref=t_ref,
+            tol=tol,
+        )
+
+        wm_obj = self
+        if remove_junk:
+            print("Removing junk")
+            wm_obj = self.modes_with_junk_removed
+
+        h = interpolate_in_amp_phase(
+            wm_obj.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
+            new_time,
+            k=k,
+            kind=kind,
+        ) * utils.amp_to_physical(total_mass, distance)
+
         h.time *= m_secs
         # Return conjugated waveform to comply with lal
         return self.to_pycbc(np.conjugate(h))
-
-    def remove_junk_from_modes(self, junk_time=None, remove_junk_fudge_factor=1):
-        """ Remove the portion of data with junk radiation from WaveformModes """
-        if junk_time is None:
-            reference_time = remove_junk_fudge_factor * self.metadata["reference_time"]
-        else:
-            reference_time = junk_time
-        reference_index = self.index_closest_to(reference_time)
-        self._modes_with_no_junk = self[reference_index:]
-        return self
 
     def get_angles(self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6):
         """Get the inclination, azimuthal and polarization angles
