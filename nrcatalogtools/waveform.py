@@ -343,21 +343,21 @@ class WaveformModes(sxs_WaveformModes):
 
     @property
     def modes_with_junk_removed(self):
-        """ Returns WaveformModes object with junks removed. """
+        """Returns WaveformModes object with junks removed."""
         if not isinstance(self._modes_with_junk_removed, sxs_WaveformModes):
             reference_time = remove_junk_fudge_factor * self.metadata["reference_time"]
             reference_index = self.index_closest_to(reference_time)
             self._modes_with_junk_removed = self[reference_index:]
-            
+
         return self._modes_with_junk_removed
 
     def remove_junk_from_modes(self, remove_junk_fudge_factor=1):
-        """ Remove the portion of data with junk radiation from WaveformModes """
+        """Remove the portion of data with junk radiation from WaveformModes"""
         reference_time = remove_junk_fudge_factor * self.metadata["reference_time"]
         reference_index = self.index_closest_to(reference_time)
         self._modes_with_junk_removed = self[reference_index:]
         return self
-        
+
     def get_polarizations(
         self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6
     ):
@@ -439,8 +439,7 @@ class WaveformModes(sxs_WaveformModes):
         if remove_junk:
             self.remove_junk_from_modes(remove_junk_fudge_factor)
             time_array = self.modes_with_junk_removed.time
-            
-            
+
         if delta_t is None:
             delta_t = stat_mode(np.diff(time_array), keepdims=True)[0][0]
         # we assume that we generally do not sample at a rate below 128Hz.
