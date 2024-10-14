@@ -345,9 +345,7 @@ class WaveformModes(sxs_WaveformModes):
     def modes_with_junk_removed(self):
         """Returns WaveformModes object with junks removed."""
         if not isinstance(self._modes_with_junk_removed, sxs_WaveformModes):
-            reference_time = remove_junk_fudge_factor * self.metadata["reference_time"]
-            reference_index = self.index_closest_to(reference_time)
-            self._modes_with_junk_removed = self[reference_index:]
+            self.remove_junk_from_modes()
 
         return self._modes_with_junk_removed
 
