@@ -19,7 +19,8 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
     if "relaxed_mass1" in metadata:
         # RIT Catalog
         q = metadata["relaxed_mass_ratio_1_over_2"]
-        m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, q / (1 + q) ** 2)
+        eta = min(q / (1 + q) ** 2, 0.25)
+        m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, eta)
         s1x = metadata["relaxed_chi1x"]
         s1y = metadata["relaxed_chi1y"]
         s1z = metadata["relaxed_chi1z"]
@@ -58,7 +59,8 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
     elif "GTID" in metadata:
         # GT / MAYA CAtalog
         q = metadata["q"]
-        m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, q / (1 + q) ** 2)
+        eta = min(q / (1 + q) ** 2, 0.25)
+        m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, eta)
         parameters.update(mass1=m1, mass2=m2)
         for suffix in ["1x", "1y", "1z", "2x", "2y", "2z"]:
             parameters["s" + suffix] = metadata["a" + suffix]
@@ -72,7 +74,8 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
         # SXS Catalog
         if metadata["relaxation_time"] == metadata["reference_time"]:
             q = metadata["reference_mass_ratio"]
-            m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, q / (1 + q) ** 2)
+            eta = min(q / (1 + q) ** 2, 0.25)
+            m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, eta)
             spin1 = metadata["reference_dimensionless_spin1"]
             spin2 = metadata["reference_dimensionless_spin2"]
             parameters.update(
