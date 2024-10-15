@@ -40,7 +40,9 @@ class RITCatalog(catalog.CatalogBase):
         catalog_df = helper.read_metadata_df_from_disk()
         if len(catalog_df) == 0:
             if verbosity > 2:
-                print("..Catalog metadata not found on disk. Going to refresh from cache.")
+                print(
+                    "..Catalog metadata not found on disk. Going to refresh from cache."
+                )
             catalog_df = helper.refresh_metadata_df_on_disk(
                 num_sims_to_crawl=num_sims_to_crawl
             )

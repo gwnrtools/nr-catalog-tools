@@ -3,7 +3,6 @@ import os
 import h5py
 import lal
 import numpy as np
-from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 from pycbc.types import TimeSeries
 from pycbc.waveform import frequency_from_polarizations
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -101,7 +100,7 @@ class WaveformModes(sxs_WaveformModes):
         """
         import quaternionic
 
-        if type(file_path_or_open_file) == h5py._hl.files.File:
+        if type(file_path_or_open_file) is h5py._hl.files.File:
             h5_file = file_path_or_open_file
             close_input_file = False
         elif os.path.exists(file_path_or_open_file):

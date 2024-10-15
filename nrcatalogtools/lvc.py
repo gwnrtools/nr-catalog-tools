@@ -973,7 +973,7 @@ def get_nr_to_lal_rotation_angles(
     if abs(calpha) > 1:
         calpha_err = abs(calpha) - 1
         if calpha_err < tol:
-            # This tol could have been much smaller. 
+            # This tol could have been much smaller.
             # Just resuing the default for now.
             print(
                 f"Correcting the polarization angle for finite precision error {calpha_err}"
