@@ -52,6 +52,7 @@ wftools_use_lal_conven = True
 lal_use_coa_phase_as_phi_ref = False
 test_wrt_wftools = False
 
+
 def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, delta_t):
     """Get polarization time-series to compare from
     nrcatalogtools, waveformtools and lal methods.
@@ -97,7 +98,7 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     # Recenter
     mtime = time_n[np.argmax(np.array(hp_n) ** 2 + np.array(hx_n) ** 2)]
     time_n -= mtime
-    
+
     phi_ref_obs = mwf1.get_obs_phi_ref_from_obs_coa_phase(coa_phase)
 
     if lal_use_coa_phase_as_phi_ref is False:
@@ -177,7 +178,6 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     # LAL frame
     S1, S2 = transform_spins_nr_to_lal(s1, s2, params["nhat"], params["lnhat"])
 
-    
     message("Loading waveform through PyCBC", message_verbosity=3)
 
     hp_l, hx_l = get_td_waveform(
@@ -277,6 +277,7 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
         "wftools": [t_w3, wf_w3, a_w3, p_w3],
         "lal": [t_l, wf_l, a_l, p_l],
     }
+
 
 class TestGTPol(unittest.TestCase):
     """Test the computation of polarizattions"""

@@ -1,10 +1,5 @@
 import os
 from abc import ABC, abstractmethod
-
-import numpy as np
-
-import lal
-from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 import sxs
 from nrcatalogtools import waveform
 from nrcatalogtools import metadata as md
