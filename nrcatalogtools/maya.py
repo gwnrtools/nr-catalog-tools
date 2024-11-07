@@ -39,6 +39,11 @@ class MayaCatalog(catalog.CatalogBase):
         for d in internal_dirs:
             d.mkdir(parents=True, exist_ok=True)
 
+    def clear_cache(self):
+        cache_path = utils.maya_catalog_info["cache_dir"] / "catalog.zip"
+        if cache_path.exists():
+            os.remove(cache_path)
+
     @classmethod
     @functools.lru_cache()
     def load(cls, download=None, verbosity=0):
@@ -76,7 +81,7 @@ class MayaCatalog(catalog.CatalogBase):
                         with zipfile.ZipFile(
                             temp_zip, "w", compression=zipfile.ZIP_BZIP2
                         ) as catalog_zip:
-                            catalog_zip.write(temp_pkl, arcname="catalog.pickle")
+                            catalog_zip.write(temp_pkl, arcname="catalog.pkl")
                         temp_zip.replace(cache_path)
             finally:
                 # The `missing_ok` argument to `unlink` would be much nicer, but was added in python 3.8
@@ -108,7 +113,7 @@ class MayaCatalog(catalog.CatalogBase):
         try:
             with zipfile.ZipFile(cache_path, "r") as catalog_zip:
                 try:
-                    with catalog_zip.open("catalog.pickle") as catalog_pickle:
+                    with catalog_zip.open("catalog.pkl") as catalog_pickle:
                         try:
                             catalog_df = pd.read_pickle(catalog_pickle)
                         except Exception as e:
@@ -117,7 +122,7 @@ class MayaCatalog(catalog.CatalogBase):
                             ) from e
                 except Exception as e:
                     raise ValueError(
-                        f"Failed to open 'catalog.pickle' in '{cache_path}'"
+                        f"Failed to open 'catalog.pkl' in '{cache_path}'"
                     ) from e
         except Exception as e:
             raise ValueError(f"Failed to open '{cache_path}' as a ZIP file") from e
