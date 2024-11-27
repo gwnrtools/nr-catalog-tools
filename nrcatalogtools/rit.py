@@ -34,6 +34,26 @@ class RITCatalog(catalog.CatalogBase):
         acceptable_scraping_fraction=0.7,
         verbosity=0,
     ):
+        """Load the RIT catalog
+
+        Note that this function is itself cached, meaning that the same
+        dict will be returned on each call in a given python session.  If you want to
+        avoid that behavior, use `RITCatalog.reload`.
+
+        Parameters
+        ----------
+        download : {None, bool}, optional
+            If False, this function will look for the catalog in the cache and
+            raise an error if it is not found.  If True, this function will download
+            the catalog and raise an error if the download fails.  If None (the
+            default), it will try to download the file, warn but fall back to the cache
+            if that fails, and only raise an error if the catalog is not found in the
+            cache.  Note that this ignores the configuration file entirely.
+
+        See Also
+        --------
+        nrcatalogtools.utils.rit_catalog_info : Catalog info, including cache directory
+        """
         helper = RITCatalogHelper(use_cache=True, verbosity=verbosity)
         if verbosity > 2:
             print("..Going to read RIT catalog metadata from cache.")
