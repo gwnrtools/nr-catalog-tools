@@ -12,7 +12,7 @@ from nrcatalogtools import catalog, utils
 
 
 class RITCatalog(catalog.CatalogBase):
-    def __init__(self, catalog=None, helper=None, verbosity=0, **kwargs) -> None:
+    def __init__(self, catalog=None, helper=None, verbosity=3, **kwargs) -> None:
         if catalog is not None:
             super().__init__(catalog)
         else:
@@ -347,15 +347,94 @@ class RITCatalogHelper(object):
         ]
 
     def parse_metadata_txt(self, raw):
-        next = [s for s in raw if len(s) > 0 and s[0].isalpha()]
+        """Parses raw RIT metadata
+
+        Args:
+            raw (list(str)): List of lines read in from RIT metadata
+
+        Returns:
+           list(str): Original metadata with empty lines removed
+           dict     : Parsed metadata as a dictionary
+        """
+        derived_fields = [
+            "freq-start-22",
+            "freq-start-22-Hz-1Msun",
+            "number-of-cycles-22",
+            "number-of-orbits",
+            "peak-omega-22",
+            "peak-ampl-22",
+            "Msun",
+            "eccentricity",
+        ]
+        nxt = [s for s in raw if len(s) > 0 and s[0].isalpha()]
         opts = {}
-        for s in next:
+        for s in nxt:
             kv = s.split("=")
             try:
-                opts[kv[0].strip()] = float(kv[1].strip())
+                opts[kv[0].strip()] = float("=".join(kv[1:]).strip())
             except Exception:
-                opts[kv[0].strip()] = str(kv[1].strip())
-        return next, opts
+                # If any of the following fields are empty in metadata, they are
+                # set to 0 here
+                reasonable_value_set = False
+                for xy in derived_fields:
+                    if (kv[0].strip() == xy) and (xy not in opts):
+                        opts[xy] = 0.0
+                        reasonable_value_set = True
+                        break
+                if not reasonable_value_set:
+                    opts[kv[0].strip()] = str("=".join(kv[1:]).strip())
+
+        # Note: often when some spin components are 0, they are not
+        # even included in the metadata file. We set them to 0 here.
+        if "relaxed-chi1z" in opts:
+            for xy in ["relaxed-chi1x", "relaxed-chi1y"]:
+                if xy not in opts and (
+                    opts["system-type"].lower() == "aligned"
+                    or opts["system-type"].lower() == "nonspinning"
+                ):
+                    opts[xy] = 0.0
+        if "relaxed-chi2z" in opts:
+            for xy in ["relaxed-chi2x", "relaxed-chi2y"]:
+                if xy not in opts and (
+                    opts["system-type"].lower() == "aligned"
+                    or opts["system-type"].lower() == "nonspinning"
+                ):
+                    opts[xy] = 0.0
+
+        if "initial-bh-chi1z" in opts:
+            for xy in ["initial-bh-chi1x", "initial-bh-chi1y"]:
+                if xy not in opts and (
+                    opts["system-type"].lower() == "aligned"
+                    or opts["system-type"].lower() == "nonspinning"
+                ):
+                    opts[xy] = 0.0
+        if "initial-bh-chi2z" in opts:
+            for xy in ["initial-bh-chi2x", "initial-bh-chi2y"]:
+                if xy not in opts and (
+                    opts["system-type"].lower() == "aligned"
+                    or opts["system-type"].lower() == "nonspinning"
+                ):
+                    opts[xy] = 0.0
+
+        # derived fields might not be populated at all. In that case, they are
+        # set to 0 here.
+        if "number-of-cycles-22" in opts:
+            if "number-of-orbits" not in opts:
+                opts["number-of-orbits"] = opts["number-of-cycles-22"] / 2.0
+            if opts["number-of-orbits"] == 0.0:
+                opts["number-of-orbits"] = opts["number-of-cycles-22"] / 2.0
+
+        if "number-of-orbits" in opts:
+            if "number-of-cycles-22" not in opts:
+                opts["number-of-cycles-22"] = opts["number-of-orbits"] * 2.0
+            if opts["number-of-cycles-22"] == 0.0:
+                opts["number-of-cycles-22"] = opts["number-of-orbits"] * 2.0
+
+        for xy in derived_fields:
+            if xy not in opts:
+                opts[xy] = 0.0
+
+        return nxt, opts
 
     def metadata_from_link(self, link, save_to=None):
         if save_to is not None:
@@ -537,7 +616,7 @@ class RITCatalogHelper(object):
 
             # If not already present, fetch metadata the hard way
             if not found:
-                for res in possible_res:
+                for res in possible_res[::-1]:
                     for id_val in range(max_id_in_name):
                         # If not already present, fetch metadata
                         sim_data = self.fetch_metadata(idx, res, id_val)
