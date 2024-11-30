@@ -2,14 +2,27 @@ import collections
 import functools
 import os
 import zipfile
-from mayawaves.coalescence import Coalescence
-from mayawaves.utils.postprocessingutils import export_to_lvcnr_catalog
+from mayawaves import coalescence as maya_coalescence
+from mayawaves.utils import postprocessingutils as maya_postprocessingutils
 import pandas as pd
 from nrcatalogtools import catalog, utils
 
 
 class MayaCatalog(catalog.CatalogBase):
     def __init__(self, catalog=None, use_cache=True, verbosity=0, **kwargs) -> None:
+        """This class wraps the catalog infrastructure provided by the
+        groups performing NR simulations using the MAYA code, and provides
+        an interface that is derived from the `sxs.catalog` class.
+
+        Args:
+            catalog (MayaCatalog or CatalogBase, optional): If a catalog object
+                already exist, pass it here to transfer its ownership to the new
+                object. Defaults to None.
+            use_cache (bool, optional): Whether to download all metadata and
+                data on the fly or use cached versionis. Defaults to True.
+            verbosity (int, optional): Verbose output levels [0=quiet,
+                10=most verbose]. Defaults to 0.
+        """
         if catalog is not None:
             super().__init__(catalog)
         else:
@@ -46,9 +59,10 @@ class MayaCatalog(catalog.CatalogBase):
 
     @classmethod
     @functools.lru_cache()
-    def load(cls, download=None, verbosity=0):
-        progress = True
+    def load(cls, download=None, verbosity=0, show_progress=True):
+        # Create cache dir if it does not exit
         utils.maya_catalog_info["cache_dir"].mkdir(parents=True, exist_ok=True)
+
         metadata_url = utils.maya_catalog_info["metadata_url"]
         cache_path = utils.maya_catalog_info["cache_dir"] / "catalog.zip"
         if cache_path.exists():
@@ -67,12 +81,15 @@ class MayaCatalog(catalog.CatalogBase):
             try:
                 try:
                     utils.download_file(
-                        metadata_url, temp_pkl, progress=progress, if_newer=if_newer
+                        metadata_url,
+                        temp_pkl,
+                        progress=show_progress,
+                        if_newer=if_newer,
                     )
                 except Exception as e:
                     if download:
                         raise RuntimeError(
-                            f"Failed to download '{metadata_url}'; try setting `download=False`"
+                            f"Failed to download '{metadata_url}'; If you don't have a network connection, try setting `download=False`"
                         ) from e
                     download_failed = e  # We'll try the cache
                 else:
@@ -271,8 +288,8 @@ class MayaCatalog(catalog.CatalogBase):
                 if maya_format:
                     if self._verbosity > 2:
                         print("...exporting to LVCNR catalog format")
-                    export_to_lvcnr_catalog(
-                        Coalescence(local_file_path),
+                    maya_postprocessingutils.export_to_lvcnr_catalog(
+                        maya_coalescence.Coalescence(local_file_path),
                         self.waveform_data_dir,
                         name=sim_name + "_LVCNR",
                         NR_group="UT Austin",
