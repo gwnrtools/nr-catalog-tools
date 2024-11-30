@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-import sxs
+from sxs import Catalog as sxs_Catalog
 from nrcatalogtools import waveform
 from nrcatalogtools import metadata as md
 
@@ -31,9 +31,9 @@ class CatalogABC(ABC):
         raise NotImplementedError()
 
 
-class CatalogBase(CatalogABC, sxs.Catalog):
+class CatalogBase(CatalogABC, sxs_Catalog):
     def __init__(self, *args, **kwargs) -> None:
-        sxs.Catalog.__init__(self, *args, **kwargs)
+        sxs_Catalog.__init__(self, *args, **kwargs)
 
     @property
     def simulations_list(self):
