@@ -40,6 +40,17 @@ class CatalogBase(CatalogABC, sxs_Catalog):
         return list(self.simulations)
 
     def get(self, sim_name):
+        """Retrieve waveform modes for this simulation
+
+        Args:
+            sim_name (str): Name of simulation in catalog
+
+        Raises:
+            IOError: If `sim_name` not found in the catalog
+
+        Returns:
+            nrcatalogtools.waveform.WaveformModes: Waveform modes
+        """
         if sim_name not in self.simulations_dataframe.index.to_list():
             raise IOError(
                 f"Simulation {sim_name} not found in catalog."
@@ -61,6 +72,17 @@ class CatalogBase(CatalogABC, sxs_Catalog):
         return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
 
     def get_metadata(self, sim_name):
+        """Get Metadata for this simulation
+
+        Args:
+            sim_name (str): Name of simulation in catalog
+
+        Raises:
+            IOError: If `sim_name` is not found in the catalog
+
+        Returns:
+            `sxs.metadata.metadata.Metadata`: Metadata as dictionary
+        """
         sim_dict = self.simulations
         if sim_name not in list(sim_dict.keys()):
             raise IOError(
