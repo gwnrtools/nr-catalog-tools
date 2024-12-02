@@ -261,20 +261,23 @@ class WaveformModes(sxs_WaveformModes):
         self,
         ell,
         em,
-        total_mass,
-        distance=1,  # Megaparsecs
+        total_mass=1.0,
+        distance=1.0,  # Megaparsecs
         delta_t=None,
         to_pycbc=True,
     ):
-        """In individual mode, rescaled appropriately for a compact-object
-        binary with given total mass and distance from GW detectors.
+        """Get individual modes, rescaled appropriately for a compact-object
+        binary with given total mass and distance from a GW detector.
 
         Args:
             ell (int): mode l value
             em (int): mode m value
-            total_mass (float): Total Mass (Solar Masses)
-            distance (float): Distance to Source (Megaparsecs)
-            delta_t (float, optional): Sample rate (in Hz or M). Defaults to None.
+            total_mass (float, optional): Total Mass (Solar Masses).
+                                          Defaults to 1.
+            distance (float, optional): Distance to Source (Megaparsecs).
+                                        Defaults to 1.
+            delta_t (float, optional): Sample rate (in Hz or M).
+                                       Defaults to None.
             to_pycbc (bool, optional) : Return `pycbc.types.TimeSeries` or
                 `sxs.TimeSeries`. Defaults to True.
         Returns:
