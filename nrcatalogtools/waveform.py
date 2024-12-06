@@ -209,6 +209,24 @@ class WaveformModes(sxs_WaveformModes):
         """Return the simulation metadata dictionary"""
         return self.sim_metadata
 
+    @property
+    def label(self):
+        """Return a Latex label that summarizes key simulation details"""
+        md = self.metadata
+        return f"""$q{md['relaxed_mass_ratio_1_over_2']:0.3f}\_\chi_A{
+            md['relaxed_chi1x']:0.3f}\_{md['relaxed_chi1y']:0.3f}\_{
+                md['relaxed_chi1z']:0.3f}\_\_\chi_B{md['relaxed_chi2x']:0.3f}\_{
+                    md['relaxed_chi2y']:0.3f}\_{md['relaxed_chi2z']:0.3f}$"""
+
+    @property
+    def label_nolatex(self):
+        """Return a Latex label that summarizes key simulation details"""
+        md = self.metadata
+        return f"""q{md['relaxed_mass_ratio_1_over_2']:0.3f}-sA{
+            md['relaxed_chi1x']:0.3f}-{md['relaxed_chi1y']:0.3f}-{
+                md['relaxed_chi1z']:0.3f}--sB{md['relaxed_chi2x']:0.3f}-{
+                    md['relaxed_chi2y']:0.3f}-{md['relaxed_chi2z']:0.3f}"""
+
     def get_parameters(self, total_mass=1.0):
         """Return the initial physical parameters for the simulation. Only for
         quasicircular simulations are supported, orbital eccentricity is ignored
