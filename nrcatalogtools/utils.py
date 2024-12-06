@@ -36,6 +36,10 @@ rit_catalog_info["waveform_file_fmts"] = [
     "ExtrapStrain_RIT-BBH-{:04d}-n{:3d}.h5",
     "ExtrapStrain_RIT-eBBH-{:04d}-n{:3d}.h5",
 ]
+rit_catalog_info["psi4_file_fmts"] = [
+    "ExtrapPsi4_RIT-BBH-{:04d}-n{:3d}-id{:d}.tar.gz",
+    "ExtrapPsi4_RIT-eBBH-{:04d}-n{:3d}-ecc.tar.gz",
+]
 rit_catalog_info["max_id_val"] = 6
 
 maya_catalog_info = {
