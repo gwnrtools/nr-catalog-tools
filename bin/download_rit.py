@@ -4,5 +4,4 @@ from nrcatalogtools.rit import RITCatalog
 
 rc = RITCatalog.load(verbosity=5, download=True)
 
-for s in rc.simulations:
-    rc.download_waveform_data(s)
+rc.download_data_for_catalog(which_data="psi4")
