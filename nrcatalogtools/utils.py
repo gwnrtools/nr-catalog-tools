@@ -36,16 +36,19 @@ rit_catalog_info["waveform_file_fmts"] = [
     "ExtrapStrain_RIT-BBH-{:04d}-n{:3d}.h5",
     "ExtrapStrain_RIT-eBBH-{:04d}-n{:3d}.h5",
 ]
+rit_catalog_info["psi4_file_fmts"] = [
+    "ExtrapPsi4_RIT-BBH-{:04d}-n{:3d}-id{:d}.tar.gz",
+    "ExtrapPsi4_RIT-eBBH-{:04d}-n{:3d}-ecc.tar.gz",
+]
 rit_catalog_info["max_id_val"] = 6
 
 maya_catalog_info = {
     "cache_dir": nrcatalog_cache_dir / "MAYA",
-    "url": "https://raw.githubusercontent.com/cevans216/gt-waveform-catalog/master/h5files",
-    "metadata_url": "https://raw.githubusercontent.com/cevans216/gt-waveform-catalog/master/catalog-table.txt",
+    "data_url": "https://cgpstorage.ph.utexas.edu/",
+    "metadata_url": "https://cgpstorage.ph.utexas.edu/MAYAmetadata.pkl",
 }
 maya_catalog_info["data_dir"] = maya_catalog_info["cache_dir"] / "data"
 maya_catalog_info["metadata_dir"] = maya_catalog_info["cache_dir"] / "metadata"
-maya_catalog_info["data_url"] = maya_catalog_info["url"]
 
 
 def url_exists(link, num_retries=100):

@@ -2,14 +2,27 @@ import collections
 import functools
 import os
 import zipfile
-
+from mayawaves import coalescence as maya_coalescence
+from mayawaves.utils import postprocessingutils as maya_postprocessingutils
 import pandas as pd
-
 from nrcatalogtools import catalog, utils
 
 
 class MayaCatalog(catalog.CatalogBase):
     def __init__(self, catalog=None, use_cache=True, verbosity=0, **kwargs) -> None:
+        """This class wraps the catalog infrastructure provided by the
+        groups performing NR simulations using the MAYA code, and provides
+        an interface that is derived from the `sxs.catalog` class.
+
+        Args:
+            catalog (MayaCatalog or CatalogBase, optional): If a catalog object
+                already exist, pass it here to transfer its ownership to the new
+                object. Defaults to None.
+            use_cache (bool, optional): Whether to download all metadata and
+                data on the fly or use cached versionis. Defaults to True.
+            verbosity (int, optional): Verbose output levels [0=quiet,
+                10=most verbose]. Defaults to 0.
+        """
         if catalog is not None:
             super().__init__(catalog)
         else:
@@ -22,7 +35,6 @@ class MayaCatalog(catalog.CatalogBase):
 
         # Other info
         self.num_of_sims = 0
-        self.catalog_url = utils.maya_catalog_info["url"]
         self.cache_dir = utils.maya_catalog_info["cache_dir"]
         self.use_cache = use_cache
 
@@ -40,12 +52,18 @@ class MayaCatalog(catalog.CatalogBase):
         for d in internal_dirs:
             d.mkdir(parents=True, exist_ok=True)
 
+    def clear_cache(self):
+        cache_path = utils.maya_catalog_info["cache_dir"] / "catalog.zip"
+        if cache_path.exists():
+            os.remove(cache_path)
+
     @classmethod
     @functools.lru_cache()
-    def load(cls, download=None, verbosity=0):
-        progress = True
+    def load(cls, download=None, verbosity=0, show_progress=True):
+        # Create cache dir if it does not exit
         utils.maya_catalog_info["cache_dir"].mkdir(parents=True, exist_ok=True)
-        catalog_url = utils.maya_catalog_info["metadata_url"]
+
+        metadata_url = utils.maya_catalog_info["metadata_url"]
         cache_path = utils.maya_catalog_info["cache_dir"] / "catalog.zip"
         if cache_path.exists():
             if_newer = cache_path
@@ -53,36 +71,40 @@ class MayaCatalog(catalog.CatalogBase):
             if_newer = False
 
         if download or download is None:
-            # 1. Download the full txt file (zipped in flight, but auto-decompressed on arrival)
+            # 1. Download the full pickle file (zipped in flight, but auto-decompressed on arrival)
             # 2. Zip to a temporary file (using bzip2, which is better than the in-flight compression)
             # 3. Replace the original catalog.zip with the temporary zip file
-            # 4. Remove the full txt file
+            # 4. Remove the full pickle file
             # 5. Make sure the temporary zip file is gone too
-            temp_txt = cache_path.with_suffix(".temp.txt")
+            temp_pkl = cache_path.with_suffix(".temp.pkl")
             temp_zip = cache_path.with_suffix(".temp.zip")
             try:
                 try:
                     utils.download_file(
-                        catalog_url, temp_txt, progress=progress, if_newer=if_newer
+                        metadata_url,
+                        temp_pkl,
+                        progress=show_progress,
+                        if_newer=if_newer,
                     )
                 except Exception as e:
                     if download:
                         raise RuntimeError(
-                            f"Failed to download '{catalog_url}'; try setting `download=False`"
+                            f"Failed to download '{metadata_url}'; If you don't have a "
+                            "network connection, try setting `download=False`"
                         ) from e
                     download_failed = e  # We'll try the cache
                 else:
                     download_failed = False
-                    if temp_txt.exists():
+                    if temp_pkl.exists():
                         with zipfile.ZipFile(
                             temp_zip, "w", compression=zipfile.ZIP_BZIP2
                         ) as catalog_zip:
-                            catalog_zip.write(temp_txt, arcname="catalog.txt")
+                            catalog_zip.write(temp_pkl, arcname="catalog.pkl")
                         temp_zip.replace(cache_path)
             finally:
                 # The `missing_ok` argument to `unlink` would be much nicer, but was added in python 3.8
                 try:
-                    temp_txt.unlink()
+                    temp_pkl.unlink()
                 except FileNotFoundError:
                     pass
                 try:
@@ -109,26 +131,16 @@ class MayaCatalog(catalog.CatalogBase):
         try:
             with zipfile.ZipFile(cache_path, "r") as catalog_zip:
                 try:
-                    with catalog_zip.open("catalog.txt") as catalog_txt:
+                    with catalog_zip.open("catalog.pkl") as catalog_pickle:
                         try:
-                            catalog_df = (
-                                pd.read_table(
-                                    catalog_txt,
-                                    sep="|",
-                                    header=0,
-                                    index_col=1,
-                                    skipinitialspace=True,
-                                )
-                                .dropna(axis=1, how="all")
-                                .iloc[1:]
-                            )
+                            catalog_df = pd.read_pickle(catalog_pickle)
                         except Exception as e:
                             raise ValueError(
                                 f"Failed to parse 'catalog.json' in '{cache_path}'"
                             ) from e
                 except Exception as e:
                     raise ValueError(
-                        f"Failed to open 'catalog.txt' in '{cache_path}'"
+                        f"Failed to open 'catalog.pkl' in '{cache_path}'"
                     ) from e
         except Exception as e:
             raise ValueError(f"Failed to open '{cache_path}' as a ZIP file") from e
@@ -139,7 +151,7 @@ class MayaCatalog(catalog.CatalogBase):
 
         for col_name in catalog_df.columns:
             column = list(catalog_df[col_name])
-            if "GT_Tag" in col_name:
+            if "name" in col_name:
                 catalog_dict["GT_Tag"] = [s.strip() for s in column]
             else:
                 catalog_dict[col_name.strip()] = [
@@ -236,10 +248,12 @@ class MayaCatalog(catalog.CatalogBase):
                 )
         return file_path.as_posix()
 
-    def waveform_url_from_simname(self, sim_name):
-        return (
-            self.waveform_data_url + "/" + self.waveform_filename_from_simname(sim_name)
-        )
+    def waveform_url_from_simname(self, sim_name, maya_format=False):
+        if maya_format:
+            format = "maya_format"
+        else:
+            format = "lvcnr_format"
+        return f"{self.waveform_data_url}/{format}/{self.waveform_filename_from_simname(sim_name)}"
 
     def metadata_filename_from_simname(self, sim_name):
         return os.path.basename(self.metadata_filepath_from_simname(sim_name))
@@ -247,11 +261,13 @@ class MayaCatalog(catalog.CatalogBase):
     def metadata_filepath_from_simname(self, sim_name, ext="txt"):
         return str(self.metadata_dir / f"{sim_name}.{ext}")
 
-    def download_waveform_data(self, sim_name, use_cache=None):
+    def download_waveform_data(self, sim_name, maya_format=True, use_cache=None):
         if use_cache is None:
             use_cache = self.use_cache
         file_name = self.waveform_filename_from_simname(sim_name)
-        file_path_web = self.waveform_data_url + "/" + file_name
+        file_path_web = self.waveform_url_from_simname(
+            sim_name, maya_format=maya_format
+        )
         local_file_path = self.waveform_data_dir / file_name
         if (
             use_cache
@@ -270,6 +286,28 @@ class MayaCatalog(catalog.CatalogBase):
                 if self._verbosity > 2:
                     print("...downloading {}".format(file_path_web))
                 utils.download_file(file_path_web, local_file_path)
+                if maya_format:
+                    if self._verbosity > 2:
+                        print("...exporting to LVCNR catalog format")
+                    maya_postprocessingutils.export_to_lvcnr_catalog(
+                        maya_coalescence.Coalescence(local_file_path),
+                        self.waveform_data_dir,
+                        name=sim_name + "_LVCNR",
+                        NR_group="UT Austin",
+                        NR_code="MAYA",
+                        bibtex_keys="Jani:2016wkt",
+                        contact_email="email@email.com",
+                        center_of_mass_correction=True,
+                    )
+                    if self._verbosity > 2:
+                        print("...removing maya format file")
+                    os.remove(local_file_path)
+                    if self._verbosity > 2:
+                        print("...renaming LVCNR format file in the cache")
+                    os.rename(
+                        self.waveform_data_dir / (sim_name + "_LVCNR.h5"),
+                        local_file_path,
+                    )
             else:
                 if self._verbosity > 2:
                     print(

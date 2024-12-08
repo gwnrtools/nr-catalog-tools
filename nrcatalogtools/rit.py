@@ -12,7 +12,7 @@ from nrcatalogtools import catalog, utils
 
 
 class RITCatalog(catalog.CatalogBase):
-    def __init__(self, catalog=None, helper=None, verbosity=0, **kwargs) -> None:
+    def __init__(self, catalog=None, helper=None, verbosity=3, **kwargs) -> None:
         if catalog is not None:
             super().__init__(catalog)
         else:
@@ -25,6 +25,10 @@ class RITCatalog(catalog.CatalogBase):
         self._dict["modified"] = {}
         self._dict["records"] = {}
 
+        self.refresh_metadata_df_on_disk = self._helper.refresh_metadata_df_on_disk
+        self.download_data_for_catalog = self._helper.download_data_for_catalog
+        self.write_metadata_df_to_disk = self._helper.write_metadata_df_to_disk
+
     @classmethod
     @functools.lru_cache()
     def load(
@@ -34,6 +38,26 @@ class RITCatalog(catalog.CatalogBase):
         acceptable_scraping_fraction=0.7,
         verbosity=0,
     ):
+        """Load the RIT catalog
+
+        Note that this function is itself cached, meaning that the same
+        dict will be returned on each call in a given python session.  If you want to
+        avoid that behavior, use `RITCatalog.reload`.
+
+        Parameters
+        ----------
+        download : {None, bool}, optional
+            If False, this function will look for the catalog in the cache and
+            raise an error if it is not found.  If True, this function will download
+            the catalog and raise an error if the download fails.  If None (the
+            default), it will try to download the file, warn but fall back to the cache
+            if that fails, and only raise an error if the catalog is not found in the
+            cache.  Note that this ignores the configuration file entirely.
+
+        See Also
+        --------
+        nrcatalogtools.utils.rit_catalog_info : Catalog info, including cache directory
+        """
         helper = RITCatalogHelper(use_cache=True, verbosity=verbosity)
         if verbosity > 2:
             print("..Going to read RIT catalog metadata from cache.")
@@ -67,7 +91,7 @@ class RITCatalog(catalog.CatalogBase):
                     "...catalog. This will take some time.",
                 )
             if download:
-                catalog_df = helper.fetch_metadata_for_catalog(
+                catalog_df = helper.download_metadata_for_catalog(
                     num_sims_to_crawl=num_sims_to_crawl
                 )
             else:
@@ -106,6 +130,20 @@ class RITCatalog(catalog.CatalogBase):
         """Map of all file names to the corresponding file info"""
         file_infos = {}
         for _, row in self.simulations_dataframe.iterrows():
+            psi4_data_location = row["psi4_data_location"]
+            path_str = os.path.basename(psi4_data_location)
+            if os.path.exists(psi4_data_location):
+                file_size = os.path.getsize(psi4_data_location)
+            else:
+                file_size = 0
+            file_info = {
+                "checksum": None,
+                "filename": os.path.basename(psi4_data_location),
+                "filesize": file_size,
+                "download": row["psi4_data_link"],
+            }
+            file_infos[path_str] = file_info
+
             waveform_data_location = row["waveform_data_location"]
             path_str = os.path.basename(waveform_data_location)
             if os.path.exists(waveform_data_location):
@@ -131,6 +169,25 @@ class RITCatalog(catalog.CatalogBase):
 
         return file_infos
 
+    def metadata_filename_from_simname(self, sim_name):
+        return self._helper.metadata_filename_from_simname(sim_name)
+
+    def metadata_filepath_from_simname(self, sim_name):
+        file_path = self.get_metadata(sim_name)["metadata_location"]
+        if not os.path.exists(file_path):
+            raise RuntimeError(
+                f"Could not resolve path for {sim_name}"
+                f"..best calculated path = {file_path}"
+            )
+        return str(file_path)
+
+    def metadata_url_from_simname(self, sim_name):
+        return (
+            self._helper.metadata_url
+            + "/"
+            + self.metadata_filename_from_simname(sim_name)
+        )
+
     def waveform_filename_from_simname(self, sim_name):
         return self._helper.waveform_filename_from_simname(sim_name)
 
@@ -151,27 +208,30 @@ class RITCatalog(catalog.CatalogBase):
             + self.waveform_filename_from_simname(sim_name)
         )
 
-    def metadata_filename_from_simname(self, sim_name):
-        return self._helper.metadata_filename_from_simname(sim_name)
-
-    def metadata_filepath_from_simname(self, sim_name):
-        file_path = self.get_metadata(sim_name)["metadata_location"]
-        if not os.path.exists(file_path):
-            raise RuntimeError(
-                f"Could not resolve path for {sim_name}"
-                f"..best calculated path = {file_path}"
-            )
-        return str(file_path)
-
-    def metadata_url_from_simname(self, sim_name):
-        return (
-            self._helper.metadata_url
-            + "/"
-            + self.metadata_filename_from_simname(sim_name)
-        )
-
     def download_waveform_data(self, sim_name, use_cache=None):
         return self._helper.download_waveform_data(sim_name, use_cache=use_cache)
+
+    def psi4_filename_from_simname(self, sim_name):
+        return self._helper.psi4_filename_from_simname(sim_name)
+
+    def psi4_filepath_from_simname(self, sim_name):
+        file_path = self.get_metadata(sim_name)["psi4_data_location"]
+        if not os.path.exists(file_path):
+            if self._verbosity > 2:
+                print(
+                    f"WARNING: Could not resolve path for {sim_name}"
+                    f"..best calculated path = {file_path}"
+                )
+            return ""
+        return str(file_path)
+
+    def psi4_url_from_simname(self, sim_name):
+        return (
+            self._helper.psi4_data_url + "/" + self.psi4_filename_from_simname(sim_name)
+        )
+
+    def download_psi4_data(self, sim_name, use_cache=None):
+        return self._helper.download_psi4_data(sim_name, use_cache=use_cache)
 
 
 class RITCatalogHelper(object):
@@ -188,18 +248,35 @@ class RITCatalogHelper(object):
         self.metadata_file_fmts = utils.rit_catalog_info["metadata_file_fmts"]
         self.metadata_dir = utils.rit_catalog_info["metadata_dir"]
 
+        self.psi4_data = {}
+        self.psi4_data_url = utils.rit_catalog_info["data_url"]
+        self.psi4_file_fmts = utils.rit_catalog_info["psi4_file_fmts"]
+
         self.waveform_data = {}
         self.waveform_data_url = utils.rit_catalog_info["data_url"]
         self.waveform_file_fmts = utils.rit_catalog_info["waveform_file_fmts"]
+
         self.data_dir = utils.rit_catalog_info["data_dir"]
-        self.waveform_data_dir = utils.rit_catalog_info["data_dir"]
+        self.waveform_data_dir = self.data_dir
+        self.psi4_data_dir = self.data_dir
 
         self.possible_res = utils.rit_catalog_info["possible_resolutions"]
         self.max_id_val = utils.rit_catalog_info["max_id_val"]
 
-        internal_dirs = [self.cache_dir, self.metadata_dir, self.waveform_data_dir]
+        internal_dirs = [
+            self.cache_dir,
+            self.metadata_dir,
+            self.psi4_data_dir,
+            self.waveform_data_dir,
+        ]
         for d in internal_dirs:
             d.mkdir(parents=True, exist_ok=True)
+
+    def metadata_filenames(self, idx, res, id_val):
+        return [
+            self.metadata_file_fmts[0].format(idx, res, id_val),
+            self.metadata_file_fmts[1].format(idx, res),
+        ]
 
     def sim_info_from_metadata_filename(self, file_name):
         """
@@ -251,6 +328,7 @@ class RITCatalogHelper(object):
 
     def metadata_filename_from_cache(self, idx):
         possible_sim_tags = self.simtags(idx)
+        file_name = ""
         for sim_tag in possible_sim_tags:
             mf = self.metadata_dir / sim_tag
             poss_files = glob.glob(str(mf) + "*")
@@ -260,6 +338,27 @@ class RITCatalogHelper(object):
                 continue
             file_name = poss_files[0]
         return file_name
+
+    def psi4_filename_from_simname(self, sim_name):
+        """
+        We assume the sim names are either of the format:
+        (1) RIT:eBBH:1109-n100-ecc
+        (2) RIT:BBH:1109-n100-id1
+        """
+        txt = sim_name.split(":")[-1]
+        idx = int(txt[:4])
+        res = int(txt.split("-")[1][1:])
+        if "eBBH" not in sim_name:
+            # If this works, its a quasicircular sim
+            id_val = int(txt[-1])
+            return self.psi4_file_fmts[0].format(idx, res, id_val)
+        else:
+            return self.psi4_file_fmts[1].format(idx, res)
+
+    def psi4_filename_from_cache(self, idx):
+        return self.psi4_filename_from_simname(
+            self.simname_from_metadata_filename(self.metadata_filename_from_cache(idx))
+        )
 
     def waveform_filename_from_simname(self, sim_name):
         """
@@ -290,15 +389,9 @@ class RITCatalogHelper(object):
         )
 
     def waveform_filename_from_cache(self, idx):
-        mf = self.metadata_filename_from_cache(idx)
-        sim_name = self.simname_from_metadata_filename(mf)
-        return self.waveform_filename_from_simname(sim_name)
-
-    def metadata_filenames(self, idx, res, id_val):
-        return [
-            self.metadata_file_fmts[0].format(idx, res, id_val),
-            self.metadata_file_fmts[1].format(idx, res),
-        ]
+        return self.waveform_filename_from_simname(
+            self.simname_from_metadata_filename(self.metadata_filename_from_cache(idx))
+        )
 
     def simname_from_cache(self, idx):
         possible_sim_tags = self.simtags(idx)
@@ -327,15 +420,94 @@ class RITCatalogHelper(object):
         ]
 
     def parse_metadata_txt(self, raw):
-        next = [s for s in raw if len(s) > 0 and s[0].isalpha()]
+        """Parses raw RIT metadata
+
+        Args:
+            raw (list(str)): List of lines read in from RIT metadata
+
+        Returns:
+           list(str): Original metadata with empty lines removed
+           dict     : Parsed metadata as a dictionary
+        """
+        derived_fields = [
+            "freq-start-22",
+            "freq-start-22-Hz-1Msun",
+            "number-of-cycles-22",
+            "number-of-orbits",
+            "peak-omega-22",
+            "peak-ampl-22",
+            "Msun",
+            "eccentricity",
+        ]
+        nxt = [s for s in raw if len(s) > 0 and s[0].isalpha()]
         opts = {}
-        for s in next:
+        for s in nxt:
             kv = s.split("=")
             try:
-                opts[kv[0].strip()] = float(kv[1].strip())
+                opts[kv[0].strip()] = float("=".join(kv[1:]).strip())
             except Exception:
-                opts[kv[0].strip()] = str(kv[1].strip())
-        return next, opts
+                # If any of the following fields are empty in metadata, they are
+                # set to 0 here
+                reasonable_value_set = False
+                for xy in derived_fields:
+                    if (kv[0].strip() == xy) and (xy not in opts):
+                        opts[xy] = 0.0
+                        reasonable_value_set = True
+                        break
+                if not reasonable_value_set:
+                    opts[kv[0].strip()] = str("=".join(kv[1:]).strip())
+
+        # Note: often when some spin components are 0, they are not
+        # even included in the metadata file. We set them to 0 here.
+        if "relaxed-chi1z" in opts:
+            for xy in ["relaxed-chi1x", "relaxed-chi1y"]:
+                if xy not in opts and (
+                    opts["system-type"].lower() == "aligned"
+                    or opts["system-type"].lower() == "nonspinning"
+                ):
+                    opts[xy] = 0.0
+        if "relaxed-chi2z" in opts:
+            for xy in ["relaxed-chi2x", "relaxed-chi2y"]:
+                if xy not in opts and (
+                    opts["system-type"].lower() == "aligned"
+                    or opts["system-type"].lower() == "nonspinning"
+                ):
+                    opts[xy] = 0.0
+
+        if "initial-bh-chi1z" in opts:
+            for xy in ["initial-bh-chi1x", "initial-bh-chi1y"]:
+                if xy not in opts and (
+                    opts["system-type"].lower() == "aligned"
+                    or opts["system-type"].lower() == "nonspinning"
+                ):
+                    opts[xy] = 0.0
+        if "initial-bh-chi2z" in opts:
+            for xy in ["initial-bh-chi2x", "initial-bh-chi2y"]:
+                if xy not in opts and (
+                    opts["system-type"].lower() == "aligned"
+                    or opts["system-type"].lower() == "nonspinning"
+                ):
+                    opts[xy] = 0.0
+
+        # derived fields might not be populated at all. In that case, they are
+        # set to 0 here.
+        if "number-of-cycles-22" in opts:
+            if "number-of-orbits" not in opts:
+                opts["number-of-orbits"] = opts["number-of-cycles-22"] / 2.0
+            if opts["number-of-orbits"] == 0.0:
+                opts["number-of-orbits"] = opts["number-of-cycles-22"] / 2.0
+
+        if "number-of-orbits" in opts:
+            if "number-of-cycles-22" not in opts:
+                opts["number-of-cycles-22"] = opts["number-of-orbits"] * 2.0
+            if opts["number-of-cycles-22"] == 0.0:
+                opts["number-of-cycles-22"] = opts["number-of-orbits"] * 2.0
+
+        for xy in derived_fields:
+            if xy not in opts:
+                opts[xy] = 0.0
+
+        return nxt, opts
 
     def metadata_from_link(self, link, save_to=None):
         if save_to is not None:
@@ -368,15 +540,27 @@ class RITCatalogHelper(object):
             file_path = poss_files[0]  # glob gives full paths
             file_name = os.path.basename(file_path)
             file_path_web = self.metadata_url + "/" + file_name
+            psi4_file_name = self.psi4_filename_from_cache(idx)
+            psi4_file_path_web = self.psi4_data_url + "/" + psi4_file_name
             wf_file_name = self.waveform_filename_from_cache(idx)
             wf_file_path_web = self.waveform_data_url + "/" + wf_file_name
             _, metadata_dict = self.metadata_from_file(file_path)
+
             if len(metadata_dict) > 0:
                 metadata_dict["simulation_name"] = [
                     self.simname_from_metadata_filename(file_name)
                 ]
                 metadata_dict["metadata_link"] = [file_path_web]
                 metadata_dict["metadata_location"] = [file_path]
+                metadata_dict["psi4_data_link"] = [psi4_file_path_web]
+                metadata_dict["psi4_data_location"] = [
+                    str(
+                        self.psi4_data_dir
+                        / self.psi4_filename_from_simname(
+                            metadata_dict["simulation_name"][0]
+                        )
+                    )
+                ]
                 metadata_dict["waveform_data_link"] = [wf_file_path_web]
                 metadata_dict["waveform_data_location"] = [
                     str(
@@ -389,7 +573,7 @@ class RITCatalogHelper(object):
                 return pd.DataFrame.from_dict(metadata_dict)
         return pd.DataFrame({})
 
-    def fetch_metadata(self, idx, res, id_val=-1):
+    def download_metadata(self, idx, res, id_val=-1):
         possible_file_names = [
             self.metadata_file_fmts[0].format(idx, res, id_val),
             self.metadata_file_fmts[1].format(idx, res),
@@ -401,6 +585,14 @@ class RITCatalogHelper(object):
                 print("...beginning search for {}".format(file_name))
             file_path_web = self.metadata_url + "/" + file_name
             mf = self.metadata_dir / file_name
+            psi4_file_name = self.psi4_filename_from_simname(
+                self.simname_from_metadata_filename(file_name)
+            )
+            psi4_file_path_web = self.psi4_data_url + "/" + psi4_file_name
+            wf_file_name = self.waveform_filename_from_simname(
+                self.simname_from_metadata_filename(file_name)
+            )
+            wf_file_path_web = self.waveform_data_url + "/" + wf_file_name
 
             if self.use_cache:
                 if os.path.exists(mf) and os.path.getsize(mf) > 0:
@@ -426,6 +618,16 @@ class RITCatalogHelper(object):
                 ]
                 metadata_dict["metadata_link"] = [file_path_web]
                 metadata_dict["metadata_location"] = [mf]
+                metadata_dict["psi4_data_link"] = [psi4_file_path_web]
+                metadata_dict["psi4_data_location"] = [
+                    str(
+                        self.psi4_data_dir
+                        / self.psi4_filename_from_simname(
+                            metadata_dict["simulation_name"][0]
+                        )
+                    )
+                ]
+                metadata_dict["waveform_data_link"] = [wf_file_path_web]
                 metadata_dict["waveform_data_location"] = [
                     str(
                         self.waveform_data_dir
@@ -436,10 +638,9 @@ class RITCatalogHelper(object):
                 ]
                 break
 
-        sim = pd.DataFrame.from_dict(metadata_dict)
-        return sim
+        return pd.DataFrame.from_dict(metadata_dict)
 
-    def fetch_metadata_for_catalog(
+    def download_metadata_for_catalog(
         self, num_sims_to_crawl=2000, possible_res=[], max_id_in_name=-1
     ):
         """
@@ -517,10 +718,10 @@ class RITCatalogHelper(object):
 
             # If not already present, fetch metadata the hard way
             if not found:
-                for res in possible_res:
+                for res in possible_res[::-1]:
                     for id_val in range(max_id_in_name):
                         # If not already present, fetch metadata
-                        sim_data = self.fetch_metadata(idx, res, id_val)
+                        sim_data = self.download_metadata(idx, res, id_val)
                         if len(sim_data) > 0:
                             found = True
                             if self.verbosity > 3:
@@ -585,7 +786,44 @@ class RITCatalogHelper(object):
             self.metadata = pd.DataFrame([])
         return self.metadata
 
-    def download_waveform_data(self, sim_name, use_cache=None):
+    def download_psi4_data(self, sim_name, use_cache=True):
+        if use_cache is None:
+            use_cache = self.use_cache
+        file_name = self.psi4_filename_from_simname(sim_name)
+        file_path_web = self.psi4_data_url + "/" + file_name
+        local_file_path = self.psi4_data_dir / file_name
+        if (
+            use_cache
+            and os.path.exists(local_file_path)
+            and os.path.getsize(local_file_path) > 0
+        ):
+            if self.verbosity > 2:
+                print("...can read from cache: {}".format(str(local_file_path)))
+            return True
+        else:
+            if self.verbosity > 2:
+                print("...writing to cache: {}".format(str(local_file_path)))
+            if utils.url_exists(file_path_web):
+                if self.verbosity > 2:
+                    print("...downloading {}".format(file_path_web))
+                subprocess.call(
+                    [
+                        "wget",
+                        "--no-check-certificate",
+                        str(file_path_web),
+                        "-O",
+                        str(local_file_path),
+                    ]
+                )
+                return True
+            else:
+                if self.verbosity > 2:
+                    print(
+                        "... ... but couldnt find link: {}".format(str(file_path_web))
+                    )
+                return False
+
+    def download_waveform_data(self, sim_name, use_cache=True):
         """
         Possible file formats:
         (1) https://ccrgpages.rit.edu/~RITCatalog/Data/ExtrapStrain_RIT-BBH-0193-n100.h5
@@ -603,17 +841,13 @@ class RITCatalogHelper(object):
         ):
             if self.verbosity > 2:
                 print("...can read from cache: {}".format(str(local_file_path)))
-            pass
-        elif os.path.exists(local_file_path) and os.path.getsize(local_file_path) > 0:
-            pass
+            return True
         else:
             if self.verbosity > 2:
                 print("...writing to cache: {}".format(str(local_file_path)))
             if utils.url_exists(file_path_web):
                 if self.verbosity > 2:
                     print("...downloading {}".format(file_path_web))
-                # wget.download(str(file_path_web), str(local_file_path))
-
                 subprocess.call(
                     [
                         "wget",
@@ -623,17 +857,24 @@ class RITCatalogHelper(object):
                         str(local_file_path),
                     ]
                 )
+                return True
             else:
                 if self.verbosity > 2:
                     print(
                         "... ... but couldnt find link: {}".format(str(file_path_web))
                     )
+                return False
 
     def fetch_waveform_data_from_cache(self, idx):
         raise NotImplementedError()
 
-    def download_waveform_data_for_catalog(
-        self, num_sims_to_crawl=100, possible_res=[], max_id_in_name=-1, use_cache=None
+    def download_data_for_catalog(
+        self,
+        num_sims_to_crawl=2000,
+        which_data="waveform",
+        possible_res=[],
+        max_id_in_name=-1,
+        use_cache=True,
     ):
         """
         We crawl the webdirectory where RIT waveform data usually lives,
@@ -663,12 +904,22 @@ class RITCatalogHelper(object):
             metadata = self.read_metadata_df_from_disk()
         sims = {}
 
+        if which_data == "waveform":
+            filename_from_simname = self.waveform_filename_from_simname
+            download_data = self.download_waveform_data
+            data_dir = self.waveform_data_dir
+        elif which_data == "psi4":
+            filename_from_simname = self.psi4_filename_from_simname
+            download_data = self.download_psi4_data
+            data_dir = self.psi4_data_dir
+
         for idx, sim_name in tqdm(enumerate(metadata["simulation_name"])):
             if idx + 1 > num_sims_to_crawl:
                 break
-            file_name = self.waveform_filename_from_simname(sim_name)
-            local_file_path = self.waveform_data_dir / file_name
-            self.download_waveform_data(sim_name, use_cache=use_cache)
-            sims[sim_name] = local_file_path
+            file_name = filename_from_simname(sim_name)
+            local_file_path = data_dir / file_name
+            rv = download_data(sim_name, use_cache=use_cache)
+            if rv:
+                sims[sim_name] = local_file_path
 
         return sims
