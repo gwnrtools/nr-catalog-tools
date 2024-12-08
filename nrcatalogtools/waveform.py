@@ -209,6 +209,28 @@ class WaveformModes(sxs_WaveformModes):
         """Return the simulation metadata dictionary"""
         return self.sim_metadata
 
+    @property
+    def label(self):
+        """Return a Latex label that summarizes key simulation details"""
+        md = self.metadata
+
+        return (
+            f"$q{md['relaxed_mass_ratio_1_over_2']:0.3f}\\_"
+            f"\\chi_A{md['relaxed_chi1x']:0.3f}\\_{md['relaxed_chi1y']:0.3f}\\_"
+            f"{md['relaxed_chi1z']:0.3f}\\_\\_"
+            f"\\chi_B{md['relaxed_chi2x']:0.3f}\\_{md['relaxed_chi2y']:0.3f}\\_"
+            f"{md['relaxed_chi2z']:0.3f}$"
+        )
+
+    @property
+    def label_nolatex(self):
+        """Return a Latex label that summarizes key simulation details"""
+        md = self.metadata
+        return f"""q{md['relaxed_mass_ratio_1_over_2']:0.3f}-sA{
+            md['relaxed_chi1x']:0.3f}-{md['relaxed_chi1y']:0.3f}-{
+                md['relaxed_chi1z']:0.3f}--sB{md['relaxed_chi2x']:0.3f}-{
+                    md['relaxed_chi2y']:0.3f}-{md['relaxed_chi2z']:0.3f}"""
+
     def get_parameters(self, total_mass=1.0):
         """Return the initial physical parameters for the simulation. Only for
         quasicircular simulations are supported, orbital eccentricity is ignored
@@ -261,20 +283,23 @@ class WaveformModes(sxs_WaveformModes):
         self,
         ell,
         em,
-        total_mass,
-        distance=1,  # Megaparsecs
+        total_mass=1.0,
+        distance=1.0,  # Megaparsecs
         delta_t=None,
         to_pycbc=True,
     ):
-        """In individual mode, rescaled appropriately for a compact-object
-        binary with given total mass and distance from GW detectors.
+        """Get individual modes, rescaled appropriately for a compact-object
+        binary with given total mass and distance from a GW detector.
 
         Args:
             ell (int): mode l value
             em (int): mode m value
-            total_mass (float): Total Mass (Solar Masses)
-            distance (float): Distance to Source (Megaparsecs)
-            delta_t (float, optional): Sample rate (in Hz or M). Defaults to None.
+            total_mass (float, optional): Total Mass (Solar Masses).
+                                          Defaults to 1.
+            distance (float, optional): Distance to Source (Megaparsecs).
+                                        Defaults to 1.
+            delta_t (float, optional): Sample rate (in Hz or M).
+                                       Defaults to None.
             to_pycbc (bool, optional) : Return `pycbc.types.TimeSeries` or
                 `sxs.TimeSeries`. Defaults to True.
         Returns:
