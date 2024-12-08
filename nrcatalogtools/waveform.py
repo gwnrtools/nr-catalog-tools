@@ -213,10 +213,14 @@ class WaveformModes(sxs_WaveformModes):
     def label(self):
         """Return a Latex label that summarizes key simulation details"""
         md = self.metadata
-        return f"""$q{md['relaxed_mass_ratio_1_over_2']:0.3f}\_\chi_A{
-            md['relaxed_chi1x']:0.3f}\_{md['relaxed_chi1y']:0.3f}\_{
-                md['relaxed_chi1z']:0.3f}\_\_\chi_B{md['relaxed_chi2x']:0.3f}\_{
-                    md['relaxed_chi2y']:0.3f}\_{md['relaxed_chi2z']:0.3f}$"""
+
+        return (
+            f"$q{md['relaxed_mass_ratio_1_over_2']:0.3f}\\_"
+            f"\\chi_A{md['relaxed_chi1x']:0.3f}\\_{md['relaxed_chi1y']:0.3f}\\_"
+            f"{md['relaxed_chi1z']:0.3f}\\_\\_"
+            f"\\chi_B{md['relaxed_chi2x']:0.3f}\\_{md['relaxed_chi2y']:0.3f}\\_"
+            f"{md['relaxed_chi2z']:0.3f}$"
+        )
 
     @property
     def label_nolatex(self):

@@ -89,7 +89,8 @@ class MayaCatalog(catalog.CatalogBase):
                 except Exception as e:
                     if download:
                         raise RuntimeError(
-                            f"Failed to download '{metadata_url}'; If you don't have a network connection, try setting `download=False`"
+                            f"Failed to download '{metadata_url}'; If you don't have a "
+                            "network connection, try setting `download=False`"
                         ) from e
                     download_failed = e  # We'll try the cache
                 else:
