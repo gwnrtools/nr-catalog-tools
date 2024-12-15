@@ -24,6 +24,8 @@ from sxs.waveforms.format_handlers.nrar import (
     translate_data_type_to_sxs_string,
 )
 
+ELL_MIN, ELL_MAX = 2, 10
+
 
 class WaveformModes(sxs_WaveformModes):
     def __new__(
@@ -111,16 +113,13 @@ class WaveformModes(sxs_WaveformModes):
 
         # Set the file path attribute
         cls._filepath = h5_file.filename
-        # If _metadata is not already
-        # a set attribute, then set
-        # it here.
 
+        # If _metadata is not already a set attribute, then set it here.
         try:
             cls._metadata
         except AttributeError:
             cls._metadata = metadata
 
-        ELL_MIN, ELL_MAX = 2, 10
         ell_min, ell_max = 99, -1
         LM = []
         t_min, t_max, dt = -1e99, 1e99, 1
@@ -163,6 +162,138 @@ class WaveformModes(sxs_WaveformModes):
             amp_interp = InterpolatedUnivariateSpline(amp_time, amp)
             phase_interp = InterpolatedUnivariateSpline(phase_time, phase)
             data[:, idx] = amp_interp(times) * np.exp(1j * phase_interp(times))
+
+        w_attributes = {}
+        w_attributes["metadata"] = metadata
+        w_attributes["history"] = ""
+        w_attributes["frame"] = quaternionic.array([[1.0, 0.0, 0.0, 0.0]])
+        w_attributes["frame_type"] = "inertial"
+        w_attributes["data_type"] = h
+        w_attributes["spin_weight"] = translate_data_type_to_spin_weight(
+            w_attributes["data_type"]
+        )
+        w_attributes["data_type"] = translate_data_type_to_sxs_string(
+            w_attributes["data_type"]
+        )
+        w_attributes["r_is_scaled_out"] = True
+        w_attributes["m_is_scaled_out"] = True
+        # w_attributes["ells"] = ell_min, ell_max
+
+        return cls(
+            data,
+            time=times,
+            time_axis=0,
+            modes_axis=1,
+            ell_min=ell_min,
+            ell_max=ell_max,
+            verbosity=verbosity,
+            **w_attributes,
+        )
+
+    @classmethod
+    def load_from_targz(cls, file_path, metadata={}, verbosity=0):
+        """Method to load SWSH waveform modes from RIT or MAYA catalogs
+        from HDF5 file.
+
+        Args:
+            file_path_or_open_file (str or open file): Either the path to an
+                HDF5 file containing waveform data, or an open file pointer to
+                the same.
+            metadata (dict): Dictionary containing metadata (Note that keys
+                will be NR group specific)
+            verbosity (int, optional): Verbosity level with which to
+                print messages during execution. Defaults to 0.
+
+        Raises:
+            RuntimeError: If inputs are invalid, or if no mode found in
+                input file.
+
+        Returns:
+            WaveformModes: Object containing time-series of SWSH modes.
+        """
+        if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+            raise RuntimeError(f"Could not use or open {file_path}")
+
+        import quaternionic
+        import re
+        import tarfile
+
+        def get_tag(name):
+            return os.path.splitext(os.path.splitext(os.path.basename(name))[0])[0]
+
+        def get_el_em_from_filename(filename: str):
+            substr = re.search(pattern=r"l\d_m\d", string=filename)
+            if substr is None:
+                substr = re.search(pattern=r"l\d_m-\d", string=filename)
+            elem = substr[0].split("_")
+            return (int(elem[0].strip("l")), int(elem[1].strip("m")))
+
+        # Set the file path attribute
+        cls._filepath = file_path
+
+        # If _metadata is not already a set attribute, then set it here.
+        if not hasattr(cls, "_metadata"):
+            cls._metadata = metadata
+
+        ell_min, ell_max = 99, -1
+        t_min, t_max, dt = -1e99, 1e99, 1
+
+        file_tag = get_tag(file_path)
+        mode_data = {}
+        reference_mode_num_for_length = ()
+        possible_ascii_extensions = ["asc", "dat", "txt"]
+
+        with tarfile.open(file_path, "r:gz") as tar:
+            for dat_file in tar.getmembers():
+                dat_file_name = dat_file.name
+                if file_tag not in dat_file_name or np.all(
+                    [
+                        f".{ext}" not in dat_file_name
+                        for ext in possible_ascii_extensions
+                    ]
+                ):
+                    continue
+                ell, em = get_el_em_from_filename(dat_file_name)
+                with tar.extractfile(dat_file_name) as f:
+                    reference_mode_num_for_length = (ell, em)
+                    mode_data[(ell, em)] = np.loadtxt(f)
+                    # mode_data[get_tag(dat_file_name)] = np.loadtxt(f)
+                # get the minimum time and maximum time stamps for all modes
+                t_min = max(t_min, mode_data[(ell, em)][0, 0])
+                t_max = min(t_max, mode_data[(ell, em)][-1, 0])
+                dt = min(
+                    dt,
+                    stat_mode(np.diff(mode_data[(ell, em)][:, 0]), keepdims=True)[0][0],
+                )
+                ell_min = min(ell_min, ell)
+                ell_max = max(ell_max, ell)
+
+        # We populate LM here because it has to be ordered, as the WaveformModes
+        # class expects an ordered data set.
+        LM = []
+        for ell in range(ELL_MIN, ELL_MAX + 1):
+            for em in range(-ell, ell + 1):
+                if (ell, em) in mode_data:
+                    LM.append([ell, em])
+                else:
+                    reference_mode = mode_data[reference_mode_num_for_length]
+                    mode_data[(ell, em)] = np.zeros(np.shape(reference_mode))
+                    LM.append([ell, em])
+
+        if len(LM) == 0:
+            raise RuntimeError(
+                "We did not find even one mode in the file. Perhaps the "
+                "format `amp_l?_m?` and `phase_l?_m?` is not the "
+                "nomenclature of datagroups in the input file?"
+            )
+
+        times = np.arange(t_min, t_max + 0.5 * dt, dt)
+        data = np.empty((len(times), len(LM)), dtype=complex)
+        for idx, (ell, em) in enumerate(LM):
+            mode_time, mode_real, mode_imag = mode_data[(ell, em)]
+            mode_real_interp = InterpolatedUnivariateSpline(mode_time, mode_real)
+            mode_imag_interp = InterpolatedUnivariateSpline(mode_time, mode_imag)
+            data[:, idx] = mode_real_interp(times) + 1j * mode_imag_interp(times)
 
         w_attributes = {}
         w_attributes["metadata"] = metadata
