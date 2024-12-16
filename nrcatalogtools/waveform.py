@@ -214,6 +214,7 @@ class WaveformModes(sxs_WaveformModes):
             raise RuntimeError(f"Could not use or open {file_path}")
 
         import quaternionic
+        import re
         import tarfile
 
         def get_tag(name):
@@ -240,6 +241,7 @@ class WaveformModes(sxs_WaveformModes):
 
         file_tag = get_tag(file_path)
         mode_data = {}
+        reference_mode_for_length = ()
         with tarfile.open(file_path, "r:gz") as tar:
             for dat_file in tar.getmembers():
                 dat_file_name = dat_file.name
@@ -247,6 +249,7 @@ class WaveformModes(sxs_WaveformModes):
                     continue
                 ell, em = get_el_em_from_filename(dat_file_name)
                 with tar.extractfile(dat_file_name) as f:
+                    reference_mode_num_for_length = (ell, em)
                     mode_data[(ell, em)] = np.loadtxt(f)
                     # mode_data[get_tag(dat_file_name)] = np.loadtxt(f)
                 # get the minimum time and maximum time stamps for all modes
@@ -261,10 +264,16 @@ class WaveformModes(sxs_WaveformModes):
                 ell_min = min(ell_min, ell)
                 ell_max = max(ell_max, ell)
 
+        # We populate LM here because it has to be ordered, as the WaveformModes
+        # class expects an ordered data set.
         LM = []
         for ell in range(ELL_MIN, ELL_MAX + 1):
             for em in range(-ell, ell + 1):
                 if (ell, em) in mode_data:
+                    LM.append([ell, em])
+                else:
+                    reference_mode = mode_data[reference_mode_num_for_length]
+                    mode_data[(ell, em)] = np.zeros(np.shape(reference_mode))
                     LM.append([ell, em])
 
         if len(LM) == 0:
@@ -280,7 +289,7 @@ class WaveformModes(sxs_WaveformModes):
             mode_time, mode_real, mode_imag = mode_data[(ell, em)]
             mode_real_interp = InterpolatedUnivariateSpline(mode_time, mode_real)
             mode_imag_interp = InterpolatedUnivariateSpline(mode_time, mode_imag)
-            data[:, idx] = mode_real_interp(times) * 1j * mode_imag_interp(times)
+            data[:, idx] = mode_real_interp(times) + 1j * mode_imag_interp(times)
 
         w_attributes = {}
         w_attributes["metadata"] = metadata
