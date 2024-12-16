@@ -108,7 +108,7 @@ class CatalogBase(CatalogABC, sxs_Catalog):
                 self.download_psi4_data(sim_name)
             try:
                 return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
-            except OSError:
+            except:
                 return waveform.WaveformModes.load_from_targz(
                     filepath, metadata=metadata
                 )

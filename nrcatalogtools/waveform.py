@@ -26,6 +26,7 @@ from sxs.waveforms.format_handlers.nrar import (
 
 ELL_MIN, ELL_MAX = 2, 10
 
+
 class WaveformModes(sxs_WaveformModes):
     def __new__(
         cls,
@@ -231,9 +232,7 @@ class WaveformModes(sxs_WaveformModes):
         cls._filepath = file_path
 
         # If _metadata is not already a set attribute, then set it here.
-        try:
-            cls._metadata
-        except AttributeError:
+        if not hasattr(cls, "_metadata"):
             cls._metadata = metadata
 
         ell_min, ell_max = 99, -1
@@ -241,11 +240,18 @@ class WaveformModes(sxs_WaveformModes):
 
         file_tag = get_tag(file_path)
         mode_data = {}
-        reference_mode_for_length = ()
+        reference_mode_num_for_length = ()
+        possible_ascii_extensions = ["asc", "dat", "txt"]
+
         with tarfile.open(file_path, "r:gz") as tar:
             for dat_file in tar.getmembers():
                 dat_file_name = dat_file.name
-                if file_tag not in dat_file_name or ".asc" not in dat_file_name:
+                if file_tag not in dat_file_name or np.all(
+                    [
+                        f".{ext}" not in dat_file_name
+                        for ext in possible_ascii_extensions
+                    ]
+                ):
                     continue
                 ell, em = get_el_em_from_filename(dat_file_name)
                 with tar.extractfile(dat_file_name) as f:
@@ -257,9 +263,7 @@ class WaveformModes(sxs_WaveformModes):
                 t_max = min(t_max, mode_data[(ell, em)][-1, 0])
                 dt = min(
                     dt,
-                    stat_mode(np.diff(mode_data[(ell, em)][:, 0]), keepdims=True)[0][
-                        0
-                    ]
+                    stat_mode(np.diff(mode_data[(ell, em)][:, 0]), keepdims=True)[0][0],
                 )
                 ell_min = min(ell_min, ell)
                 ell_max = max(ell_max, ell)
