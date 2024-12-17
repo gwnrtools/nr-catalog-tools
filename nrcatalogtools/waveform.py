@@ -131,7 +131,7 @@ class WaveformModes(sxs_WaveformModes):
                 pfmt = f"phase_l{ell}_m{em}"
                 if afmt not in h5_file or pfmt not in h5_file:
                     continue
-                
+
                 try:
                     amp_time = h5_file[afmt]["X"][:]
                     amp = h5_file[afmt]["Y"][:]
@@ -144,7 +144,7 @@ class WaveformModes(sxs_WaveformModes):
                         print(
                             f"Skipping mode l={ell}, m={em} for {file_path_or_open_file} "
                             "since columns 'X' and 'Y' not found"
-                            )
+                        )
                     continue
                 mode_data[(ell, em)] = [amp_time, amp, phase_time, phase]
                 # get the minimum time and maximum time stamps for all modes
