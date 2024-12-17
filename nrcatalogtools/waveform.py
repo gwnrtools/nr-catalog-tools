@@ -244,19 +244,40 @@ class WaveformModes(sxs_WaveformModes):
         possible_ascii_extensions = ["asc", "dat", "txt"]
 
         with tarfile.open(file_path, "r:gz") as tar:
+            if verbosity > 4:
+                print(f"Opening tarfile: {file_path}")
             for dat_file in tar.getmembers():
                 dat_file_name = dat_file.name
+                if verbosity > 4:
+                    print(f"dat_file_name is: {dat_file_name}")
                 if file_tag not in dat_file_name or np.all(
                     [
                         f".{ext}" not in dat_file_name
                         for ext in possible_ascii_extensions
                     ]
                 ):
+                    if verbosity > 5:
+                        print(
+                            f"{file_tag} not in {dat_file_name} is {file_tag not in dat_file_name}"
+                        )
+                        print(
+                            "the other flag is: ",
+                            np.all(
+                                [
+                                    f".{ext}" not in dat_file_name
+                                    for ext in possible_ascii_extensions
+                                ]
+                            ),
+                        )
                     continue
                 ell, em = get_el_em_from_filename(dat_file_name)
                 with tar.extractfile(dat_file_name) as f:
                     reference_mode_num_for_length = (ell, em)
                     mode_data[(ell, em)] = np.loadtxt(f)
+                    # Convert to row-major form
+                    nrows, ncols = np.shape(mode_data[(ell, em)])
+                    if nrows < ncols:
+                        mode_data[(ell, em)] = mode_data[(ell, em)].T
                     # mode_data[get_tag(dat_file_name)] = np.loadtxt(f)
                 # get the minimum time and maximum time stamps for all modes
                 t_min = max(t_min, mode_data[(ell, em)][0, 0])
@@ -278,6 +299,7 @@ class WaveformModes(sxs_WaveformModes):
                 else:
                     reference_mode = mode_data[reference_mode_num_for_length]
                     mode_data[(ell, em)] = np.zeros(np.shape(reference_mode))
+                    mode_data[(ell, em)][:, 0] = reference_mode[:, 0]  # Time axis
                     LM.append([ell, em])
 
         if len(LM) == 0:
@@ -290,7 +312,13 @@ class WaveformModes(sxs_WaveformModes):
         times = np.arange(t_min, t_max + 0.5 * dt, dt)
         data = np.empty((len(times), len(LM)), dtype=complex)
         for idx, (ell, em) in enumerate(LM):
-            mode_time, mode_real, mode_imag = mode_data[(ell, em)]
+            mode_time, mode_real, mode_imag = (
+                mode_data[(ell, em)][:, 0],
+                mode_data[(ell, em)][:, 1],
+                mode_data[(ell, em)][:, 2],
+            )
+            if verbosity > 5:
+                print(f"Interpolating mode {ell}, {em}. Data length: {len(mode_time)}")
             mode_real_interp = InterpolatedUnivariateSpline(mode_time, mode_real)
             mode_imag_interp = InterpolatedUnivariateSpline(mode_time, mode_imag)
             data[:, idx] = mode_real_interp(times) + 1j * mode_imag_interp(times)

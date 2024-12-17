@@ -233,6 +233,15 @@ class MayaCatalog(catalog.CatalogBase):
 
         return file_infos
 
+    def metadata_filename_from_simname(self, sim_name):
+        return os.path.basename(self.metadata_filepath_from_simname(sim_name))
+
+    def metadata_filepath_from_simname(self, sim_name, ext="txt"):
+        return str(self.metadata_dir / f"{sim_name}.{ext}")
+
+    def metadata_url_from_simname(self, sim_name):
+        return
+
     def waveform_filename_from_simname(self, sim_name):
         return sim_name + ".h5"
 
@@ -254,12 +263,6 @@ class MayaCatalog(catalog.CatalogBase):
         else:
             format = "lvcnr_format"
         return f"{self.waveform_data_url}/{format}/{self.waveform_filename_from_simname(sim_name)}"
-
-    def metadata_filename_from_simname(self, sim_name):
-        return os.path.basename(self.metadata_filepath_from_simname(sim_name))
-
-    def metadata_filepath_from_simname(self, sim_name, ext="txt"):
-        return str(self.metadata_dir / f"{sim_name}.{ext}")
 
     def download_waveform_data(self, sim_name, maya_format=True, use_cache=None):
         if use_cache is None:
@@ -313,3 +316,15 @@ class MayaCatalog(catalog.CatalogBase):
                     print(
                         "... ... but couldnt find link: {}".format(str(file_path_web))
                     )
+
+    def psi4_filename_from_simname(self, sim_name):
+        return
+
+    def psi4_filepath_from_simname(self, sim_name):
+        return
+
+    def psi4_url_from_simname(self, sim_name):
+        return
+
+    def download_psi4_data(self, sim_name):
+        return
