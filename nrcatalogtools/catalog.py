@@ -39,7 +39,7 @@ class CatalogBase(CatalogABC, sxs_Catalog):
     def simulations_list(self):
         return list(self.simulations)
 
-    def get(self, sim_name):
+    def get(self, sim_name, **kwargs):
         """Retrieve waveform modes for this simulation
 
         Args:
@@ -63,9 +63,9 @@ class CatalogBase(CatalogABC, sxs_Catalog):
                     f"..As data does not exist in cache:"
                     f"  (in {filepath}),\n"
                     f"..we will now download it from"
-                    " {}".format(self.waveform_url_from_simname(sim_name))
+                    " {}".format(self.waveform_url_from_simname(sim_name, **kwargs))
                 )
-            self.download_waveform_data(sim_name)
+            self.download_waveform_data(sim_name, **kwargs)
         metadata = self.get_metadata(sim_name)
         if type(metadata) is not dict and hasattr(metadata, "to_dict"):
             metadata = metadata.to_dict()
