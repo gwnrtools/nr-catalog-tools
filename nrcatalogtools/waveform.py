@@ -25,6 +25,35 @@ from sxs.waveforms.format_handlers.nrar import (
 )
 
 
+class NRSurModes:
+    def __init__(self, sur_name="NRSur7dq4", verbosity=0):
+        import gwsurrogate
+
+        self._loaded_surrogate = gwsurrogate.LoadSurrogate(sur_name)
+        self._loaded_sur_name = sur_name
+        self.verbosity = verbosity
+
+    def get_waveform_modes(self, q, chiA, chiB, dt=None, f_low=0, **kwargs):
+        times, sur_eval, _ = self._loaded_surrogate(
+            q, chiA, chiB, f_low=f_low, dt=dt, **kwargs
+        )
+        data = np.empty((len(times), len(sur_eval.keys())), dtype=complex)
+        for idx, (ell, em) in enumerate(sur_eval.keys()):
+            data[:, idx] = sur_eval[(ell, em)]
+        ELL_EM = np.array(list(sur_eval.keys()))
+        ell_min = min(ELL_EM[:, 0])
+        ell_max = max(ELL_EM[:, 0])
+        return sxs_WaveformModes(
+            data,
+            time=times,
+            time_axis=0,
+            modes_axis=1,
+            ell_min=ell_min,
+            ell_max=ell_max,
+            verbosity=self.verbosity,
+        )
+
+
 class WaveformModes(sxs_WaveformModes):
     def __new__(
         cls,
@@ -50,6 +79,8 @@ class WaveformModes(sxs_WaveformModes):
         self._t_ref_nr = None
         self._filepath = None
         self.verbosity = verbosity
+        cls._loaded_surrogate = None
+        cls._loaded_sur_name = None
         return self
 
     @classmethod
@@ -131,10 +162,21 @@ class WaveformModes(sxs_WaveformModes):
                 pfmt = f"phase_l{ell}_m{em}"
                 if afmt not in h5_file or pfmt not in h5_file:
                     continue
-                amp_time = h5_file[afmt]["X"][:]
-                amp = h5_file[afmt]["Y"][:]
-                phase_time = h5_file[pfmt]["X"][:]
-                phase = h5_file[pfmt]["Y"][:]
+
+                try:
+                    amp_time = h5_file[afmt]["X"][:]
+                    amp = h5_file[afmt]["Y"][:]
+                    phase_time = h5_file[pfmt]["X"][:]
+                    phase = h5_file[pfmt]["Y"][:]
+                except KeyError:
+                    # Some RIT files have empty modes stored (*sigh*)
+                    # Skip these modes, and print a warning
+                    if verbosity > 0:
+                        print(
+                            f"Skipping mode l={ell}, m={em} for {file_path_or_open_file} "
+                            "since columns 'X' and 'Y' not found"
+                        )
+                    continue
                 mode_data[(ell, em)] = [amp_time, amp, phase_time, phase]
                 # get the minimum time and maximum time stamps for all modes
                 t_min = max(t_min, amp_time[0], phase_time[0])
