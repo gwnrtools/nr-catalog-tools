@@ -25,6 +25,35 @@ from sxs.waveforms.format_handlers.nrar import (
 )
 
 
+class NRSurModes:
+    def __init__(self, sur_name="NRSur7dq4", verbosity=0):
+        import gwsurrogate
+
+        self._loaded_surrogate = gwsurrogate.LoadSurrogate(sur_name)
+        self._loaded_sur_name = sur_name
+        self.verbosity = verbosity
+
+    def get_waveform_modes(self, q, chiA, chiB, dt=None, f_low=0, **kwargs):
+        times, sur_eval, _ = self._loaded_surrogate(
+            q, chiA, chiB, f_low=f_low, dt=dt, **kwargs
+        )
+        data = np.empty((len(times), len(sur_eval.keys())), dtype=complex)
+        for idx, (ell, em) in enumerate(sur_eval.keys()):
+            data[:, idx] = sur_eval[(ell, em)]
+        ELL_EM = np.array(list(sur_eval.keys()))
+        ell_min = min(ELL_EM[:, 0])
+        ell_max = max(ELL_EM[:, 0])
+        return sxs_WaveformModes(
+            data,
+            time=times,
+            time_axis=0,
+            modes_axis=1,
+            ell_min=ell_min,
+            ell_max=ell_max,
+            verbosity=self.verbosity,
+        )
+
+
 class WaveformModes(sxs_WaveformModes):
     def __new__(
         cls,
@@ -50,6 +79,8 @@ class WaveformModes(sxs_WaveformModes):
         self._t_ref_nr = None
         self._filepath = None
         self.verbosity = verbosity
+        cls._loaded_surrogate = None
+        cls._loaded_sur_name = None
         return self
 
     @classmethod
