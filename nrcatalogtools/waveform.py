@@ -212,7 +212,7 @@ class WaveformModes(sxs_WaveformModes):
     @property
     def label(self):
         """Return a Latex label that summarizes key simulation details"""
-        md = self.metadata
+        md = self.sim_metadata
 
         return (
             f"$q{md['relaxed_mass_ratio_1_over_2']:0.3f}\\_"
@@ -243,7 +243,7 @@ class WaveformModes(sxs_WaveformModes):
             dict: Initial binary parameters with names compatible with PyCBC.
         """
 
-        metadata = self.metadata
+        metadata = self.sim_metadata
         parameters = md.get_source_parameters_from_metadata(
             metadata, total_mass=total_mass
         )
