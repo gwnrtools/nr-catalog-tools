@@ -69,6 +69,8 @@ class CatalogBase(CatalogABC, sxs_Catalog):
         metadata = self.get_metadata(sim_name)
         if type(metadata) is not dict and hasattr(metadata, "to_dict"):
             metadata = metadata.to_dict()
+        elif isinstance(metadata, dict):
+            metadata = dict(metadata.items())
         return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
 
     def get_metadata(self, sim_name):
