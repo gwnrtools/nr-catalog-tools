@@ -116,9 +116,9 @@ class WaveformModes(sxs_WaveformModes):
         # it here.
 
         try:
-            cls._metadata
+            cls._sim_metadata
         except AttributeError:
-            cls._metadata = metadata
+            cls._sim_metadata = metadata
 
         ELL_MIN, ELL_MAX = 2, 10
         ell_min, ell_max = 99, -1
@@ -165,7 +165,7 @@ class WaveformModes(sxs_WaveformModes):
             data[:, idx] = amp_interp(times) * np.exp(1j * phase_interp(times))
 
         w_attributes = {}
-        w_attributes["metadata"] = metadata
+        # w_attributes["metadata"] = metadata
         w_attributes["history"] = ""
         w_attributes["frame"] = quaternionic.array([[1.0, 0.0, 0.0, 0.0]])
         w_attributes["frame_type"] = "inertial"
@@ -202,12 +202,12 @@ class WaveformModes(sxs_WaveformModes):
     @property
     def sim_metadata(self):
         """Return the simulation metadata dictionary"""
-        return self._metadata["metadata"]
+        return self._sim_metadata
 
     @property
     def metadata(self):
         """Return the simulation metadata dictionary"""
-        return self.sim_metadata
+        return self._metadata
 
     @property
     def label(self):
