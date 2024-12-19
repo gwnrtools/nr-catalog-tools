@@ -165,7 +165,6 @@ class WaveformModes(sxs_WaveformModes):
             data[:, idx] = amp_interp(times) * np.exp(1j * phase_interp(times))
 
         w_attributes = {}
-        # w_attributes["metadata"] = metadata
         w_attributes["history"] = ""
         w_attributes["frame"] = quaternionic.array([[1.0, 0.0, 0.0, 0.0]])
         w_attributes["frame_type"] = "inertial"
@@ -178,7 +177,6 @@ class WaveformModes(sxs_WaveformModes):
         )
         w_attributes["r_is_scaled_out"] = True
         w_attributes["m_is_scaled_out"] = True
-        # w_attributes["ells"] = ell_min, ell_max
 
         return cls(
             data,
