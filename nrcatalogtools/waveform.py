@@ -39,6 +39,8 @@ class WaveformModes(sxs_WaveformModes):
         verbosity=0,
         **w_attributes,
     ) -> None:
+        _filepath = w_attributes.pop('filepath', None)
+        _sim_metadata = w_attributes.pop('sim_metadata', {})
         self = super().__new__(
             cls,
             data,
@@ -50,8 +52,9 @@ class WaveformModes(sxs_WaveformModes):
             **w_attributes,
         )
         self._t_ref_nr = None
-        self._filepath = None
         self.verbosity = verbosity
+        self._filepath = _filepath
+        self._sim_metadata = _sim_metadata
         return self
 
     @classmethod
@@ -111,14 +114,17 @@ class WaveformModes(sxs_WaveformModes):
         else:
             raise RuntimeError(f"Could not use or open {file_path_or_open_file}")
 
-        # Set the file path attribute
-        cls._filepath = h5_file.filename
+        w_attributes = {}
+        w_attributes['filepath'] = h5_file.filename
+        w_attributes['sim_metadata'] = metadata
+        # # Set the file path attribute
+        # cls._filepath = h5_file.filename
+        # # If _metadata is not already a set attribute, then set it here.
 
-        # If _metadata is not already a set attribute, then set it here.
-        try:
-            cls._sim_metadata
-        except AttributeError:
-            cls._sim_metadata = metadata
+        # try:
+        #     cls._sim_metadata
+        # except AttributeError:
+        #     cls._sim_metadata = metadata
 
         ell_min, ell_max = 99, -1
         LM = []
@@ -163,7 +169,6 @@ class WaveformModes(sxs_WaveformModes):
             phase_interp = InterpolatedUnivariateSpline(phase_time, phase)
             data[:, idx] = amp_interp(times) * np.exp(1j * phase_interp(times))
 
-        w_attributes = {}
         w_attributes["history"] = ""
         w_attributes["frame"] = quaternionic.array([[1.0, 0.0, 0.0, 0.0]])
         w_attributes["frame_type"] = "inertial"
