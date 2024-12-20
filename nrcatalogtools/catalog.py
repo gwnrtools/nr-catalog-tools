@@ -15,6 +15,30 @@ class CatalogABC(ABC):
         raise NotImplementedError()
 
     @abstractmethod
+    def waveform_url_from_simname(self, sim_name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def download_waveform_data(self, sim_name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def psi4_filename_from_simname(self, sim_name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def psi4_filepath_from_simname(self, sim_name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def psi4_url_from_simname(self, sim_name):
+        raise NotImplementedError()
+
+    @abstractmethod
+    def download_psi4_data(self, sim_name):
+        raise NotImplementedError()
+
+    @abstractmethod
     def metadata_filename_from_simname(self, sim_name):
         raise NotImplementedError()
 
@@ -23,11 +47,7 @@ class CatalogABC(ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    def download_waveform_data(self, sim_name):
-        raise NotImplementedError()
-
-    @abstractmethod
-    def waveform_url_from_simname(self, sim_name):
+    def metadata_url_from_simname(self, sim_name):
         raise NotImplementedError()
 
 
@@ -39,14 +59,17 @@ class CatalogBase(CatalogABC, sxs_Catalog):
     def simulations_list(self):
         return list(self.simulations)
 
-    def get(self, sim_name):
-        """Retrieve waveform modes for this simulation
+    def get(self, sim_name, quantity="waveform"):
+        """Retrieve specific quantities for one simulation
 
         Args:
             sim_name (str): Name of simulation in catalog
+            quantity (str): Name of quantity to fetch.
+                            Options: {waveform, psi4}
 
         Raises:
             IOError: If `sim_name` not found in the catalog
+            IOError: If `quantity` is not one of the options above
 
         Returns:
             nrcatalogtools.waveform.WaveformModes: Waveform modes
@@ -56,20 +79,43 @@ class CatalogBase(CatalogABC, sxs_Catalog):
                 f"Simulation {sim_name} not found in catalog."
                 f"Please check that it exists"
             )
-        filepath = self.waveform_filepath_from_simname(sim_name)
-        if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
-            if self._verbosity > 1:
-                print(
-                    f"..As data does not exist in cache:"
-                    f"  (in {filepath}),\n"
-                    f"..we will now download it from"
-                    " {}".format(self.waveform_url_from_simname(sim_name))
-                )
-            self.download_waveform_data(sim_name)
         metadata = self.get_metadata(sim_name)
         if type(metadata) is not dict and hasattr(metadata, "to_dict"):
             metadata = metadata.to_dict()
-        return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
+
+        if quantity.lower() == "waveform":
+            filepath = self.waveform_filepath_from_simname(sim_name)
+            if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+                if self._verbosity > 1:
+                    print(
+                        f"..As data does not exist in cache:"
+                        f"  (in {filepath}),\n"
+                        f"..we will now download it from"
+                        " {}".format(self.waveform_url_from_simname(sim_name))
+                    )
+                self.download_waveform_data(sim_name)
+            return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
+        elif quantity.lower() == "psi4":
+            filepath = self.psi4_filepath_from_simname(sim_name)
+            if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+                if self._verbosity > 1:
+                    print(
+                        f"..As data does not exist in cache:"
+                        f"  (in {filepath}),\n"
+                        f"..we will now download it from"
+                        " {}".format(self.psi4_url_from_simname(sim_name))
+                    )
+                self.download_psi4_data(sim_name)
+            try:
+                return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
+            except OSError:
+                return waveform.WaveformModes.load_from_targz(
+                    filepath, metadata=metadata
+                )
+        else:
+            raise IOError(
+                f"Cannot provide quantity: {quantity}. Only supported options are [waveform, psi4]"
+            )
 
     def get_metadata(self, sim_name):
         """Get Metadata for this simulation
