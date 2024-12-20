@@ -109,7 +109,9 @@ class WaveformModes(sxs_WaveformModes):
             h5_file = h5py.File(file_path_or_open_file, "r")
             close_input_file = True
         else:
-            raise RuntimeError(f"Could not use or open {file_path_or_open_file}")
+            raise RuntimeError(
+                f"Could not use or open {file_path_or_open_file}"
+            )
 
         # Set the file path attribute
         cls._filepath = h5_file.filename
@@ -218,7 +220,9 @@ class WaveformModes(sxs_WaveformModes):
         from waveformtools.dataIO import load_RIT_Psi4_data_from_disk
 
         wftools_modes_array = load_RIT_Psi4_data_from_disk(
-            data_file_path=file_path, output_modes_array=True, resam_type="finest"
+            data_file_path=file_path,
+            output_modes_array=True,
+            resam_type="finest",
         )
 
         w_attributes = {}
@@ -307,25 +311,34 @@ class WaveformModes(sxs_WaveformModes):
         if "relaxed_mass1" in metadata:
             # RIT Catalog
             if parameters["f_lower"] == -1:
-                h = self.get_mode(2, 2, total_mass, distance=1, delta_t=1.0 / 8192)
+                h = self.get_mode(
+                    2, 2, total_mass, distance=1, delta_t=1.0 / 8192
+                )
                 fr = frequency_from_polarizations(h.real(), -h.imag())
                 parameters.update(f_lower=fr[0])
         elif "GTID" in metadata:
             # GT / MAYA CAtalog
             if parameters["f_lower"] == -1:
-                h = self.get_mode(2, 2, total_mass, distance=1, delta_t=1.0 / 8192)
+                h = self.get_mode(
+                    2, 2, total_mass, distance=1, delta_t=1.0 / 8192
+                )
                 fr = frequency_from_polarizations(h.real(), -h.imag())
                 parameters.update(f_lower=fr[0])
         else:
             # SXS Catalog
             if parameters["f_lower"] == -1:
                 delta_t_secs = 1.0 / 8192
-                h = self.get_mode(2, 2, total_mass, distance=1, delta_t=delta_t_secs)
+                h = self.get_mode(
+                    2, 2, total_mass, distance=1, delta_t=delta_t_secs
+                )
                 fr = frequency_from_polarizations(h.real(), -h.imag())
                 # Get the frequency at reference_time
                 reference_time_idx = int(
                     np.round(
-                        (metadata["reference_time"] / (total_mass * lal.MTSUN_SI))
+                        (
+                            metadata["reference_time"]
+                            / (total_mass * lal.MTSUN_SI)
+                        )
                         / delta_t_secs
                     )
                 )
@@ -375,7 +388,9 @@ class WaveformModes(sxs_WaveformModes):
             new_time = np.arange(min(self.time), max(self.time), delta_t)
         else:
             m_secs = utils.time_to_physical(total_mass)
-            new_time = np.arange(min(self.time), max(self.time), delta_t / m_secs)
+            new_time = np.arange(
+                min(self.time), max(self.time), delta_t / m_secs
+            )
 
         h = self.interpolate(new_time)
 
@@ -442,7 +457,9 @@ class WaveformModes(sxs_WaveformModes):
         # Get angles
         angles = self.get_angles(inclination, coa_phase, f_ref, t_ref, tol)
 
-        polarizations = self.evaluate([angles["theta"], angles["psi"], angles["alpha"]])
+        polarizations = self.evaluate(
+            [angles["theta"], angles["psi"], angles["alpha"]]
+        )
 
         return polarizations
 
@@ -502,7 +519,9 @@ class WaveformModes(sxs_WaveformModes):
         if delta_t > 1.0 / 128:
             new_time = np.arange(min(self.time), max(self.time), delta_t)
         else:
-            new_time = np.arange(min(self.time), max(self.time), delta_t / m_secs)
+            new_time = np.arange(
+                min(self.time), max(self.time), delta_t / m_secs
+            )
 
         # Get angles
         angles = self.get_angles(
@@ -523,7 +542,9 @@ class WaveformModes(sxs_WaveformModes):
         # Return conjugated waveform to comply with lal
         return self.to_pycbc(np.conjugate(h))
 
-    def get_angles(self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6):
+    def get_angles(
+        self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6
+    ):
         """Get the inclination, azimuthal and polarization angles
         of the observer in the NR source frame.
 
@@ -592,7 +613,8 @@ class WaveformModes(sxs_WaveformModes):
         phase_22 = self._get_phase(2, 2)
 
         waveform_22 = (
-            self.get_mode_data(2, 2)[:, 1] + 1j * self.get_mode_data(2, 2)[:, 2]
+            self.get_mode_data(2, 2)[:, 1]
+            + 1j * self.get_mode_data(2, 2)[:, 2]
         )
 
         # print(len(phase_22), len(waveform_22))
@@ -604,7 +626,9 @@ class WaveformModes(sxs_WaveformModes):
 
         return coa_phase
 
-    def get_obs_phi_ref_from_obs_coa_phase(self, coa_phase, t_ref=None, f_ref=None):
+    def get_obs_phi_ref_from_obs_coa_phase(
+        self, coa_phase, t_ref=None, f_ref=None
+    ):
         """Get the observer reference phase given the observer
         coalescence phase."""
 
@@ -621,7 +645,9 @@ class WaveformModes(sxs_WaveformModes):
         # Second, get the NR reference phase
         from scipy.interpolate import interp1d
 
-        nr_phi_ref = interp1d(self.time, nr_orb_phase_ts, kind="cubic")(avail_t_ref)
+        nr_phi_ref = interp1d(self.time, nr_orb_phase_ts, kind="cubic")(
+            avail_t_ref
+        )
 
         # Third, compute the offset in coa_phase
         delta_phi_ref = coa_phase - nr_coa_phase
@@ -668,9 +694,9 @@ class WaveformModes(sxs_WaveformModes):
             # compute from reference phase!
             # Omega is the key of interest.
             try:
-                ref_omega = get_ref_vals(self.sim_metadata, req_attrs=["Omega"])[
-                    "Omega"
-                ]
+                ref_omega = get_ref_vals(
+                    self.sim_metadata, req_attrs=["Omega"]
+                )["Omega"]
             except Exception as excep:
                 print(
                     "Reference orbital phase not found in simulation metadata."
@@ -678,7 +704,9 @@ class WaveformModes(sxs_WaveformModes):
                     excep,
                 )
                 with h5py.File(self.filepath) as h5_file:
-                    ref_omega = get_ref_vals(h5_file, req_attrs=["Omega"])["Omega"]
+                    ref_omega = get_ref_vals(h5_file, req_attrs=["Omega"])[
+                        "Omega"
+                    ]
             if ref_omega is None:
                 raise KeyError("Could not compute reference omega!")
 
@@ -687,7 +715,9 @@ class WaveformModes(sxs_WaveformModes):
             # Differentiate the phase to get orbital angular frequency
             from waveformtools.differentiate import derivative
 
-            nr_omega_ts = derivative(self.time, nr_orb_phase_ts, method="FD", degree=2)
+            nr_omega_ts = derivative(
+                self.time, nr_orb_phase_ts, method="FD", degree=2
+            )
             # Identify the location in time where nr_omega = ref_omega
             ref_loc = np.argmin(np.absolute(nr_omega_ts - ref_omega))
             avail_t_ref = self.time[ref_loc]
@@ -706,6 +736,79 @@ class WaveformModes(sxs_WaveformModes):
             self._compute_reference_time()
 
         return self._t_ref_nr
+
+    def fixed_frequency_integration(self, omega_cutoff=3e-2, order=1):
+        """Integrate the modes array using fixed frequency
+        integration technique to obtain the News/strain from
+        Psi4
+
+        Parameters
+        ----------
+        omega_cutoff: float
+                      The lower cutoff angular frequency to use
+                      for FFI.
+        order: int
+               Integration order
+
+        Returns
+        -------
+        obj: sxs_WaveformModes
+             The wawveform modes representing the integrated
+             quantity
+
+        """
+
+        from waveformtools.integrate import fixed_frequency_integrator
+
+        original_times = self.time
+        d_times = np.diff(original_times)
+
+        if not (np.diff(d_times) == 0).all():
+            raise ValueError("The time axis is not linearly sampled!")
+        else:
+            dt = d_times[0]
+
+        idx = 0
+
+        created = False
+        for ell in range(self.ell_min, self.ell_max + 1):
+            for emm in range(-ell, ell + 1):
+                times, integrated_mode = fixed_frequency_integrator(
+                    udata_time=np.array(self.get_mode(ell, emm)),
+                    delta_t=dt,
+                    order=order,
+                    omega0=omega_cutoff,
+                )
+
+                if not created:
+                    integrated_wfmodes_data = np.zeros(
+                        (len(times), self.n_modes), dtype=np.complex128
+                    )
+
+                integrated_wfmodes_data[:, idx] = integrated_mode
+                idx += 1
+
+        w_attributes = {}
+        w_attributes["metadata"] = self.metadata
+        w_attributes["history"] = f"FFI_{order}"
+        w_attributes["frame"] = self.frame
+        w_attributes["frame_type"] = self.frame_type
+        w_attributes["data_type"] = order * "int_" + self.data_type
+        w_attributes["spin_weight"] = self.spin_weight
+        w_attributes["r_is_scaled_out"] = True
+        w_attributes["m_is_scaled_out"] = True
+        # w_attributes["ells"] = ell_min, ell_max
+
+        return WaveformModes(
+            integrated_wfmodes_data,
+            time=times,
+            time_axis=0,
+            modes_axis=1,
+            ell_min=self.ell_min,
+            ell_max=self.ell_max,
+            verbosity=self.verbosity,
+            **w_attributes,
+        )
 
 
 def interpolate_in_amp_phase(obj, new_time, k=3, kind=None):
