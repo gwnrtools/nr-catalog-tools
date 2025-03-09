@@ -388,6 +388,7 @@ class WaveformModes(sxs_WaveformModes):
         distance,
         inclination,
         coa_phase,
+        l_max=None,
         delta_t=None,
         f_ref=None,
         t_ref=None,
@@ -461,6 +462,10 @@ class WaveformModes(sxs_WaveformModes):
         if remove_junk:
             print("Removing junk")
             wm_obj = self.modes_with_junk_removed
+
+        if l_max is not None:
+            mode_slicing_index = wm_obj.index(l_max, l_max) + 1
+            wm_obj = wm_obj[:, :mode_slicing_index]
 
         h = interpolate_in_amp_phase(
             wm_obj.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
