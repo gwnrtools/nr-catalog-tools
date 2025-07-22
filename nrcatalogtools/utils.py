@@ -22,8 +22,8 @@ nr_group_tags["UNKNOWN"] = "UNKNOWN"
 
 rit_catalog_info = {}
 rit_catalog_info["cache_dir"] = nrcatalog_cache_dir / "RIT"
-rit_catalog_info["metadata_dir"] = rit_catalog_info["cache_dir"] / "metadata"
-rit_catalog_info["data_dir"] = rit_catalog_info["cache_dir"] / "data"
+rit_catalog_info["metadata_dir"] = rit_catalog_info["cache_dir"] / "metadata/"
+rit_catalog_info["data_dir"] = rit_catalog_info["cache_dir"] / "data/"
 rit_catalog_info["url"] = "https://ccrgpages.rit.edu/~RITCatalog/"
 rit_catalog_info["metadata_url"] = rit_catalog_info["url"] + "/Metadata/"
 rit_catalog_info["data_url"] = rit_catalog_info["url"] + "/Data/"
@@ -47,7 +47,7 @@ maya_catalog_info = {
     "data_url": "https://cgpstorage.ph.utexas.edu/",
     "metadata_url": "https://cgpstorage.ph.utexas.edu/MAYAmetadata.pkl",
 }
-maya_catalog_info["data_dir"] = maya_catalog_info["cache_dir"] / "data"
+maya_catalog_info["data_dir"] = maya_catalog_info["cache_dir"] / "data/"
 maya_catalog_info["metadata_dir"] = maya_catalog_info["cache_dir"] / "metadata"
 
 
