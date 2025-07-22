@@ -264,7 +264,7 @@ class MayaCatalog(catalog.CatalogBase):
             format = "lvcnr_format"
         return f"{self.waveform_data_url}/{format}/{self.waveform_filename_from_simname(sim_name)}"
 
-    def download_waveform_data(self, sim_name, maya_format=True, use_cache=None):
+    def download_waveform_data(self, sim_name, maya_format=False, use_cache=None):
         if use_cache is None:
             use_cache = self.use_cache
         file_name = self.waveform_filename_from_simname(sim_name)
