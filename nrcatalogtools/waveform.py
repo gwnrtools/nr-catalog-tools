@@ -1,3 +1,4 @@
+from copy import deepcopy
 import os
 
 import h5py
@@ -52,6 +53,7 @@ class WaveformModes(sxs_WaveformModes):
         self._t_ref_nr = None
         self._filepath = None
         self.verbosity = verbosity
+        self._modes_with_junk_removed = None
         return self
 
     @classmethod
@@ -533,6 +535,21 @@ class WaveformModes(sxs_WaveformModes):
         )
         return fr22[0] / lal.MTSUN_SI
 
+    @property
+    def modes_with_junk_removed(self):
+        """Returns WaveformModes object with junks removed."""
+        if not isinstance(self._modes_with_junk_removed, sxs_WaveformModes):
+            self.remove_junk_from_modes()
+
+        return self._modes_with_junk_removed
+
+    def remove_junk_from_modes(self, remove_junk_fudge_factor=1):
+        """Remove the portion of data with junk radiation from WaveformModes"""
+        reference_time = remove_junk_fudge_factor * self.metadata["reference_time"]
+        reference_index = self.index_closest_to(reference_time)
+        self._modes_with_junk_removed = self[reference_index:]
+        return self
+
     def get_polarizations(
         self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6
     ):
@@ -565,12 +582,15 @@ class WaveformModes(sxs_WaveformModes):
         distance,
         inclination,
         coa_phase,
+        l_max=None,
         delta_t=None,
         f_ref=None,
         t_ref=None,
         k=3,
         kind=None,
         tol=1e-6,
+        remove_junk=False,
+        remove_junk_fudge_factor=1,
     ):
         """Sum over modes data and return plus and cross GW polarizations,
         rescaled appropriately for a compact-object binary with given
@@ -606,16 +626,22 @@ class WaveformModes(sxs_WaveformModes):
             pycbc.TimeSeries(numpy.complex128): Complex polarizations
                 stored in `pycbc` container `TimeSeries`
         """
-        if delta_t is None:
-            delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
         m_secs = utils.time_to_physical(total_mass)
+
+        time_array = self.time
+        if remove_junk:
+            self.remove_junk_from_modes(remove_junk_fudge_factor)
+            time_array = self.modes_with_junk_removed.time
+
+        if delta_t is None:
+            delta_t = stat_mode(np.diff(time_array), keepdims=True)[0][0]
         # we assume that we generally do not sample at a rate below 128Hz.
         # Therefore, depending on the numerical value of dt, we deduce whether
         # dt is in dimensionless units or in seconds.
         if delta_t > 1.0 / 128:
-            new_time = np.arange(min(self.time), max(self.time), delta_t)
+            new_time = np.arange(min(time_array), max(time_array), delta_t)
         else:
-            new_time = np.arange(min(self.time), max(self.time), delta_t / m_secs)
+            new_time = np.arange(min(time_array), max(time_array), delta_t / m_secs)
 
         # Get angles
         angles = self.get_angles(
@@ -625,8 +651,18 @@ class WaveformModes(sxs_WaveformModes):
             t_ref=t_ref,
             tol=tol,
         )
+
+        wm_obj = self
+        if remove_junk:
+            print("Removing junk")
+            wm_obj = self.modes_with_junk_removed
+
+        if l_max is not None:
+            mode_slicing_index = wm_obj.index(l_max, l_max) + 1
+            wm_obj = wm_obj[:, :mode_slicing_index]
+
         h = interpolate_in_amp_phase(
-            self.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
+            wm_obj.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
             new_time,
             k=k,
             kind=kind,
