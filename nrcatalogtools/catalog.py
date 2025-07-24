@@ -106,12 +106,18 @@ class CatalogBase(CatalogABC, sxs_Catalog):
                         " {}".format(self.psi4_url_from_simname(sim_name))
                     )
                 self.download_psi4_data(sim_name)
-            try:
-                return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
-            except OSError:
+
+            from nrcatalogtools.rit import RITCatalog
+
+            if isinstance(self, RITCatalog):
                 return waveform.WaveformModes.load_from_targz(
                     filepath, metadata=metadata
                 )
+
+            else:
+                # MAYA catalog
+                return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
+
         else:
             raise IOError(
                 f"Cannot provide quantity: {quantity}. Only supported options are [waveform, psi4]"
