@@ -7,5 +7,5 @@ ligo-common
 pycbc
 pandas
 sxs>=v2023.0.0
-waveformtools @ git+https://gitlab.com/vaishakp/waveformtools@main
+waveformtools
 mayawaves
