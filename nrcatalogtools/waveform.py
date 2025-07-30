@@ -39,6 +39,8 @@ class WaveformModes(sxs_WaveformModes):
         verbosity=0,
         **w_attributes,
     ) -> None:
+        _filepath = w_attributes.pop('filepath', None)
+        _sim_metadata = w_attributes.pop('sim_metadata', {})
         self = super().__new__(
             cls,
             data,
@@ -50,8 +52,9 @@ class WaveformModes(sxs_WaveformModes):
             **w_attributes,
         )
         self._t_ref_nr = None
-        self._filepath = None
         self.verbosity = verbosity
+        self._filepath = _filepath
+        self._sim_metadata = _sim_metadata
         return self
 
     @classmethod
@@ -111,14 +114,17 @@ class WaveformModes(sxs_WaveformModes):
         else:
             raise RuntimeError(f"Could not use or open {file_path_or_open_file}")
 
-        # Set the file path attribute
-        cls._filepath = h5_file.filename
+        w_attributes = {}
+        w_attributes['filepath'] = h5_file.filename
+        w_attributes['sim_metadata'] = metadata
+        # # Set the file path attribute
+        # cls._filepath = h5_file.filename
+        # # If _metadata is not already a set attribute, then set it here.
 
-        # If _metadata is not already a set attribute, then set it here.
-        try:
-            cls._metadata
-        except AttributeError:
-            cls._metadata = metadata
+        # try:
+        #     cls._sim_metadata
+        # except AttributeError:
+        #     cls._sim_metadata = metadata
 
         ell_min, ell_max = 99, -1
         LM = []
@@ -174,8 +180,6 @@ class WaveformModes(sxs_WaveformModes):
             phase_interp = InterpolatedUnivariateSpline(phase_time, phase)
             data[:, idx] = amp_interp(times) * np.exp(1j * phase_interp(times))
 
-        w_attributes = {}
-        w_attributes["metadata"] = metadata
         w_attributes["history"] = ""
         w_attributes["frame"] = quaternionic.array([[1.0, 0.0, 0.0, 0.0]])
         w_attributes["frame_type"] = "inertial"
@@ -188,7 +192,6 @@ class WaveformModes(sxs_WaveformModes):
         )
         w_attributes["r_is_scaled_out"] = True
         w_attributes["m_is_scaled_out"] = True
-        # w_attributes["ells"] = ell_min, ell_max
 
         return cls(
             data,
@@ -372,17 +375,17 @@ class WaveformModes(sxs_WaveformModes):
     @property
     def sim_metadata(self):
         """Return the simulation metadata dictionary"""
-        return self._metadata["metadata"]
+        return self._sim_metadata
 
     @property
     def metadata(self):
         """Return the simulation metadata dictionary"""
-        return self.sim_metadata
+        return self._metadata
 
     @property
     def label(self):
         """Return a Latex label that summarizes key simulation details"""
-        md = self.metadata
+        md = self.sim_metadata
 
         return (
             f"$q{md['relaxed_mass_ratio_1_over_2']:0.3f}\\_"
@@ -413,7 +416,7 @@ class WaveformModes(sxs_WaveformModes):
             dict: Initial binary parameters with names compatible with PyCBC.
         """
 
-        metadata = self.metadata
+        metadata = self.sim_metadata
         parameters = md.get_source_parameters_from_metadata(
             metadata, total_mass=total_mass
         )
