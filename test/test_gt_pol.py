@@ -1,4 +1,4 @@
-""" Test the generation of observer polarizations
+"""Test the generation of observer polarizations
 of nrcatalogtools against lal and waveformtools
 using GT waveforms.
 """
