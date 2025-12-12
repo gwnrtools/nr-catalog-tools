@@ -6,6 +6,6 @@ lalsuite
 ligo-common
 pycbc
 pandas
-sxs>=v2023.0.0
+sxs==v2023.0.0
 waveformtools
 mayawaves
