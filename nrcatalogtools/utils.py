@@ -93,6 +93,26 @@ def url_exists(link, num_retries=100):
 
 
 def download_file(url, path, progress=False, if_newer=True):
+    """
+    Download a file from the given URL to the specified local path.
+
+    This function attempts to download the file at `url` and save it to `path`.
+    It first tries to use the `sxs.utilities.downloads.download_file` utility (if available).
+    If that fails, it falls back to using the Python `requests` package, with SSL
+    verification disabled and up to 100 retry attempts.
+
+    Args:
+        url (str): The URL to download the file from.
+        path (str or pathlib.Path): The destination path where the file should be saved.
+        progress (bool, optional): Whether to show a progress bar if supported.
+        if_newer (bool, optional): Only download if the remote file is newer than the local file.
+
+    Returns:
+        The path (as a pathlib.Path object) to the downloaded file.
+
+    Raises:
+        RuntimeError: If the file could not be downloaded due to network or server errors.
+    """
     if url_exists(url):
         try:
             return sxs.utilities.downloads.download_file(
@@ -125,12 +145,24 @@ def download_file(url, path, progress=False, if_newer=True):
 
 def call_with_timeout(myfunc, args=(), kwargs={}, timeout=5):
     """
-    This function calls user-provided `myfunc` with user-provided
-    `args` and `kwargs` in a separate multiprocessing.Process.
-    if the function evaluation takes more than `timeout` seconds, the
-    `Process` is terminated and error raised. If it evalutes within
-    `timeout` seconds, the results are fetched from the `Queue` and
-    returned.
+    Call a function with a time limit in a separate process.
+
+    Executes the provided function `myfunc` with given positional (`args`) and keyword
+    arguments (`kwargs`) in a separate process. If the function does not complete
+    within `timeout` seconds, the process is terminated and an exception is raised.
+    If the function completes within the timeout, its result is returned.
+
+    Args:
+        myfunc (callable): The function to execute.
+        args (tuple, optional): Positional arguments to pass to `myfunc`. Defaults to ().
+        kwargs (dict, optional): Keyword arguments to pass to `myfunc`. Defaults to {}.
+        timeout (int or float, optional): Maximum allowed execution time in seconds. Defaults to 5.
+
+    Returns:
+        The result of `myfunc(*args, **kwargs)` if completed within the timeout.
+
+    Raises:
+        Exception: If the function does not complete within the specified timeout.
     """
 
     from multiprocessing import Process, Queue
