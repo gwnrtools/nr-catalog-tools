@@ -61,6 +61,14 @@ maya_catalog_info = {
 maya_catalog_info["data_dir"] = maya_catalog_info["cache_dir"] / "data/"
 maya_catalog_info["metadata_dir"] = maya_catalog_info["cache_dir"] / "metadata"
 
+sxs_catalog_info = {
+    "cache_dir": nrcatalog_cache_dir / "SXS",
+    "data_url": "https://www.black-holes.org/waveforms/",
+    "metadata_url": "https://www.black-holes.org/waveforms/metadata.json",
+}
+sxs_catalog_info["data_dir"] = sxs_catalog_info["cache_dir"] / "data/"
+sxs_catalog_info["metadata_dir"] = sxs_catalog_info["cache_dir"] / "metadata"
+
 
 def url_exists(link, num_retries=100):
     """Check if a given URL exists on the web.
@@ -149,7 +157,8 @@ def call_with_timeout(myfunc, args=(), kwargs={}, timeout=5):
 
 
 def time_to_physical(M):
-    """Factor to convert time from dimensionless units to SI units
+    """
+    Factor to convert time from dimensionless units to SI units
 
     parameters
     ----------
@@ -164,7 +173,8 @@ def time_to_physical(M):
 
 
 def amp_to_physical(M, D):
-    """Factor to rescale strain to mass M and distance D convert from
+    """
+    Factor to rescale strain to mass M and distance D convert from
     dimensionless units to SI units
 
     parameters
@@ -178,3 +188,64 @@ def amp_to_physical(M, D):
     """
 
     return lal.G_SI * M * lal.MSUN_SI / (lal.C_SI**2 * D * 1e6 * lal.PC_SI)
+
+
+def amplitude_phase_frequency_from_complex_mode(hlm):
+    """
+    Compute amplitude, phase, and instantaneous frequency from a complex mode time series.
+
+    Parameters
+    ----------
+    hlm : tuple of (real, imag) pycbc.types.TimeSeries, or a single complex pycbc.types.TimeSeries
+        Either a tuple of real and imaginary parts of a mode (as PyCBC TimeSeries with matching sample_times),
+        or a single complex-valued PyCBC TimeSeries.
+
+    Returns
+    -------
+    amp : pycbc.types.TimeSeries
+        The instantaneous amplitude as a function of time.
+    phase : pycbc.types.TimeSeries
+        The instantaneous phase as a function of time.
+    freq : pycbc.types.TimeSeries
+        The instantaneous frequency (cycles per unit time) as a function of time.
+    """
+    import numpy as np
+    from pycbc.types import TimeSeries
+
+    # Check if hlm is a tuple with PyCBC TimeSeries (real, imag)
+    if isinstance(hlm, tuple) and len(hlm) == 2:
+        re, im = hlm
+        h_complex = re.numpy() + 1j * im.numpy()
+        # Assume re/im have sample_times attribute if PyCBC TimeSeries
+        if hasattr(re, "sample_times"):
+            t = re.sample_times.numpy()
+        else:
+            raise AttributeError(
+                "Real/Imag PyCBC TimeSeries objects must have sample_times."
+            )
+        delta_t = re.delta_t
+    else:
+        # Accept complex-valued PyCBC TimeSeries input
+        if isinstance(hlm, TimeSeries) and np.iscomplexobj(hlm):
+            h_complex = hlm.numpy()
+            delta_t = hlm.delta_t
+            re = hlm  # use for .start_time and .delta_t
+        else:
+            raise ValueError(
+                "Input must be a tuple of PyCBC TimeSeries (re, im), or a complex-valued PyCBC TimeSeries."
+            )
+
+    # Compute amplitude
+    amp_arr = np.abs(h_complex)
+
+    amp = TimeSeries(amp_arr, delta_t=delta_t, epoch=re.start_time)
+
+    # Compute phase
+    phase_arr = np.unwrap(np.angle(h_complex))
+    phase = TimeSeries(phase_arr, delta_t=delta_t, epoch=re.start_time)
+
+    # Compute dphase/dt (frequency) as a TimeSeries (using uniform time steps)
+    # (careful: np.gradient(y, dx) is d(y)/d(x) for uniform x spacing dx)
+    dphase_dt_arr = np.gradient(phase_arr, re.delta_t)
+    freq = TimeSeries(dphase_dt_arr / 2 / np.pi, delta_t=delta_t, epoch=re.start_time)
+    return amp, phase, freq
