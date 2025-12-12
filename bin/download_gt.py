@@ -35,6 +35,11 @@ import os
 from mayawaves.utils.catalogutils import Catalog as MWCatalog
 import nrcatalogtools as nrcat
 
+print(
+    f"""Data will be downloaded in {nrcat.utils.maya_catalog_info['data_dir']}.
+    Change `nrcat.utils.maya_catalog_info['data_dir']` to alter location"""
+)
+
 mayacatalog = nrcat.MayaCatalog.load(verbosity=3)
 mayawavescatalog = MWCatalog()
 
@@ -42,7 +47,7 @@ mayawavescatalog = MWCatalog()
 # within `mayawaves`
 mayawavescatalog.download_waveforms(
     mayawavescatalog.simulations,
-    save_wf_path="/home/prayush/.cache/MAYA/lvcnr_data/",
+    save_wf_path=nrcat.utils.maya_catalog_info['data_dir'],
     lvcnr_format=True,
 )
 
