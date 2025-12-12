@@ -1,4 +1,4 @@
-""" Helper and diagnostic function for tests """
+"""Helper and diagnostic function for tests"""
 
 import datetime
 import os

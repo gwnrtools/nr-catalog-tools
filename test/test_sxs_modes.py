@@ -1,4 +1,4 @@
-""" Test SXS waveform load against waveformtools.
+"""Test SXS waveform load against waveformtools.
 
 It was noted that the RAW modes data loaded from H5 files
 were exactly equal. Howeverm after resampling to an axis,
