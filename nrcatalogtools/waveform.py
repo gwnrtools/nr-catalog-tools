@@ -402,7 +402,8 @@ class WaveformModes(sxs_WaveformModes):
                     md['relaxed_chi2y']:0.3f}-{md['relaxed_chi2z']:0.3f}"""
 
     def get_parameters(self, total_mass=1.0):
-        """Return the initial physical parameters for the simulation. Only for
+        """
+        Return the initial physical parameters for the simulation. Only
         quasicircular simulations are supported, orbital eccentricity is ignored
 
         Args:
@@ -412,7 +413,6 @@ class WaveformModes(sxs_WaveformModes):
         Returns:
             dict: Initial binary parameters with names compatible with PyCBC.
         """
-
         metadata = self.metadata
         parameters = md.get_source_parameters_from_metadata(
             metadata, total_mass=total_mass
@@ -524,14 +524,19 @@ class WaveformModes(sxs_WaveformModes):
             retval = sxs_TimeSeries(retval.data, time=retval.sample_times)
         return retval
 
-    @property
-    def f_lower_at_1Msun(self):
+    def f_lower_at_1Msun(self, t=None):
         mode22 = self.get_mode_data(2, 2)
         fr22 = frequency_from_polarizations(
             TimeSeries(mode22[:, 1], delta_t=np.diff(self.time)[0]),
             TimeSeries(-1 * mode22[:, 2], delta_t=np.diff(self.time)[0]),
         )
-        return fr22[0] / lal.MTSUN_SI
+        # If time value is not provided, return the initial f_lower
+        if t is None:
+            return float(fr22[0] / lal.MTSUN_SI)
+        # Interpolate fr22 as a function of time and evaluate at t
+        sample_times = self.time[: len(fr22)]
+        interp_fr22 = InterpolatedUnivariateSpline(sample_times, fr22, k=3)
+        return float(interp_fr22(t) / lal.MTSUN_SI)
 
     def get_polarizations(
         self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6
