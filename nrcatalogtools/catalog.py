@@ -59,7 +59,7 @@ class CatalogBase(CatalogABC, sxs_Catalog):
     def simulations_list(self):
         return list(self.simulations)
 
-    def get(self, sim_name, **kwargs):
+    def get(self, sim_name, quantity="waveform", **kwargs):
         """Retrieve specific quantities for one simulation
 
         Args:
