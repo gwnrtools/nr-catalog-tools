@@ -1,3 +1,4 @@
+import functools
 import os
 
 import sxs
@@ -7,8 +8,33 @@ from nrcatalogtools import catalog, waveform
 class SXSCatalog(catalog.CatalogBase):
     def __init__(self, catalog=None, verbosity=0, **kwargs) -> None:
         super().__init__(catalog, **kwargs)
+        if catalog is not None:
+            super().__init__(catalog, **kwargs)
+        else:
+            obj = type(self).load(verbosity=verbosity, **kwargs)
+            super().__init__(obj)
         self._verbosity = verbosity
         self._add_paths_to_metadata()
+
+    @classmethod
+    @functools.lru_cache()
+    def load(cls, download=None, verbosity=0, **kwargs):
+        """Load the SXS catalog
+
+        This is a wrapper around `sxs.load`.
+
+        Parameters
+        ----------
+        download : {None, bool}, optional
+            If False, this function will look for the catalog in the cache and
+            raise an error if it is not found.  If True, this function will download
+            the catalog and raise an error if the download fails.  If None (the
+            default), it will try to download the file, warn but fall back to the cache
+            if that fails, and only raise an error if the catalog is not found in the
+            cache.
+        """
+        sxs_catalog = sxs.load("catalog", download=download, **kwargs)
+        return cls(catalog=sxs_catalog, verbosity=verbosity)
 
     def waveform_filename_from_simname(self, sim_name):
         return os.path.basename(self.waveform_filepath_from_simname(sim_name))
@@ -90,14 +116,14 @@ class SXSCatalog(catalog.CatalogBase):
         if any([col not in existing_cols for col in new_cols]):
             for sim_name in metadata_dict:
                 if "metadata_location" not in existing_cols:
-                    metadata_dict[sim_name][
-                        "metadata_location"
-                    ] = self.metadata_filepath_from_simname(sim_name)
+                    metadata_dict[sim_name]["metadata_location"] = (
+                        self.metadata_filepath_from_simname(sim_name)
+                    )
                 if "metadata_link" not in existing_cols:
                     metadata_dict[sim_name]["metadata_link"] = ""
                 if "waveform_data_link" not in existing_cols:
                     metadata_dict[sim_name]["waveform_data_link"] = ""
                 if "waveform_data_location" not in existing_cols:
-                    metadata_dict[sim_name][
-                        "waveform_data_location"
-                    ] = self.waveform_filepath_from_simname(sim_name)
+                    metadata_dict[sim_name]["waveform_data_location"] = (
+                        self.waveform_filepath_from_simname(sim_name)
+                    )
