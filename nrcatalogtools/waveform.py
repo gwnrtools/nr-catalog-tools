@@ -3,6 +3,10 @@ import os
 import h5py
 import lal
 import numpy as np
+import quaternionic
+import spherical
+from pycbc.filter import highpass, lowpass
+from pycbc.psd import interpolate
 from pycbc.types import TimeSeries
 from pycbc.waveform import frequency_from_polarizations
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -824,6 +828,336 @@ class WaveformModes(sxs_WaveformModes):
             self._compute_reference_time()
 
         return self._t_ref_nr
+
+    def rotated(self, R):
+        """
+        Rotate the waveform modes.
+        Parameters
+        ----------
+        R : quaternionic.array
+            A quaternion representing the rotation.
+        Returns
+        -------
+        WaveformModes
+            A new WaveformModes object with the rotated modes.
+        """
+
+        # Create a new object for the rotated waveform
+        rotated_self = self.copy()
+
+        wigner = spherical.Wigner(self.ell_max)
+
+        # Get the mode indices
+        modes = self.LM
+
+        rotated_data = np.zeros_like(self.data)
+
+        for l in range(self.ell_min, self.ell_max + 1):
+            if l not in self.ells:
+                continue
+
+            # Get the modes for this l
+            l_modes_indices = np.where(self.LM[:, 0] == l)[0]
+            if len(l_modes_indices) == 0:
+                continue
+
+            l_modes = self.data[:, l_modes_indices]
+
+            # Get the Wigner D-matrix for this l
+            D = wigner.D(R, l)
+
+            # Apply the rotation
+            rotated_l_modes = l_modes @ D
+
+            rotated_data[:, l_modes_indices] = rotated_l_modes
+
+        rotated_self.data = rotated_data
+
+        # Update the frame attribute
+        rotated_self.frame = R * self.frame
+
+        return rotated_self
+
+    def match_sphere_averaged(
+        self,
+        other,
+        psd,
+        f_lower,
+        f_upper=None,
+    ):
+        """Calculates the match between this waveform and another.
+
+        The match is a measure of similarity between two waveforms, maximized over
+        extrinsic parameters (time shift, phase shift, and spatial orientation).
+        It is defined as the noise-weighted inner product, normalized bye
+        waveform norms.
+
+        The function finds the maximum of the overlap functional, which is given by:
+
+        Overlap(h₁, h₂) = |(h̃₁ | h̃₂)| / sqrt( (h̃₁ | h̃₁) * (h̃₂ | h̃₂) )
+
+        where the noise-weighted inner product (h̃₁ | h̃₂) is defined as:
+
+        (h̃₁ | h̃₂) = 4 * Re ∫[ h̃₁(f) * conj(h̃₂(f; t₀, φ₀, R)) / Sₙ(f) ] df
+
+        The maximization is performed over:
+        - t₀ : A relative time shift between the waveforms.
+        - φ₀ : A relative phase shift.
+        - R  : A relative 3D rotation, parameterized by Euler angles.
+
+        Sₙ(f) is the noise power spectral density (`psd`). The integral is
+        approximated as a discrete sum over frequency bins from `f_lower` to
+        `f_upper`.
+
+        The calculation is performed by summing the inner products of all common
+        spherical harmonic modes (l, m) of the two waveforms.
+
+        The optimization is done by minimizing (1 - Overlap) using the
+        'Nelder-Mead' algorithm.
+
+        Parameters
+        ----------
+        other : Waveform
+            The other waveform object to compare against.
+        psd : pycbc.types.FrequencySeries
+            The one-sided power spectral density (PSD) of the detector noise.
+        f_lower : float
+            The lower frequency cutoff for the match integral, in Hz.
+        f_upper : float, optional
+            The upper frequency cutoff for the match integral, in Hz.
+            If None, it defaults to the Nyquist frequency of the waveforms.
+
+        Returns
+        -------
+        float
+            The maximum match value, a float between 0 and 1.
+
+        """
+        from scipy.optimize import minimize
+
+        def objective_function(x):
+            time_shift, phi_c, alpha, beta, gamma = x
+
+            R = quaternionic.array.from_euler_angles(alpha, beta, gamma)
+            other_rot = other.rotated(R)
+
+            total_inner_prod = 0.0
+            total_norm1_sq = 0.0
+            total_norm2_sq = 0.0
+
+            common_modes = set(map(tuple, self.LM)) & set(map(tuple, other_rot.LM))
+
+            for l, m in common_modes:
+                h1_mode_ts = self.get_mode(l, m, to_pycbc=True, delta_t=1 / 4096)
+                h2_mode_ts = other_rot.get_mode(
+                    l, m, to_pycbc=True, delta_t=1 / 4096
+                )
+
+                # Align lengths
+                if len(h1_mode_ts) > len(h2_mode_ts):
+                    h2_mode_ts.resize(len(h1_mode_ts))
+                else:
+                    h1_mode_ts.resize(len(h2_mode_ts))
+
+                psd.resize(len(h1_mode_ts.to_frequencyseries()))
+
+                # to frequency domain
+                h1_tilde = h1_mode_ts.to_frequencyseries(delta_f=psd.delta_f)
+                h2_tilde = h2_mode_ts.to_frequencyseries(delta_f=psd.delta_f)
+
+                # Apply phase and time shifts to the second waveform
+                h2_tilde *= np.exp(-1j * m * phi_c)
+
+                freqs = h2_tilde.sample_frequencies
+                h2_tilde.data *= np.exp(-2j * np.pi * freqs * time_shift)
+
+                df = psd.delta_f
+                low_idx = int(f_lower / df) if f_lower else 0
+                high_idx = int(np.ceil(f_upper / df)) if f_upper else len(psd)
+
+                h1 = h1_tilde.data[low_idx:high_idx]
+                h2 = h2_tilde.data[low_idx:high_idx]
+                psd_vals = psd.data[low_idx:high_idx]
+                psd_vals[np.isinf(psd_vals)] = 1.0
+
+                total_norm1_sq += 4 * df * np.sum((np.abs(h1) ** 2) / psd_vals)
+                total_norm2_sq += 4 * df * np.sum((np.abs(h2) ** 2) / psd_vals)
+                total_inner_prod += 4 * df * np.sum((h1 * np.conj(h2)) / psd_vals)
+
+            if total_norm1_sq == 0 or total_norm2_sq == 0:
+                return 1.0
+
+            overlap = np.abs(total_inner_prod) / np.sqrt(
+                total_norm1_sq * total_norm2_sq
+            )
+
+            return 1.0 - overlap
+
+        x0 = [0.0, 0.0, 0.0, 0.0, 0.0]
+        result = minimize(objective_function, x0, method="Nelder-Mead")
+
+        return 1.0 - result.fun
+
+    def match_sphere_averaged_bms_maximized(
+        self,
+        other,
+        psd,
+        f_lower,
+        f_upper=None,
+        j_max=1,
+    ):
+        """Calculates the match between this waveform and another, maximizing
+        over BMS supertranslations.
+
+        This function extends `match_sphere_averaged` by also optimizing over
+        the coefficients of the BMS supertranslation field, α(θ, φ), applied
+        to `self`. This accounts for gauge differences between numerical
+        relativity codes, particularly center-of-mass drifts (j=1 modes).
+
+        Parameters
+        ----------
+        other : Waveform
+            The other waveform object to compare against.
+        psd : pycbc.types.FrequencySeries
+            The one-sided power spectral density (PSD) of the detector noise.
+        f_lower : float
+            The lower frequency cutoff for the match integral, in Hz.
+        f_upper : float, optional
+            The upper frequency cutoff for the match integral, in Hz.
+            If None, it defaults to the Nyquist frequency of the waveforms.
+        j_max : int, optional
+            The maximum spherical-harmonic order `j` of the supertranslation
+            field to optimize over. Defaults to 1, which corresponds to
+            center-of-mass corrections.
+
+        Returns
+        -------
+        float
+            The maximum match value, a float between 0 and 1.
+
+        Notes
+        -----
+        The supertranslated waveform modes are computed in the frequency domain via:
+
+        h̃'_lm(f) = h̃_lm(f) - Σ_{j,k,p,q} α_jk * G^{lm}_{jk,pq} * h̃̇_pq(f)
+
+        where `α_jk` are the supertranslation coefficients, `G` is the Gaunt
+        integral computed by `scri.coupling_coefficients`, and `h̃̇` is the
+        Fourier transform of the time-derivative of the waveform mode.
+        The optimization is performed over `(t_c, φ_c, R, α_jk)`.
+        """
+        from scipy.optimize import minimize
+        import scri
+
+        # Determine the supertranslation coefficients to be optimized
+        alpha_jk_indices = []
+        for j in range(1, j_max + 1):
+            for k in range(-j, j + 1):
+                alpha_jk_indices.append((j, k))
+        
+        # Pre-compute all frequency-domain modes of `self` on a common grid
+        # to handle mode-mixing.
+        max_len = 0
+        for l, m in self.LM:
+            max_len = max(max_len, len(self.get_mode(l, m, to_pycbc=True, delta_t=1/4096)))
+        
+        # Use a reference mode to define the frequency grid
+        ref_mode_ts = self.get_mode(2, 2, to_pycbc=True, delta_t=1/4096)
+        ref_mode_ts.resize(max_len)
+        ref_fs = ref_mode_ts.to_frequencyseries()
+        freqs = ref_fs.sample_frequencies
+        delta_f = ref_fs.delta_f
+
+        self_modes_tilde = {}
+        self_modes_dot_tilde = {}
+        for l, m in self.LM:
+            h_ts = self.get_mode(l, m, to_pycbc=True, delta_t=1/4096)
+            h_ts.resize(max_len)
+            h_tilde = h_ts.to_frequencyseries(delta_f=delta_f)
+            self_modes_tilde[(l, m)] = h_tilde
+            
+            h_dot_tilde = h_tilde.copy()
+            h_dot_tilde.data *= 1j * 2 * np.pi * freqs
+            self_modes_dot_tilde[(l, m)] = h_dot_tilde
+
+
+        def objective_function(x):
+            # Unpack parameters: 5 for rigid transformations, rest for BMS
+            time_shift, phi_c, alpha, beta, gamma = x[:5]
+            alpha_jk_values = x[5:]
+            alpha_jk_coeffs = dict(zip(alpha_jk_indices, alpha_jk_values))
+
+            R = quaternionic.array.from_euler_angles(alpha, beta, gamma)
+            other_rot = other.rotated(R)
+
+            total_inner_prod = 0.0
+            total_norm1_sq = 0.0
+            total_norm2_sq = 0.0
+
+            common_modes = set(map(tuple, self.LM)) & set(map(tuple, other_rot.LM))
+
+            # Pre-compute supertranslated modes for `self`
+            self_modes_tilde_st = {}
+            for l, m in common_modes:
+                h1_tilde = self_modes_tilde[(l,m)]
+                st_correction = np.zeros_like(h1_tilde.data, dtype=complex)
+                
+                for (j, k), alpha_jk in alpha_jk_coeffs.items():
+                    for p, q in self.LM:
+                        # G = ∫ Y*_{l,m} Y_{j,k} Y_{p,q} dΩ
+                        G = scri.coupling_coefficients(s_prime=-2, l_prime=l, m_prime=m,
+                                                     s1=0, l1=j, m1=k,
+                                                     s2=-2, l2=p, m2=q)
+                        if G == 0:
+                            continue
+                        h_dot_pq = self_modes_dot_tilde[(p, q)]
+                        st_correction += alpha_jk * G * h_dot_pq.data
+                
+                h1_tilde_st = h1_tilde.copy()
+                h1_tilde_st.data -= st_correction
+                self_modes_tilde_st[(l,m)] = h1_tilde_st
+
+            for l, m in common_modes:
+                h1_tilde = self_modes_tilde_st[(l, m)]
+                h2_mode_ts = other_rot.get_mode(l, m, to_pycbc=True, delta_t=1 / 4096)
+
+                # Align lengths
+                h2_mode_ts.resize(max_len)
+                h2_tilde = h2_mode_ts.to_frequencyseries(delta_f=delta_f)
+                
+                temp_psd = psd.copy()
+                temp_psd.resize(len(h1_tilde))
+
+                # Apply phase and time shifts to the second waveform
+                h2_tilde *= np.exp(-1j * m * phi_c)
+                h2_tilde.data *= np.exp(-2j * np.pi * freqs * time_shift)
+
+                df = delta_f
+                low_idx = int(f_lower / df) if f_lower else 0
+                high_idx = int(np.ceil(f_upper / df)) if f_upper else len(temp_psd)
+
+                h1 = h1_tilde.data[low_idx:high_idx]
+                h2 = h2_tilde.data[low_idx:high_idx]
+                psd_vals = temp_psd.data[low_idx:high_idx]
+                psd_vals[np.isinf(psd_vals)] = 1.0
+
+                total_norm1_sq += 4 * df * np.sum((np.abs(h1) ** 2) / psd_vals)
+                total_norm2_sq += 4 * df * np.sum((np.abs(h2) ** 2) / psd_vals)
+                total_inner_prod += 4 * df * np.sum((h1 * np.conj(h2)) / psd_vals)
+
+            if total_norm1_sq == 0 or total_norm2_sq == 0:
+                return 1.0
+
+            overlap = np.abs(total_inner_prod) / np.sqrt(
+                total_norm1_sq * total_norm2_sq
+            )
+
+            return 1.0 - overlap
+
+        x0 = [0.0] * (5 + len(alpha_jk_indices))
+        result = minimize(objective_function, x0, method="Nelder-Mead")
+
+        return 1.0 - result.fun
 
 
 def interpolate_in_amp_phase(obj, new_time, k=3, kind=None):
