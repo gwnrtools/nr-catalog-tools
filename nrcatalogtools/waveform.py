@@ -31,7 +31,7 @@ from sxs.waveforms.format_handlers.nrar import (
 ELL_MIN, ELL_MAX = 2, 10
 
 
-class WaveformModes(sxs_WaveformModes):
+class WaveformModes(sxs_WaveformModes): 
     def __new__(
         cls,
         data,
@@ -494,33 +494,22 @@ class WaveformModes(sxs_WaveformModes):
             m_secs = utils.time_to_physical(total_mass)
             new_time = np.arange(min(self.time), max(self.time), delta_t / m_secs)
 
-        h = self.interpolate(new_time)
+        # --- OPTIMIZATION: Interpolate only the requested mode ---
+        mode_data = self.data[:, self.index_from_ell_m(ell, em)]
+        mode_ts = sxs_TimeSeries(mode_data, time=self.time)
+        interpolated_mode_ts = mode_ts.interpolate(new_time)
 
-        h_mode = h.get_mode_data(ell, em)
-        h_mode[:, 1:] *= utils.amp_to_physical(total_mass, distance)
-        h_mode[:, 0] *= m_secs
+        h_mode_complex = interpolated_mode_ts.data
+        h_mode_complex *= utils.amp_to_physical(total_mass, distance)
 
-        # Find peak of 22-mode
-        h_mode22 = h.get_mode_data(2, 2)
-        h_mode22[:, 0] *= m_secs
-
-        from scipy.interpolate import InterpolatedUnivariateSpline
-
-        x_axis = h_mode22[:, 0]
-        y_axis = (h_mode22[:, 1] ** 2 + h_mode22[:, 2] ** 2) ** 0.5
-
-        f = InterpolatedUnivariateSpline(x_axis, y_axis, k=4)
-        cr_pts = f.derivative().roots()
-        cr_pts = np.append(
-            cr_pts, (x_axis[0], x_axis[-1])
-        )  # also check the endpoints of the interval
-        cr_vals = f(cr_pts)
-        max_index = np.argmax(cr_vals)
-
-        epoch = h_mode[0, 0] - cr_pts[max_index]
+        # --- OPTIMIZATION: Use cached peak time of (2,2) mode to set epoch ---
+        # The epoch is set to shift the time axis so that the peak is at t=0
+        peak_time_sec = self.peak_time_22 * m_secs
+        start_time_sec = new_time[0] * m_secs
+        epoch = start_time_sec - peak_time_sec
 
         retval = self.to_pycbc(
-            input_array=h_mode[:, 1] + 1j * h_mode[:, 2],
+            input_array=h_mode_complex,
             delta_t=delta_t,
             epoch=epoch,
         )
@@ -828,6 +817,40 @@ class WaveformModes(sxs_WaveformModes):
             self._compute_reference_time()
 
         return self._t_ref_nr
+
+    @property
+    def peak_time_22(self):
+        """Computes and caches the dimensionless time of the peak amplitude
+        of the (2, 2) mode."""
+        if hasattr(self, "_peak_time_22"):
+            return self._peak_time_22
+
+        from scipy.interpolate import InterpolatedUnivariateSpline
+
+        # Use the raw (non-interpolated) data of the object
+        try:
+            mode22_idx = self.index_from_ell_m(2, 2)
+        except ValueError:
+            # Fallback if 2,2 mode is not present, though it is standard.
+            self._peak_time_22 = 0.0
+            return self._peak_time_22
+
+        mode22_data = self.data[:, mode22_idx]
+        amp22 = np.abs(mode22_data)
+
+        # Find the peak of the amplitude vs. time
+        x_axis = self.time
+        y_axis = amp22
+
+        f = InterpolatedUnivariateSpline(x_axis, y_axis, k=4)
+        cr_pts = f.derivative().roots()
+        # also check the endpoints of the interval
+        cr_pts = np.append(cr_pts, (x_axis[0], x_axis[-1]))
+        cr_vals = f(cr_pts)
+        max_index = np.argmax(cr_vals)
+
+        self._peak_time_22 = cr_pts[max_index]
+        return self._peak_time_22
 
     def rotated(self, R):
         """
