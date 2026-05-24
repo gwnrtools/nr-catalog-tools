@@ -1,0 +1,2200 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A unified Python interface to NR binary black-hole waveform catalogs">
+      
+      
+      
+        <link rel="canonical" href="https://gwnrtools.github.io/nr-catalog-tools/package/">
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../goal/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Package Internals - nr-catalog-tools</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#nr-catalog-tools-package-overview" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="nr-catalog-tools" class="md-header__button md-logo" aria-label="nr-catalog-tools" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            nr-catalog-tools
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Package Internals
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gwnrtools/nr-catalog-tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gwnrtools/nr-catalog-tools
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../catalogs/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Catalog Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../waveform/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  WaveformModes API
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Package Internals
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../goal/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Scientific Goal
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="nr-catalog-tools" class="md-nav__button md-logo" aria-label="nr-catalog-tools" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    nr-catalog-tools
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gwnrtools/nr-catalog-tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gwnrtools/nr-catalog-tools
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catalog Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../waveform/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WaveformModes API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Internals
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Internals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-scientific-purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Scientific Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-module-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Module Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-class-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Class Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-catalog-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Catalog Classes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Catalog Classes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-catalogbase-catalogpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 CatalogBase (catalog.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-ritcatalog-ritpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 RITCatalog (rit.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-sxscatalog-sxspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 SXSCatalog (sxs.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-mayacatalog-mayapy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 MayaCatalog (maya.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-waveformmodes-waveformpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. WaveformModes (waveform.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. WaveformModes (waveform.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Construction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-key-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Key Properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-core-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Core Methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5.3 Core Methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get_mode_dataell-em" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_mode_data(ell, em)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_modeell-em-total_mass-distance-delta_t-to_pycbctrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_mode(ell, em, total_mass, distance, delta_t, to_pycbc=True)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f_lower_at_1msuntnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_lower_at_1Msun(t=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_td_waveformtotal_mass-distance-inclination-coa_phase-delta_t" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_td_waveform(total_mass, distance, inclination, coa_phase, delta_t)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trim_to_relaxation_timetotal_mass-convenience" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trim_to_relaxation_time(total_mass) (convenience)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f_lower_at_relaxationtotal_mass-convenience" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_lower_at_relaxation(total_mass) (convenience)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#match_sphere_averagedother-psd-f_lower-delta_t" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        match_sphere_averaged(other, psd, f_lower, delta_t, ...)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#match_sphere_averaged_bms_maximized" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        match_sphere_averaged_bms_maximized(...)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-rotation-methods-inherited-from-sxswaveformmodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Rotation Methods (inherited from sxs.WaveformModes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-unit-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Unit Conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-metadata-normalization-metadatapy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Metadata Normalization (metadata.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-cache-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Cache Layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-key-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Key Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-common-usage-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Common Usage Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Common Usage Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#load-all-three-catalogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load all three catalogs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#find-q1-non-spinning-simulations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Find q=1, non-spinning simulations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#load-a-waveform-and-get-the-22-mode-in-physical-units" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load a waveform and get the (2,2) mode in physical units
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-pycbc-compatible-source-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get PyCBC-compatible source parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-the-starting-gw-frequency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get the starting GW frequency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-known-design-decisions-and-gotchas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Known Design Decisions and Gotchas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Known Design Decisions and Gotchas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sxs-path-resolution-is-lazy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SXS path resolution is lazy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#waveformmodes_filepath-is-a-per-instance-attribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WaveformModes._filepath is a per-instance attribute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sxs-memoryview-numpy-wrapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sxs memoryview → numpy wrapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sxs-api-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sxs API version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metadata-key-naming-across-catalogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata key naming across catalogs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check_interp_req-call-signature-lvcpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        check_interp_req call signature (lvc.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarization-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Polarization convention
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../goal/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Goal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-scientific-purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Scientific Purpose
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-module-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Module Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-class-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Class Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-catalog-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Catalog Classes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Catalog Classes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-catalogbase-catalogpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 CatalogBase (catalog.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-ritcatalog-ritpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 RITCatalog (rit.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-sxscatalog-sxspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 SXSCatalog (sxs.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-mayacatalog-mayapy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 MayaCatalog (maya.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-waveformmodes-waveformpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. WaveformModes (waveform.py)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. WaveformModes (waveform.py)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Construction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-key-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Key Properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-core-methods" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Core Methods
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5.3 Core Methods">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#get_mode_dataell-em" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_mode_data(ell, em)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_modeell-em-total_mass-distance-delta_t-to_pycbctrue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_mode(ell, em, total_mass, distance, delta_t, to_pycbc=True)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f_lower_at_1msuntnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_lower_at_1Msun(t=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get_td_waveformtotal_mass-distance-inclination-coa_phase-delta_t" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_td_waveform(total_mass, distance, inclination, coa_phase, delta_t)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trim_to_relaxation_timetotal_mass-convenience" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        trim_to_relaxation_time(total_mass) (convenience)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#f_lower_at_relaxationtotal_mass-convenience" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        f_lower_at_relaxation(total_mass) (convenience)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#match_sphere_averagedother-psd-f_lower-delta_t" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        match_sphere_averaged(other, psd, f_lower, delta_t, ...)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#match_sphere_averaged_bms_maximized" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        match_sphere_averaged_bms_maximized(...)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-rotation-methods-inherited-from-sxswaveformmodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Rotation Methods (inherited from sxs.WaveformModes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-unit-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Unit Conventions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-metadata-normalization-metadatapy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Metadata Normalization (metadata.py)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-cache-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Cache Layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-key-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Key Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-common-usage-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Common Usage Patterns
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Common Usage Patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#load-all-three-catalogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load all three catalogs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#find-q1-non-spinning-simulations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Find q=1, non-spinning simulations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#load-a-waveform-and-get-the-22-mode-in-physical-units" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Load a waveform and get the (2,2) mode in physical units
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-pycbc-compatible-source-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get PyCBC-compatible source parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#get-the-starting-gw-frequency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get the starting GW frequency
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-known-design-decisions-and-gotchas" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Known Design Decisions and Gotchas
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Known Design Decisions and Gotchas">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sxs-path-resolution-is-lazy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SXS path resolution is lazy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#waveformmodes_filepath-is-a-per-instance-attribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WaveformModes._filepath is a per-instance attribute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sxs-memoryview-numpy-wrapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sxs memoryview → numpy wrapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sxs-api-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        sxs API version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#metadata-key-naming-across-catalogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata key naming across catalogs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#check_interp_req-call-signature-lvcpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        check_interp_req call signature (lvc.py)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polarization-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Polarization convention
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="nr-catalog-tools-package-overview">nr-catalog-tools: Package Overview<a class="headerlink" href="#nr-catalog-tools-package-overview" title="Permanent link">&para;</a></h1>
+<h2 id="1-scientific-purpose">1. Scientific Purpose<a class="headerlink" href="#1-scientific-purpose" title="Permanent link">&para;</a></h2>
+<p><code>nr-catalog-tools</code> provides a <strong>unified Python interface</strong> to three publicly available numerical-relativity (NR) binary black-hole (BBH) waveform catalogs:</p>
+<table>
+<thead>
+<tr>
+<th>Catalog</th>
+<th>Code</th>
+<th>Naming convention</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>SXS</strong></td>
+<td>SpEC (Spectral Einstein Code)</td>
+<td><code>SXS:BBH:0001</code>, <code>SXS:BBH:0002</code>, …</td>
+</tr>
+<tr>
+<td><strong>RIT</strong></td>
+<td>LazEv</td>
+<td><code>RIT:BBH:0001-n100-id3</code>, <code>RIT:eBBH:1843-n100-ecc</code>, …</td>
+</tr>
+<tr>
+<td><strong>MAYA/GT</strong></td>
+<td>MayaKranc</td>
+<td><code>GT0001</code>, <code>GT0355</code>, …</td>
+</tr>
+</tbody>
+</table>
+<p>The scientific goal (documented in <a href="../goal/">goal.md</a>) is to enable large-scale cross-catalog comparison of BBH waveforms via noise-weighted inner products (matches), maximized over source-frame ambiguities — rotations <span class="arithmatex">\(R \in SO(3)\)</span>, time translations <span class="arithmatex">\(t_c\)</span>, phase offsets <span class="arithmatex">\(\phi_c\)</span>, and BMS supertranslations. The package is the data-loading and preprocessing layer for this analysis pipeline.</p>
+<hr />
+<h2 id="2-module-structure">2. Module Structure<a class="headerlink" href="#2-module-structure" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>nrcatalogtools/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── __init__.py        # Public exports: MayaCatalog, RITCatalog, SXSCatalog,
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│                      #   WaveformModes, apply_wigner_rotation_to_mode_dict
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>├── catalog.py         # Abstract base class CatalogABC + CatalogBase
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>├── rit.py             # RITCatalog + RITCatalogHelper
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>├── sxs.py             # SXSCatalog
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>├── maya.py            # MayaCatalog
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>├── waveform.py        # WaveformModes (core waveform object)
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>├── metadata.py        # get_source_parameters_from_metadata()
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>├── lvc.py             # Frame rotation helpers (check_interp_req,
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│                      #   get_nr_to_lal_rotation_angles, get_ref_vals)
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>└── utils.py           # Cache paths, download helpers, unit-conversion factors
+</code></pre></div>
+<hr />
+<h2 id="3-class-hierarchy">3. Class Hierarchy<a class="headerlink" href="#3-class-hierarchy" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>sxs.Catalog  (from the sxs package)
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    └── CatalogBase  (nrcatalogtools/catalog.py)
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>            ├── RITCatalog   (nrcatalogtools/rit.py)
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>            ├── SXSCatalog   (nrcatalogtools/sxs.py)
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>            └── MayaCatalog  (nrcatalogtools/maya.py)
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>sxs.WaveformModes  (from the sxs package)
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    └── WaveformModes  (nrcatalogtools/waveform.py)
+</code></pre></div>
+<p><code>CatalogBase</code> inherits from <code>sxs.Catalog</code>, which stores all simulation metadata in <code>self._dict["simulations"]</code> — a plain <code>dict</code> keyed by simulation name, where each value is another <code>dict</code> of metadata fields.</p>
+<p><code>WaveformModes</code> inherits from <code>sxs.WaveformModes</code>, which is itself an ndarray-like object storing complex mode data with shape <code>(n_times, n_modes)</code>.</p>
+<hr />
+<h2 id="4-catalog-classes">4. Catalog Classes<a class="headerlink" href="#4-catalog-classes" title="Permanent link">&para;</a></h2>
+<h3 id="41-catalogbase-catalogpy">4.1 <code>CatalogBase</code> (<code>catalog.py</code>)<a class="headerlink" href="#41-catalogbase-catalogpy" title="Permanent link">&para;</a></h3>
+<p>The shared interface that all three catalog classes implement. Key methods:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>load(download=None, ...)</code></td>
+<td>Class method. Load catalog metadata (from cache or web). Returns catalog instance.</td>
+</tr>
+<tr>
+<td><code>get(sim_name, quantity='waveform')</code></td>
+<td>Load waveform or psi4 data for one simulation. Returns <code>WaveformModes</code>.</td>
+</tr>
+<tr>
+<td><code>get_metadata(sim_name)</code></td>
+<td>Return simulation metadata as a <code>dict</code>.</td>
+</tr>
+<tr>
+<td><code>get_parameters(sim_name, total_mass=1.0)</code></td>
+<td>Return PyCBC-compatible intrinsic parameter dict (masses, spins, <code>f_lower</code>).</td>
+</tr>
+<tr>
+<td><code>simulations_list</code></td>
+<td>List of all simulation names.</td>
+</tr>
+<tr>
+<td><code>simulations_dataframe</code></td>
+<td>Pandas DataFrame indexed by simulation name.</td>
+</tr>
+<tr>
+<td><code>waveform_filepath_from_simname(sim_name)</code></td>
+<td>Local cache path to the waveform HDF5 file.</td>
+</tr>
+<tr>
+<td><code>download_waveform_data(sim_name)</code></td>
+<td>Download waveform data to local cache.</td>
+</tr>
+<tr>
+<td><code>psi4_filepath_from_simname(sim_name)</code></td>
+<td>Local cache path to psi4 data.</td>
+</tr>
+<tr>
+<td><code>download_psi4_data(sim_name)</code></td>
+<td>Download psi4 data to local cache.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>get()</code> method in <code>CatalogBase</code> handles download-on-demand logic: it checks whether the local file exists, downloads if needed, then calls <code>WaveformModes.load_from_h5()</code>. <strong>SXSCatalog overrides <code>get()</code></strong> entirely because SXS data access goes through the <code>sxs</code> package's own download and caching infrastructure, not through local HDF5 files.</p>
+<h3 id="42-ritcatalog-ritpy">4.2 <code>RITCatalog</code> (<code>rit.py</code>)<a class="headerlink" href="#42-ritcatalog-ritpy" title="Permanent link">&para;</a></h3>
+<p><strong>Metadata source:</strong> Scraped from <code>https://ccrgpages.rit.edu/~RITCatalog/Metadata/</code>. Text files (<code>.txt</code>) with <code>key = value</code> lines. Cached as <code>~/.cache/RIT/metadata/metadata.csv</code>.</p>
+<p><strong>Waveform files:</strong> HDF5 files, e.g. <code>ExtrapStrain_RIT-BBH-0001-n100.h5</code>, hosted at <code>https://ccrgpages.rit.edu/~RITCatalog/Data/</code>. The HDF5 format uses datasets named <code>amp_l{ell}_m{em}</code> and <code>phase_l{ell}_m{em}</code>, each with sub-datasets <code>X</code> (time) and <code>Y</code> (amplitude or phase).</p>
+<p><strong>Psi4 files:</strong> Tar-gzip archives, e.g. <code>ExtrapPsi4_RIT-BBH-0001-n100-id3.tar.gz</code>. Loaded via <code>WaveformModes.load_from_targz()</code>.</p>
+<p><strong>Loading pattern:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">ritcat</span> <span class="o">=</span> <span class="n">nrcat</span><span class="o">.</span><span class="n">RITCatalog</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>   <span class="c1"># loads metadata.csv from cache</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">wfm</span> <span class="o">=</span> <span class="n">ritcat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;RIT:BBH:0001-n100-id3&quot;</span><span class="p">,</span> <span class="n">quantity</span><span class="o">=</span><span class="s2">&quot;waveform&quot;</span><span class="p">)</span>
+</code></pre></div></p>
+<p><strong>Key metadata column names</strong> (DataFrame columns use hyphens):</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Column name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mass ratio <span class="arithmatex">\(m_1/m_2\)</span></td>
+<td><code>relaxed-mass-ratio-1-over-2</code></td>
+</tr>
+<tr>
+<td>Spin <span class="arithmatex">\(\chi_1\)</span> (x component)</td>
+<td><code>relaxed-chi1x</code></td>
+</tr>
+<tr>
+<td>Spin <span class="arithmatex">\(\chi_1\)</span> (y component)</td>
+<td><code>relaxed-chi1y</code></td>
+</tr>
+<tr>
+<td>Spin <span class="arithmatex">\(\chi_1\)</span> (z component)</td>
+<td><code>relaxed-chi1z</code></td>
+</tr>
+<tr>
+<td>Spin <span class="arithmatex">\(\chi_2\)</span> (x,y,z)</td>
+<td><code>relaxed-chi2x</code>, <code>relaxed-chi2y</code>, <code>relaxed-chi2z</code></td>
+</tr>
+<tr>
+<td>Eccentricity</td>
+<td><code>eccentricity</code></td>
+</tr>
+<tr>
+<td>Relaxation time (dimless M)</td>
+<td><code>relaxed-time</code></td>
+</tr>
+<tr>
+<td>Initial GW frequency (dimless)</td>
+<td><code>freq-start-22</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> The <code>metadata.py</code> parser normalises hyphenated keys to underscored keys (e.g. <code>relaxed_mass_ratio_1_over_2</code>) when building the PyCBC parameter dict.</p>
+<p><strong>Helper class:</strong> <code>RITCatalogHelper</code> handles all web-crawling, file naming, caching, and download logic. The naming conventions for RIT files are encoded in <code>utils.rit_catalog_info</code>.</p>
+<h3 id="43-sxscatalog-sxspy">4.3 <code>SXSCatalog</code> (<code>sxs.py</code>)<a class="headerlink" href="#43-sxscatalog-sxspy" title="Permanent link">&para;</a></h3>
+<p><strong>Metadata source:</strong> Loaded via <code>sxs.load("catalog", download=None)</code> (sxs package ≥ 2025.0.0), which fetches from the Simulations directory on Zenodo.</p>
+<p><strong>Waveform files:</strong> Managed entirely by the <code>sxs</code> package (Zenodo-backed). Accessed via <code>sxs.load(sim_name, auto_supersede=True)</code> which returns a <code>Simulation</code> object; <code>.strain</code> gives the <code>sxs.WaveformModes</code>.</p>
+<p><strong>Loading pattern:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">sxscat</span> <span class="o">=</span> <span class="n">nrcat</span><span class="o">.</span><span class="n">SXSCatalog</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">download</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">wfm</span> <span class="o">=</span> <span class="n">sxscat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SXS:BBH:0001&quot;</span><span class="p">)</span>     <span class="c1"># uses sxs.load() internally</span>
+</code></pre></div></p>
+<p><strong>Key metadata column names</strong> (underscores):</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Column name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mass ratio</td>
+<td><code>reference_mass_ratio</code></td>
+</tr>
+<tr>
+<td>Spin <span class="arithmatex">\(\chi_1\)</span> vector</td>
+<td><code>reference_dimensionless_spin1</code> (3-element list)</td>
+</tr>
+<tr>
+<td>Spin <span class="arithmatex">\(\chi_2\)</span> vector</td>
+<td><code>reference_dimensionless_spin2</code> (3-element list)</td>
+</tr>
+<tr>
+<td>Spin <span class="arithmatex">\(\chi_1\)</span> magnitude</td>
+<td><code>reference_chi1_mag</code></td>
+</tr>
+<tr>
+<td>Spin <span class="arithmatex">\(\chi_2\)</span> magnitude</td>
+<td><code>reference_chi2_mag</code></td>
+</tr>
+<tr>
+<td>Orbital frequency</td>
+<td><code>reference_orbital_frequency</code> (3-vector)</td>
+</tr>
+<tr>
+<td>Reference time (dimless)</td>
+<td><code>reference_time</code></td>
+</tr>
+<tr>
+<td>Relaxation time (dimless)</td>
+<td><code>relaxation_time</code></td>
+</tr>
+<tr>
+<td>Eccentricity</td>
+<td><code>reference_eccentricity</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Important design note:</strong> <code>_add_paths_to_metadata()</code> in <code>SXSCatalog</code> uses <strong>lazy stub strings</strong> (empty strings) for all path columns (<code>waveform_data_location</code>, <code>metadata_location</code>, etc.) because resolving real paths requires calling <code>sxs.load(sim_name)</code> per simulation, which would trigger ~2000 downloads. Paths are resolved on demand via the <code>sxs</code> package when <code>get()</code> is called.</p>
+<p><strong>API difference:</strong> <code>SXSCatalog.get()</code> does not call <code>WaveformModes.load_from_h5()</code>; it calls <code>sxs.load(sim_name, auto_supersede=True)</code> to get the simulation object, then accesses <code>.strain</code> to get the <code>sxs.WaveformModes</code>, and wraps it into a <code>nrcatalogtools.WaveformModes</code>.</p>
+<h3 id="44-mayacatalog-mayapy">4.4 <code>MayaCatalog</code> (<code>maya.py</code>)<a class="headerlink" href="#44-mayacatalog-mayapy" title="Permanent link">&para;</a></h3>
+<p><strong>Metadata source:</strong> A pickle file (<code>MAYAmetadata.pkl</code>) downloaded from <code>https://cgpstorage.ph.utexas.edu/</code>. Cached locally at <code>~/.cache/MAYA/catalog.zip</code>.</p>
+<p><strong>Waveform files:</strong> Loaded via the <code>mayawaves</code> package (<code>maya_coalescence.Coalescence</code>).</p>
+<p><strong>Loading pattern:</strong>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">mayacat</span> <span class="o">=</span> <span class="n">nrcat</span><span class="o">.</span><span class="n">MayaCatalog</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">wfm</span> <span class="o">=</span> <span class="n">mayacat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;GT0001&quot;</span><span class="p">,</span> <span class="n">quantity</span><span class="o">=</span><span class="s2">&quot;waveform&quot;</span><span class="p">)</span>
+</code></pre></div></p>
+<p><strong>Key metadata column names:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Column name</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mass ratio <span class="arithmatex">\(m_1/m_2\)</span></td>
+<td><code>q</code></td>
+</tr>
+<tr>
+<td>Spin <span class="arithmatex">\(\chi_1\)</span> (x,y,z)</td>
+<td><code>a1x</code>, <code>a1y</code>, <code>a1z</code></td>
+</tr>
+<tr>
+<td>Spin <span class="arithmatex">\(\chi_2\)</span> (x,y,z)</td>
+<td><code>a2x</code>, <code>a2y</code>, <code>a2z</code></td>
+</tr>
+<tr>
+<td>Eccentricity</td>
+<td><code>eccentricity</code></td>
+</tr>
+<tr>
+<td>Orbital frequency <span class="arithmatex">\(M\Omega\)</span></td>
+<td><code>Momega</code></td>
+</tr>
+<tr>
+<td>GT simulation ID</td>
+<td><code>GTID</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5-waveformmodes-waveformpy">5. <code>WaveformModes</code> (<code>waveform.py</code>)<a class="headerlink" href="#5-waveformmodes-waveformpy" title="Permanent link">&para;</a></h2>
+<p>The central data object. Inherits from <code>sxs.WaveformModes</code>, which in turn is an ndarray subclass. The internal data array has shape <code>(n_times, n_modes)</code> with complex dtype.</p>
+<h3 id="51-construction">5.1 Construction<a class="headerlink" href="#51-construction" title="Permanent link">&para;</a></h3>
+<p>Three construction paths:</p>
+<ol>
+<li>
+<p><strong>From HDF5</strong> (RIT/MAYA waveform files):
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">WaveformModes</span><span class="o">.</span><span class="n">load_from_h5</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata_dict</span><span class="p">)</span>
+</code></pre></div>
+   Reads <code>amp_l{ell}_m{em}</code> + <code>phase_l{ell}_m{em}</code> datasets, interpolates all modes onto a common uniform time grid, builds complex data array.</p>
+</li>
+<li>
+<p><strong>From tar.gz</strong> (RIT psi4 files):
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">WaveformModes</span><span class="o">.</span><span class="n">load_from_targz</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata_dict</span><span class="p">)</span>
+</code></pre></div>
+   Reads ASCII <code>.asc</code>/<code>.dat</code>/<code>.txt</code> files inside the archive, each containing <code>(time, real, imag)</code> columns.</p>
+</li>
+<li>
+<p><strong>From sxs.WaveformModes</strong> (SXS catalog):
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">WaveformModes</span><span class="p">(</span><span class="n">raw_obj</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">raw_obj</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">sim_metadata</span><span class="o">=...</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="p">)</span>
+</code></pre></div>
+   Wraps the sxs native object directly; used in <code>SXSCatalog.get()</code>.</p>
+</li>
+</ol>
+<h3 id="52-key-properties">5.2 Key Properties<a class="headerlink" href="#52-key-properties" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>time</code></td>
+<td>1-D array of dimensionless NR times (in units of <span class="arithmatex">\(GM/c^3\)</span>)</td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td>Complex 2-D array, shape <code>(n_times, n_modes)</code></td>
+</tr>
+<tr>
+<td><code>LM</code></td>
+<td>List of <code>[ell, m]</code> pairs for each column in <code>data</code></td>
+</tr>
+<tr>
+<td><code>ell_min</code>, <code>ell_max</code></td>
+<td>Minimum and maximum <span class="arithmatex">\(\ell\)</span> values present</td>
+</tr>
+<tr>
+<td><code>filepath</code></td>
+<td>Path to the source data file</td>
+</tr>
+<tr>
+<td><code>sim_metadata</code></td>
+<td>The raw metadata dict (catalog-specific keys)</td>
+</tr>
+<tr>
+<td><code>metadata</code></td>
+<td>Alias for <code>sim_metadata</code></td>
+</tr>
+<tr>
+<td><code>peak_time_22</code></td>
+<td>Dimensionless time of peak <code>|(2,2)| mode amplitude</code> (cached)</td>
+</tr>
+<tr>
+<td><code>label</code></td>
+<td>LaTeX string summarizing <span class="arithmatex">\(q\)</span>, <span class="arithmatex">\(\chi_1\)</span>, <span class="arithmatex">\(\chi_2\)</span> (catalog-agnostic)</td>
+</tr>
+<tr>
+<td><code>label_nolatex</code></td>
+<td>Plain-text version of the same label</td>
+</tr>
+</tbody>
+</table>
+<h3 id="53-core-methods">5.3 Core Methods<a class="headerlink" href="#53-core-methods" title="Permanent link">&para;</a></h3>
+<h4 id="get_mode_dataell-em"><code>get_mode_data(ell, em)</code><a class="headerlink" href="#get_mode_dataell-em" title="Permanent link">&para;</a></h4>
+<p>Returns the raw NR data for mode <code>(ell, em)</code> as a 2-column real array <code>[:, 0]</code> = real part, <code>[:, 1]</code> = imaginary part, in dimensionless units. Uses <code>sxs.WaveformModes.index(ell, em)</code> to locate the column.</p>
+<h4 id="get_modeell-em-total_mass-distance-delta_t-to_pycbctrue"><code>get_mode(ell, em, total_mass, distance, delta_t, to_pycbc=True)</code><a class="headerlink" href="#get_modeell-em-total_mass-distance-delta_t-to_pycbctrue" title="Permanent link">&para;</a></h4>
+<p>The primary method for retrieving a physically-scaled mode. Returns a PyCBC <code>TimeSeries</code> (complex) with:
+- <strong>Amplitude</strong> scaled by <span class="arithmatex">\(G M_\mathrm{tot} / (c^2 \cdot d)\)</span> where <span class="arithmatex">\(d\)</span> is in Mpc
+- <strong>Time</strong> resampled to <code>delta_t</code> (see convention below)
+- <strong>Epoch</strong> set so that <span class="arithmatex">\(t = 0\)</span> coincides with the peak of the <span class="arithmatex">\((2,2)\)</span> mode</p>
+<p><strong><code>delta_t</code> convention:</strong>
+- <code>delta_t &gt; 1/128</code> → interpreted as <strong>dimensionless M units</strong> (NR native; e.g. <code>0.5</code> means <span class="arithmatex">\(0.5\,GM/c^3\)</span>)
+- <code>delta_t ≤ 1/128</code> → interpreted as <strong>physical seconds</strong> (e.g. <code>1/4096</code> for detector-band data)</p>
+<p>The returned <code>TimeSeries.delta_t</code> is <strong>always in physical seconds</strong>.</p>
+<h4 id="f_lower_at_1msuntnone"><code>f_lower_at_1Msun(t=None)</code><a class="headerlink" href="#f_lower_at_1msuntnone" title="Permanent link">&para;</a></h4>
+<p>Returns the instantaneous GW frequency of the (2,2) mode, in Hz, <strong>scaled to a 1 M☉ system</strong>. The argument <code>t</code> must be in <strong>dimensionless M units</strong> (same grid as <code>self.time</code>). To get physical Hz:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">f_hz</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">f_lower_at_1Msun</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">t_dimless</span><span class="p">)</span> <span class="o">/</span> <span class="n">total_mass_msun</span>
+</code></pre></div>
+If <code>t=None</code>, returns the frequency at the start of the waveform.</p>
+<h4 id="get_td_waveformtotal_mass-distance-inclination-coa_phase-delta_t"><code>get_td_waveform(total_mass, distance, inclination, coa_phase, delta_t)</code><a class="headerlink" href="#get_td_waveformtotal_mass-distance-inclination-coa_phase-delta_t" title="Permanent link">&para;</a></h4>
+<p>Returns the sky-averaged strain <span class="arithmatex">\(h_+ - ih_\times\)</span> evaluated at the given inclination and coalescence phase, summed over all modes. Returns a complex PyCBC <code>TimeSeries</code>; <code>.real()</code> gives <span class="arithmatex">\(h_+\)</span>, <code>.imag()</code> gives <span class="arithmatex">\(h_\times\)</span>.</p>
+<p><strong>Polarization convention:</strong> The function returns <code>conjugate(h)</code> to align with LAL conventions, meaning <code>real() = h_+</code> and <code>imag() = +h_\times</code> (note: LAL defines <code>imag() = -h_\times</code>; the conjugation effectively flips the sign).</p>
+<h4 id="trim_to_relaxation_timetotal_mass-convenience"><code>trim_to_relaxation_time(total_mass)</code> (convenience)<a class="headerlink" href="#trim_to_relaxation_timetotal_mass-convenience" title="Permanent link">&para;</a></h4>
+<p>Returns a slice of the waveform starting from the relaxation epoch. Reads <code>t_relax</code> from metadata (tries keys <code>'relaxed-time'</code>, <code>'relaxation_time'</code>, <code>'reference_time'</code>).</p>
+<h4 id="f_lower_at_relaxationtotal_mass-convenience"><code>f_lower_at_relaxation(total_mass)</code> (convenience)<a class="headerlink" href="#f_lower_at_relaxationtotal_mass-convenience" title="Permanent link">&para;</a></h4>
+<p>Returns the GW frequency (Hz) at the relaxation time for the given total mass.</p>
+<h4 id="match_sphere_averagedother-psd-f_lower-delta_t"><code>match_sphere_averaged(other, psd, f_lower, delta_t, ...)</code><a class="headerlink" href="#match_sphere_averagedother-psd-f_lower-delta_t" title="Permanent link">&para;</a></h4>
+<p>Compute the sky-averaged match between two <code>WaveformModes</code> objects. Optimizes over time shift, coalescence phase, and source-frame rotation <span class="arithmatex">\(R \in SO(3)\)</span> (parameterized by Euler angles <span class="arithmatex">\(\alpha, \beta\)</span>).</p>
+<h4 id="match_sphere_averaged_bms_maximized"><code>match_sphere_averaged_bms_maximized(...)</code><a class="headerlink" href="#match_sphere_averaged_bms_maximized" title="Permanent link">&para;</a></h4>
+<p>Extended version of the above that additionally optimizes over BMS supertranslations <span class="arithmatex">\(\alpha(\theta,\phi) = \sum_{jk} \alpha_{jk} Y_{jk}\)</span> up to <code>l_max_alpha</code>. Uses spin-weighted Gaunt coefficients from the <code>scri</code> package to compute mode mixing.</p>
+<h3 id="54-rotation-methods-inherited-from-sxswaveformmodes">5.4 Rotation Methods (inherited from <code>sxs.WaveformModes</code>)<a class="headerlink" href="#54-rotation-methods-inherited-from-sxswaveformmodes" title="Permanent link">&para;</a></h3>
+<p><code>WaveformModes.rotated(R)</code> — applies a Wigner D-matrix rotation. The standalone function <code>apply_wigner_rotation_to_mode_dict(mode_dict, R, ell_max)</code> applies the same transformation to a <code>dict</code> of PyCBC <code>TimeSeries</code> (as returned by <code>gwsurrogate</code> or <code>pycbc.waveform.get_td_waveform_modes</code>).</p>
+<hr />
+<h2 id="6-unit-conventions">6. Unit Conventions<a class="headerlink" href="#6-unit-conventions" title="Permanent link">&para;</a></h2>
+<p>All internally stored NR data is in <strong>geometrized, mass-scaled dimensionless units</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Quantity</th>
+<th>Dimensionless unit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Time</td>
+<td><span class="arithmatex">\(GM_\mathrm{tot}/c^3\)</span></td>
+</tr>
+<tr>
+<td>Amplitude (<span class="arithmatex">\(r\,h_{\ell m}\)</span>)</td>
+<td><span class="arithmatex">\(GM_\mathrm{tot}/c^2\)</span> (i.e. <span class="arithmatex">\(h_{\ell m}^{NR} = r\,c^2\,h_{\ell m} / (G M_\mathrm{tot})\)</span>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Conversion factors</strong> (from <code>utils.py</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="c1"># Physical time step for 1 sample at NR time step of 1 M</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">m_secs</span> <span class="o">=</span> <span class="n">total_mass</span> <span class="o">*</span> <span class="n">lal</span><span class="o">.</span><span class="n">MTSUN_SI</span>   <span class="c1"># utils.time_to_physical(total_mass)</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="c1"># Strain amplitude scaling factor</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="n">amp_scale</span> <span class="o">=</span> <span class="n">lal</span><span class="o">.</span><span class="n">G_SI</span> <span class="o">*</span> <span class="n">total_mass</span> <span class="o">*</span> <span class="n">lal</span><span class="o">.</span><span class="n">MSUN_SI</span> <span class="o">/</span> <span class="p">(</span><span class="n">lal</span><span class="o">.</span><span class="n">C_SI</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">distance_mpc</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="o">*</span> <span class="n">lal</span><span class="o">.</span><span class="n">PC_SI</span><span class="p">)</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="c1"># = utils.amp_to_physical(total_mass, distance_mpc)</span>
+</code></pre></div>
+<p><strong>Cross-catalog validation (q=1, chi=0, M=60 M☉, d=100 Mpc):</strong>
+All three catalogs agree to within ~0.75% on the peak amplitude of the <span class="arithmatex">\((2,2)\)</span> mode and ~0.5% on the accumulated orbital phase in the last 0.1 s before merger, confirming consistent scaling across catalogs.</p>
+<hr />
+<h2 id="7-metadata-normalization-metadatapy">7. Metadata Normalization (<code>metadata.py</code>)<a class="headerlink" href="#7-metadata-normalization-metadatapy" title="Permanent link">&para;</a></h2>
+<p><code>get_source_parameters_from_metadata(metadata, total_mass)</code> converts catalog-specific metadata into a PyCBC-compatible parameter dict. The catalog is identified by the presence of sentinel keys:</p>
+<table>
+<thead>
+<tr>
+<th>Key present</th>
+<th>Catalog</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>relaxed_mass1</code></td>
+<td>RIT</td>
+<td>reads <code>relaxed_mass_ratio_1_over_2</code>, <code>relaxed_chi1x</code>, …, <code>freq_start_22</code></td>
+</tr>
+<tr>
+<td><code>GTID</code></td>
+<td>MAYA/GT</td>
+<td>reads <code>q</code>, <code>a1x</code>/<code>a1y</code>/<code>a1z</code>, <code>a2x</code>/<code>a2y</code>/<code>a2z</code>, <code>Momega</code></td>
+</tr>
+<tr>
+<td><em>(none of above)</em></td>
+<td>SXS</td>
+<td>reads <code>reference_mass_ratio</code>, <code>reference_dimensionless_spin1/2</code>, <code>reference_orbital_frequency</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Spin key output:</strong> All three paths write spin components as <code>spin1x</code>, <code>spin1y</code>, <code>spin1z</code>, <code>spin2x</code>, <code>spin2y</code>, <code>spin2z</code> — compatible with PyCBC's <code>get_td_waveform_modes()</code>.</p>
+<p><strong>Initial frequency:</strong> Converted to physical Hz via:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>f_lower [Hz] = f_dimless / (total_mass [M☉] × lal.MTSUN_SI)
+</code></pre></div>
+For SXS, the magnitude of <code>reference_orbital_frequency</code> (a 3-vector) is used as <span class="arithmatex">\(M\Omega\)</span>; then <span class="arithmatex">\(f_{GW} = M\Omega / \pi\)</span>.</p>
+<hr />
+<h2 id="8-cache-layout">8. Cache Layout<a class="headerlink" href="#8-cache-layout" title="Permanent link">&para;</a></h2>
+<p>Controlled by the <code>NR_CATALOG_CACHE</code> environment variable (defaults to <code>~/.cache/</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>~/.cache/
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>├── RIT/
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>│   ├── metadata/
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>│   │   ├── metadata.csv          # aggregated DataFrame of all RIT sim metadata
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>│   │   └── RIT:BBH:0001-n100-id3_Metadata.txt   # individual files
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>│   └── data/
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>│       ├── ExtrapStrain_RIT-BBH-0001-n100.h5
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>│       └── ExtrapPsi4_RIT-BBH-0001-n100-id3.tar.gz
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>├── MAYA/
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>│   ├── metadata/
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>│   └── data/
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>│       └── catalog.zip           # zipped MAYAmetadata.pkl
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>└── SXS/
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>    └── (managed entirely by the sxs package; typically ~/.cache/sxs/)
+</code></pre></div>
+<hr />
+<h2 id="9-key-dependencies">9. Key Dependencies<a class="headerlink" href="#9-key-dependencies" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Package</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sxs</code> (≥ 2025.0.0)</td>
+<td>SXS catalog access, base classes (<code>sxs.Catalog</code>, <code>sxs.WaveformModes</code>)</td>
+</tr>
+<tr>
+<td><code>mayawaves</code></td>
+<td>MAYA coalescence loading</td>
+</tr>
+<tr>
+<td><code>pycbc</code></td>
+<td><code>TimeSeries</code>, <code>match()</code>, <code>get_td_waveform_modes()</code>, <code>pnutils</code></td>
+</tr>
+<tr>
+<td><code>lal</code> / <code>lalsimulation</code></td>
+<td>Physical constants (<code>MTSUN_SI</code>, <code>MSUN_SI</code>, <code>G_SI</code>, <code>C_SI</code>, <code>PC_SI</code>)</td>
+</tr>
+<tr>
+<td><code>h5py</code></td>
+<td>HDF5 file reading (RIT waveform files)</td>
+</tr>
+<tr>
+<td><code>quaternionic</code></td>
+<td>Quaternion representation of <span class="arithmatex">\(SO(3)\)</span> rotations</td>
+</tr>
+<tr>
+<td><code>spherical</code></td>
+<td>Wigner D-matrix computation</td>
+</tr>
+<tr>
+<td><code>scipy</code></td>
+<td><code>InterpolatedUnivariateSpline</code> for mode resampling</td>
+</tr>
+<tr>
+<td><code>scri</code></td>
+<td>Spin-weighted Gaunt coefficients (optional; needed for BMS optimization)</td>
+</tr>
+<tr>
+<td><code>gwsurrogate</code></td>
+<td>Surrogate model evaluation (used in analysis scripts, not the package itself)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="10-common-usage-patterns">10. Common Usage Patterns<a class="headerlink" href="#10-common-usage-patterns" title="Permanent link">&para;</a></h2>
+<h3 id="load-all-three-catalogs">Load all three catalogs<a class="headerlink" href="#load-all-three-catalogs" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">nrcatalogtools</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">nrcat</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">ritcat</span>  <span class="o">=</span> <span class="n">nrcat</span><span class="o">.</span><span class="n">RITCatalog</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">sxscat</span>  <span class="o">=</span> <span class="n">nrcat</span><span class="o">.</span><span class="n">SXSCatalog</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">download</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="n">mayacat</span> <span class="o">=</span> <span class="n">nrcat</span><span class="o">.</span><span class="n">MayaCatalog</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="find-q1-non-spinning-simulations">Find q=1, non-spinning simulations<a class="headerlink" href="#find-q1-non-spinning-simulations" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="n">df_rit</span>  <span class="o">=</span> <span class="n">ritcat</span><span class="o">.</span><span class="n">simulations_dataframe</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="n">df_sxs</span>  <span class="o">=</span> <span class="n">sxscat</span><span class="o">.</span><span class="n">simulations_dataframe</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="n">df_maya</span> <span class="o">=</span> <span class="n">mayacat</span><span class="o">.</span><span class="n">simulations_dataframe</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="c1"># RIT (hyphenated column names)</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="n">rit_q1</span> <span class="o">=</span> <span class="n">df_rit</span><span class="p">[(</span><span class="n">df_rit</span><span class="p">[</span><span class="s2">&quot;relaxed-mass-ratio-1-over-2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.02</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="c1"># SXS (underscore column names)</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="n">sxs_q1</span> <span class="o">=</span> <span class="n">df_sxs</span><span class="p">[(</span><span class="n">df_sxs</span><span class="p">[</span><span class="s2">&quot;reference_mass_ratio&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.02</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="c1"># MAYA</span>
+<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="n">maya_q1</span> <span class="o">=</span> <span class="n">df_maya</span><span class="p">[(</span><span class="n">df_maya</span><span class="p">[</span><span class="s2">&quot;q&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">float</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">&lt;</span> <span class="mf">0.02</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+</code></pre></div>
+<h3 id="load-a-waveform-and-get-the-22-mode-in-physical-units">Load a waveform and get the (2,2) mode in physical units<a class="headerlink" href="#load-a-waveform-and-get-the-22-mode-in-physical-units" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="n">TOTAL_MASS</span> <span class="o">=</span> <span class="mf">60.0</span>   <span class="c1"># M_sun</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">DISTANCE</span>   <span class="o">=</span> <span class="mf">100.0</span>  <span class="c1"># Mpc</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="n">DELTA_T</span>    <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="mi">4096</span>  <span class="c1"># seconds</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="c1"># RIT / MAYA</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="n">wfm</span> <span class="o">=</span> <span class="n">ritcat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;RIT:BBH:0001-n100-id3&quot;</span><span class="p">,</span> <span class="n">quantity</span><span class="o">=</span><span class="s2">&quot;waveform&quot;</span><span class="p">)</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="n">mode22</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">get_mode</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">total_mass</span><span class="o">=</span><span class="n">TOTAL_MASS</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">DISTANCE</span><span class="p">,</span> <span class="n">delta_t</span><span class="o">=</span><span class="n">DELTA_T</span><span class="p">)</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="c1"># mode22 is a complex PyCBC TimeSeries; epoch set so peak is at t=0</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="c1"># mode22.real() ≈ h_plus;  mode22.imag() ≈ h_cross</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="c1"># SXS (uses sxs.load internally)</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="n">wfm_sxs</span> <span class="o">=</span> <span class="n">sxscat</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;SXS:BBH:0001&quot;</span><span class="p">)</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="n">mode22_sxs</span> <span class="o">=</span> <span class="n">wfm_sxs</span><span class="o">.</span><span class="n">get_mode</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">total_mass</span><span class="o">=</span><span class="n">TOTAL_MASS</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="n">DISTANCE</span><span class="p">,</span> <span class="n">delta_t</span><span class="o">=</span><span class="n">DELTA_T</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="get-pycbc-compatible-source-parameters">Get PyCBC-compatible source parameters<a class="headerlink" href="#get-pycbc-compatible-source-parameters" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">params</span> <span class="o">=</span> <span class="n">ritcat</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">(</span><span class="s2">&quot;RIT:BBH:0001-n100-id3&quot;</span><span class="p">,</span> <span class="n">total_mass</span><span class="o">=</span><span class="mf">60.0</span><span class="p">)</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="c1"># Returns: {&#39;mass1&#39;: 30.0, &#39;mass2&#39;: 30.0, &#39;spin1x&#39;: 0.0, ..., &#39;f_lower&#39;: 23.4}</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># Compatible with pycbc.waveform.get_td_waveform_modes(**params)</span>
+</code></pre></div>
+<h3 id="get-the-starting-gw-frequency">Get the starting GW frequency<a class="headerlink" href="#get-the-starting-gw-frequency" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c1"># Frequency at the start of the NR data</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">f_start</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">f_lower_at_1Msun</span><span class="p">()</span> <span class="o">/</span> <span class="n">TOTAL_MASS</span>     <span class="c1"># Hz</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c1"># Frequency at the relaxation time</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="n">t_relax_dimless</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;relaxed-time&quot;</span><span class="p">]</span>   <span class="c1"># both in dimensionless M</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="n">f_relax</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">f_lower_at_1Msun</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">t_relax_dimless</span><span class="p">)</span> <span class="o">/</span> <span class="n">TOTAL_MASS</span>   <span class="c1"># Hz</span>
+</code></pre></div>
+<hr />
+<h2 id="11-known-design-decisions-and-gotchas">11. Known Design Decisions and Gotchas<a class="headerlink" href="#11-known-design-decisions-and-gotchas" title="Permanent link">&para;</a></h2>
+<h3 id="sxs-path-resolution-is-lazy">SXS path resolution is lazy<a class="headerlink" href="#sxs-path-resolution-is-lazy" title="Permanent link">&para;</a></h3>
+<p><code>SXSCatalog._add_paths_to_metadata()</code> sets all path columns to empty strings at catalog-load time, because resolving real on-disk paths requires calling <code>sxs.load(sim_name)</code> for every simulation which would trigger ~2000 network requests. Actual file access happens inside <code>SXSCatalog.get()</code> through the <code>sxs</code> package's own caching.</p>
+<h3 id="waveformmodes_filepath-is-a-per-instance-attribute"><code>WaveformModes._filepath</code> is a per-instance attribute<a class="headerlink" href="#waveformmodes_filepath-is-a-per-instance-attribute" title="Permanent link">&para;</a></h3>
+<p><code>_filepath</code> is extracted from <code>w_attributes</code> inside <code>__new__</code> before passing to the parent <code>sxs.WaveformModes</code> constructor. This prevents class-level attribute sharing where loading a second simulation would silently overwrite the first object's <code>_filepath</code>.</p>
+<h3 id="sxs-memoryview-numpy-wrapping">sxs memoryview → numpy wrapping<a class="headerlink" href="#sxs-memoryview-numpy-wrapping" title="Permanent link">&para;</a></h3>
+<p><code>sxs.WaveformModes.data</code> may return a memoryview rather than a writable numpy array. All arithmetic operations (especially in-place <code>*=</code>) must wrap the result with <code>np.array(..., dtype=complex)</code> first. The relevant locations are: <code>get_mode()</code> (mode_data, h_mode_complex) and <code>peak_time_22</code> (mode22_data).</p>
+<h3 id="sxs-api-version"><code>sxs</code> API version<a class="headerlink" href="#sxs-api-version" title="Permanent link">&para;</a></h3>
+<p>The package requires <code>sxs ≥ 2025.0.0</code>. The older API <code>sxs.load("SXS:BBH:0001/rhOverM")</code> with catalog metadata from <code>data.black-holes.org</code> is no longer functional. The current API is:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">sim</span> <span class="o">=</span> <span class="n">sxs</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;SXS:BBH:0001&quot;</span><span class="p">,</span> <span class="n">auto_supersede</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">strain</span> <span class="o">=</span> <span class="n">sim</span><span class="o">.</span><span class="n">strain</span>   <span class="c1"># sxs.WaveformModes</span>
+</code></pre></div></p>
+<h3 id="metadata-key-naming-across-catalogs">Metadata key naming across catalogs<a class="headerlink" href="#metadata-key-naming-across-catalogs" title="Permanent link">&para;</a></h3>
+<p>RIT metadata uses <strong>hyphens</strong> in raw text files (<code>relaxed-chi1z</code>) but the internal DataFrame retains them as-is. When calling <code>get_source_parameters_from_metadata()</code>, these are accessed with underscores (<code>relaxed_chi1z</code>) — the parser maps hyphen → underscore during <code>parse_metadata_txt()</code>. MAYA uses short names (<code>a1x</code>, <code>q</code>). SXS uses long underscored names (<code>reference_dimensionless_spin1</code>).</p>
+<h3 id="check_interp_req-call-signature-lvcpy"><code>check_interp_req</code> call signature (<code>lvc.py</code>)<a class="headerlink" href="#check_interp_req-call-signature-lvcpy" title="Permanent link">&para;</a></h3>
+<p>The function signature is <code>check_interp_req(h5_file=None, metadata=None, ref_time=None, ...)</code>. Call sites must pass <code>ref_time</code> as a <strong>keyword argument</strong>:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">interp</span><span class="p">,</span> <span class="n">avail_ref_time</span> <span class="o">=</span> <span class="n">check_interp_req</span><span class="p">(</span><span class="n">h5_file</span><span class="p">,</span> <span class="n">ref_time</span><span class="o">=</span><span class="n">t_ref</span><span class="p">)</span>
+</code></pre></div>
+Passing <code>t_ref</code> as a positional second argument binds it to <code>metadata</code>, causing the interpolation check to never fire.</p>
+<h3 id="polarization-convention">Polarization convention<a class="headerlink" href="#polarization-convention" title="Permanent link">&para;</a></h3>
+<p><code>get_td_waveform()</code> returns <code>conjugate(h)</code> so that <code>.real()</code> gives <span class="arithmatex">\(h_+\)</span>. This differs from LAL's convention where the imaginary part equals <span class="arithmatex">\(-h_\times\)</span>. In this package, <code>.imag()</code> gives <span class="arithmatex">\(+h_\times\)</span>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,971 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A unified Python interface to NR binary black-hole waveform catalogs">
+      
+      
+      
+        <link rel="canonical" href="https://gwnrtools.github.io/nr-catalog-tools/goal/">
+      
+      
+        <link rel="prev" href="../package/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Scientific Goal - nr-catalog-tools</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#comparison-of-promiment-bbh-waveform-catalogs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="nr-catalog-tools" class="md-header__button md-logo" aria-label="nr-catalog-tools" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            nr-catalog-tools
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Scientific Goal
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/gwnrtools/nr-catalog-tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gwnrtools/nr-catalog-tools
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../catalogs/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Catalog Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../waveform/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  WaveformModes API
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../package/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Package Internals
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Scientific Goal
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="nr-catalog-tools" class="md-nav__button md-logo" aria-label="nr-catalog-tools" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    nr-catalog-tools
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/gwnrtools/nr-catalog-tools" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    gwnrtools/nr-catalog-tools
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../catalogs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catalog Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../waveform/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    WaveformModes API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../package/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Package Internals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Goal
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scientific Goal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#comparison-of-promiment-bbh-waveform-catalogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison of promiment BBH waveform catalogs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Comparison of promiment BBH waveform catalogs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motivation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#source-frame-ambiguity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source frame ambiguity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bms-symmetries-and-supertranslations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BMS Symmetries and Supertranslations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BMS Symmetries and Supertranslations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implications-for-catalog-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implications for Catalog Comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quantifying-waveform-disagreements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quantifying waveform disagreements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#comparison-of-promiment-bbh-waveform-catalogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Comparison of promiment BBH waveform catalogs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Comparison of promiment BBH waveform catalogs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#motivation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Motivation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#source-frame-ambiguity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Source frame ambiguity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bms-symmetries-and-supertranslations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BMS Symmetries and Supertranslations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BMS Symmetries and Supertranslations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#implications-for-catalog-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implications for Catalog Comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#quantifying-waveform-disagreements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quantifying waveform disagreements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+  <h1>Scientific Goal</h1>
+
+<h2 id="comparison-of-promiment-bbh-waveform-catalogs">Comparison of promiment BBH waveform catalogs<a class="headerlink" href="#comparison-of-promiment-bbh-waveform-catalogs" title="Permanent link">&para;</a></h2>
+<h3 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">&para;</a></h3>
+<p>There are now many
+families of waveform models that groups around the world have been developing
+using different underlying formulations of compact binary dynamics. Some of
+these include the effective-one-body (EOB) framework, phenomenological 
+waveforms, ESIGMA models, self-force - PN hybrid frameworks, and more. Many of
+these are calibrated closely to reproduce simulations from one or the other
+NR binary black hole merger catalogs. Since various NR catalogs are deeply
+relied upon as references, it is important that their underlying errors
+themselves be quantified in order to quantify the fundamental limit that our
+analytical models will face if calibrated against any one particular NR catalog
+versus another.
+Multiple suitable catalogs of binary black hole merger simulations are available
+in public domain. These include the SXS catalog which uses the Spectral Einstein
+Code (SpEC), the RIT binary black hole catalog which uses the LazEv code,
+the Georgia Tech / UT Austin catalog which uses the MayaKranc code, and other more
+recent ones. </p>
+<p>One clear testbed for measuring the
+accuracy of simulations in a catalog would be against simulations from another
+code that are supposed to reproduce the exact same binary merger but with
+independent formulations of Einstein equations, and different numerical schemes.
+These catalogs are, however, inherently difficult to compare against each
+other due to the initial conditions being extremely hard to map between different
+codes. Due to this we end with a situation where, lets say we take a simulation
+<span class="arithmatex">\(h^a(\theta_i)\)</span> from catalog <span class="arithmatex">\(A\)</span>, with <span class="arithmatex">\(i \in [0, N(A)-1]\)</span>, and find its 
+<em>closest</em> counterpart in catalog <span class="arithmatex">\(B: h^b_{\theta_j}\)</span>, with <span class="arithmatex">\(j\in [0, N(B)-1]\)</span>,
+ by minimizing <span class="arithmatex">\(|h^a(\theta_i)-h^b(\theta_j)|\)</span>, then the
+difference between these two can easily be dominated or at least be comparable
+to <span class="arithmatex">\(|h^a(\theta_i)-h^a(\theta_j)|\)</span> or <span class="arithmatex">\(|h^b(\theta_i)-h^b(\theta_j)|\)</span>.
+In other words, catalogs produced by different NR codes are accurate to
+the level of the differences produced in waveforms due to the small but
+measurable and unavoidable difference in initial conditions that arise due to
+inherently different mathematical and code choices made by different NR codes
+(for e.g. initial orbital eccentricity is notoriously difficult to match
+between two simulations from two different codes).</p>
+<p>Additionally, repeatedly performing fine-tuned comparable sets of simulations
+will also result in wastage of computing power as different catalogs will need
+to become repetitive of each other instead of being entirely complementary in
+terms of their parameter space coverage. This puts us in a situation where
+continuous testing quickly becomes practically undesirable.
+Large-scale efforts happened in the past where directed speclized effort was
+made to study simulations from different NR codes on a level field by 
+(a) using them as synthetic signals to create simulated GW detector data, which
+were them attempted to be found and characterized using cutting-edge algorithms
+and waveform models (cite NINJA-1,2), and (b) by studying their intrinsic
+errors using identical analysis codes (cite NRAR). While being very informative
+exercises, these did not compare NR catalogs with each other directly.
+More recently, we have seen the advent of surrogate models of Numerical Relativity
+waveforms. These are sophisticated interpolants of waveform multipoles that
+can interpolate across a sizable region of the space of initial binary conditions. These
+can be remarkable tools enabling cross-code / cross-catalog comparisons, as 
+we can now eliminate the need to substitute <span class="arithmatex">\(\{|h^a(\theta_i)-h^b(\theta_i)|,\,
+\forall\, i\in [0,N(A)-1]\}\)</span> with <span class="arithmatex">\(\{|h^a(\theta_i)-h^b(\theta_j)|,\,\forall\, j\in [0,N(B)-1]\}\)</span>,
+where we label <span class="arithmatex">\(B\)</span> as the catalog for which we have an interpolating surrogate
+model available. This is especially timely at the moment, since the whole NR 
+community has come to model significantly more complex binary configurations
+since the NINJA and NRAR efforts concluded.</p>
+<h3 id="source-frame-ambiguity">Source frame ambiguity<a class="headerlink" href="#source-frame-ambiguity" title="Permanent link">&para;</a></h3>
+<p>Lets start with realizing that what we have available with us are multipoles
+<span class="arithmatex">\(h_{\ell m}\)</span> of the waveform decomposed at null infinity <span class="arithmatex">\(\mathcal{I}^+\)</span> in spin
+<span class="arithmatex">\((-2)\)</span> weighted spherical harmonics in a <em>source</em> frame <span class="arithmatex">\({\bf F}_s\)</span>, whose
+<span class="arithmatex">\(z\)</span>-axis is aligned with some definition of angular momentum of the binary at
+the start of the simulation. Let us now say that we have a fixed
+detector available for the entire duration of a given signal on Earth. The
+polarizations incident on it can be constructed in terms of <em>source frame</em>
+<span class="arithmatex">\(h_{\ell m}\)</span> as</p>
+<div class="arithmatex">\[H(t) = h_+(t) + i h_\times(t) = \Sigma_{\ell, m} {}^{-2}Y^S_{\ell m}(\iota,
+\phi_c)\, h^S_{\ell, m}(t; \vec{\theta}), \]</div>
+<p>where <span class="arithmatex">\(\vec{\theta}\)</span> is the set of intrinsic parameters of the binaray, i.e.
+<span class="arithmatex">\(\{m_1, m_2, \vec{\chi}_1, \vec{\chi}_2, \phi_0\}\)</span>. This <em>source frame</em> 
+<span class="arithmatex">\({\bf F}_s\)</span> in which the spherical harmonis are constructed is such that the
+line of sight in this frame from its origin to the detector has polar angles
+<span class="arithmatex">\((\iota, \phi_c)\)</span>. It is possible for <span class="arithmatex">\({\bf F}_s\)</span> to change orientation during
+the binary evolution, for e.g. in the presence of spin-orbit coupling driven
+orbital-plane precession. In that case, the inclination angles <span class="arithmatex">\(\iota\)</span> becomes
+a function of time. However for NR catalogs, the most common choice is to use
+a fixed inertial frame of reference for defining the waveform multipoles. In
+such a frame, its the multipoles themselves which encode all the time-dependent
+dynamics of the binary and its radiation as seen from an observer located at
+<span class="arithmatex">\((\iota, \phi_c)\)</span> in this fixed frame.
+Different numerical relativity groups adopt distinct conventions for defining this source frame <span class="arithmatex">\(\mathbf{F}_s\)</span>. For instance, one code might align the <span class="arithmatex">\(z\)</span>-axis with the instantaneous orbital angular momentum at the relaxation time, while another might align it with the initial Newtonian angular momentum or the principal axes of the computational grid. Consequently, even for identical intrinsic parameters <span class="arithmatex">\(\vec{\theta}\)</span>, the decomposed multipoles <span class="arithmatex">\(h_{\ell m}\)</span> will differ solely due to these coordinate choices. This introduces an artificial frame mismatch that must be disentangled from true physical or numerical discrepancies.To perform a robust comparison using the surrogate model, we must treat the frame orientation and time/phase definitions as nuisance parameters to be marginalized over. Since the surrogate model allows us to generate the waveform <span class="arithmatex">\(h^b(\vec{\theta})\)</span> at the exact same intrinsic parameters as the catalog simulation <span class="arithmatex">\(h^a(\vec{\theta})\)</span>, we effectively eliminate the parameter space distance error described earlier. The remaining task is to find the optimal frame transformation that aligns the surrogate prediction with the catalog simulation.
+To compare a waveform from a generic precessing binary simulation (Catalog Source Frame <span class="arithmatex">\(\mathbf{F}_C\)</span>) with a Surrogate model (Surrogate Source Frame <span class="arithmatex">\(\mathbf{F}_S\)</span>), we must mathematically construct a transformation that maps the surrogate's multipoles into the catalog's frame of reference. Here we assume that both <span class="arithmatex">\(\mathbf{F}_C\)</span> and <span class="arithmatex">\(\mathbf{F}_S\)</span> are inertial frames which are fixed in time amd are related by a static rigid rotation. 
+This transformation is a composition of a spatial rotation, a time translation, and a phase shift. Let the gravitational-wave strain in the original Surrogate frame, at a time <span class="arithmatex">\(t\)</span> and sky direction <span class="arithmatex">\(\mathbf{n}_S = (\theta_S, \phi_S)\)</span>, be defined by the multipole expansion:$<span class="arithmatex">\(h^S(t, \mathbf{n}_S) = \sum_{\ell=2}^{\infty} \sum_{m=-\ell}^{\ell} h^S_{\ell m}(t)\, {}^{-2}Y_{\ell m}(\mathbf{n}_S)\)</span>$where <span class="arithmatex">\({}^{-2}Y_{\ell m}\)</span> are the spin-weighted spherical harmonics of weight <span class="arithmatex">\(-2\)</span>.
+We posit that the Catalog frame <span class="arithmatex">\(\mathbf{F}_C\)</span> differs from the Surrogate frame <span class="arithmatex">\(\mathbf{F}_S\)</span> by a generic rigid rotation <span class="arithmatex">\(R \in SO(3)\)</span>. This rotation accounts for differences in how various NR codes define the "z-axis" (e.g., along the initial orbital angular momentum <span class="arithmatex">\(\mathbf{L}_0\)</span> versus the remnant spin <span class="arithmatex">\(\mathbf{\chi}_f\)</span>) and the "x-axis" (e.g., along the initial separation vector or the line of nodes).
+If <span class="arithmatex">\(R\)</span> is the active rotation operator that rotates the physical system (or equivalently, the passive rotation of the coordinate axes from <span class="arithmatex">\(\mathbf{F}_S\)</span> to <span class="arithmatex">\(\mathbf{F}_C\)</span>), a point on the sky <span class="arithmatex">\(\mathbf{n}\)</span> has coordinates related by <span class="arithmatex">\(\mathbf{n}_S = R^{-1} \mathbf{n}_C\)</span>. The scalar field property of the strain implies <span class="arithmatex">\(h(\mathbf{n}_C) = h(R\,\mathbf{n}_S)\)</span>. Under such a rotation, the spin-weighted spherical harmonics transform linearly into each other within the same <span class="arithmatex">\(\ell\)</span>-subspace. The standard transformation happens under the <span class="arithmatex">\((2\ell+1)\)</span>-dimensional irreducible representation of the rotation group <span class="arithmatex">\(SO(3)\)</span> law for the expansion coefficients <span class="arithmatex">\(h_{\ell m}\)</span>, governed by the Wigner D-matrices <span class="arithmatex">\(D^{\ell}_{m' m}(R)\)</span>:</p>
+<div class="arithmatex">\[h^{S, \text{rot}}_{\ell m}(t) = \sum_{m'=-\ell}^{\ell} h^S_{\ell m'}(t)\, D^{\ell}_{m' m}(R)\]</div>
+<p><strong>Note on Precession:</strong> For non-precessing binaries, the waveform is dominated by the <span class="arithmatex">\((\ell, \pm 2)\)</span> modes, and the mixing is often trivial. However, for a precessing binary, the orbital plane wobbles, distributing power across all <span class="arithmatex">\(m\)</span>-modes. Consequently, the summation over <span class="arithmatex">\(m'\)</span> above is physically significant; it captures the "mode-mixing" required to project the wobbling signal onto the new, fixed detector frame.
+The catalog simulation may define its merger time <span class="arithmatex">\(t=0\)</span> differently from the surrogate (e.g., peak amplitude vs. peak frequency). We introduce a time shift parameter <span class="arithmatex">\(t_c\)</span> such that the surrogate's time coordinate <span class="arithmatex">\(t\)</span> maps to <span class="arithmatex">\(t - t_c\)</span>:$<span class="arithmatex">\(h^{S, \text{shifted}}_{\ell m}(t) = h^{S, \text{rot}}_{\ell m}(t - t_c)\)</span>$</p>
+<p>Finally, we allow for an arbitrary orbital phase offset <span class="arithmatex">\(\phi_c\)</span>. In the context of the decomposed multipoles, a phase rotation of the binary by <span class="arithmatex">\(\phi_c\)</span> around the reference <span class="arithmatex">\(z\)</span>-axis corresponds to a complex rotation of the modes:$<span class="arithmatex">\(h^S_R \to e^{-i m \phi_c} h^{S, \text{shifted}}_{\ell m}\)</span>$</p>
+<p>Combining these steps, we arrive at the full expression for the surrogate waveform <span class="arithmatex">\(h^S_R\)</span> in the catalog's frame. This is the "target" model we utilize in our mismatch minimization:
+$<span class="arithmatex">\(\boxed{
+h^S_{R, \ell m}(t; t_c, \phi_c, R) = e^{-i m \phi_c} \sum_{m'=-\ell}^{\ell} h^S_{\ell m'}(t - t_c)\, D^{\ell}_{m' m}(R)
+}\)</span>$</p>
+<p>In this equation:
+- <span class="arithmatex">\(t_c\)</span> aligns the temporal peaks of the signal.
+- <span class="arithmatex">\(R\)</span> (parameterized by quaternions or Euler angles <span class="arithmatex">\(\alpha, \beta\)</span>) aligns the orientation of the binary's average orbital plane (the "tilt").
+- <span class="arithmatex">\(\phi_c\)</span> aligns the orbital phase (the "twist").
+- The sum over <span class="arithmatex">\(m'\)</span> represents the crucial mode-mixing operation that enables accurate comparison of precessing waveforms where no single frame is "inertial" with respect to the binary's radiation pattern.</p>
+<h3 id="bms-symmetries-and-supertranslations">BMS Symmetries and Supertranslations<a class="headerlink" href="#bms-symmetries-and-supertranslations" title="Permanent link">&para;</a></h3>
+<p>While the frame rotations discussed previously address the <span class="arithmatex">\(SO(3)\)</span> rotational ambiguity of the source, a more subtle class of ambiguities arises from the structure of null infinity itself. The asymptotic symmetry group of General Relativity at null infinity <span class="arithmatex">\(\mathcal{I}^+\)</span> is the BMS group (Bondi-Metzner-Sachs). The BMS group is a semi-direct product of the Lorentz group and an infinite-dimensional abelian group known as supertranslations.Physically, a supertranslation corresponds to a direction-dependent shift in the retarded time coordinate <span class="arithmatex">\(u\)</span>. Unlike a standard time translation where <span class="arithmatex">\(u \to u + \delta t\)</span> (a constant shift for all angles), a supertranslation shifts time differently depending on the observation angle <span class="arithmatex">\((\theta, \phi)\)</span>:$<span class="arithmatex">\(u' = u - \alpha(\theta, \phi)\)</span>$where <span class="arithmatex">\(\alpha(\theta, \phi)\)</span> is an arbitrary smooth function on the sphere.The standard Poincaré group is a subgroup of BMS.
+- <span class="arithmatex">\(\ell = 0\)</span> mode of <span class="arithmatex">\(\alpha\)</span>: Corresponds to a standard time translation (discussed previously as <span class="arithmatex">\(t_c\)</span>).
+- <span class="arithmatex">\(\ell = 1\)</span> modes of <span class="arithmatex">\(\alpha\)</span>: Correspond to spatial translations (changing the origin of the coordinate system).
+- <span class="arithmatex">\(\ell \ge 2\)</span> modes of <span class="arithmatex">\(\alpha\)</span>: correspond to "proper" supertranslations.</p>
+<p>Different NR codes may implicitly slice null infinity with different "supertranslation frames" due to their extrapolation methods or Cauchy-characteristic extraction techniques. Consequently, two waveforms <span class="arithmatex">\(h^A\)</span> and <span class="arithmatex">\(h^B\)</span> describing the exact same physical binary may differ because <span class="arithmatex">\(h^B\)</span> is effectively supertranslated relative to <span class="arithmatex">\(h^A\)</span>. To compare them accurately, we must map the surrogate waveform not just by a rotation <span class="arithmatex">\(R\)</span>, but also by a supertranslation field <span class="arithmatex">\(\alpha(\theta, \phi)\)</span>.</p>
+<p><strong>Derivation of the Supertranslated Waveform Modes</strong> We seek the transformation of the waveform modes <span class="arithmatex">\(h_{\ell m}(u)\)</span> under the mapping <span class="arithmatex">\(u \to u - \alpha(\theta, \phi)\)</span>.Let the original strain be <span class="arithmatex">\(h(u, \theta, \phi)\)</span>. The transformed strain <span class="arithmatex">\(h'(u, \theta, \phi)\)</span> is:$<span class="arithmatex">\(h'(u, \theta, \phi) = h(u - \alpha(\theta, \phi), \theta, \phi)\)</span>$For small supertranslations (which is physically appropriate for comparing NR catalogs that differ only by numerical gauge choices), we can perform a Taylor expansion around the original time <span class="arithmatex">\(u\)</span>:$<span class="arithmatex">\(h'(u, \theta, \phi) \approx h(u, \theta, \phi) - \alpha(\theta, \phi) \, \dot{h}(u, \theta, \phi)\)</span>$where <span class="arithmatex">\(\dot{h} = \partial h / \partial u\)</span>.We now decompose both the supertranslation field <span class="arithmatex">\(\alpha\)</span> and the waveform <span class="arithmatex">\(h\)</span> into their respective spherical harmonics.The supertranslation field is a scalar, so we expand it in standard scalar spherical harmonics <span class="arithmatex">\(Y_{\ell m}\)</span>:$<span class="arithmatex">\(\alpha(\theta, \phi) = \sum_{j, k} \alpha_{j k} \, Y_{j k}(\theta, \phi)\)</span>$The strain is a spin-weight <span class="arithmatex">\(-2\)</span> field, expanded in spin-weighted harmonics:$<span class="arithmatex">\(h(u, \theta, \phi) = \sum_{\ell, m} h_{\ell m}(u) \, {}^{-2}Y_{\ell m}(\theta, \phi)\)</span><span class="arithmatex">\(Substituting these into the Taylor expansion:\)</span><span class="arithmatex">\(\sum_{\ell, m} h'_{\ell m}(u) \, {}^{-2}Y_{\ell m} = \sum_{\ell, m} h_{\ell m}(u) \, {}^{-2}Y_{\ell m} - \left( \sum_{j, k} \alpha_{j k} Y_{j k} \right) \left( \sum_{p, q} \dot{h}_{p q}(u) \, {}^{-2}Y_{p q} \right)\)</span>$To isolate the transformed mode coefficients <span class="arithmatex">\(h'_{\ell m}\)</span>, we rely on the orthonormality of the spin-weighted spherical harmonics. We multiply both sides by <span class="arithmatex">\({}^{-2}Y_{\ell m}^*\)</span> and integrate over the sphere <span class="arithmatex">\(d\Omega\)</span>:$<span class="arithmatex">\(h'_{\ell m}(u) = h_{\ell m}(u) - \sum_{j, k} \sum_{p, q} \alpha_{j k} \, \dot{h}_{p q}(u) \int_{S^2} {}^{-2}Y_{\ell m}^*(\Omega) \, Y_{j k}(\Omega) \, {}^{-2}Y_{p q}(\Omega) \, d\Omega\)</span>$The integral on the right is the Gaunt integral (or a product of three spin-weighted spherical harmonics), which can be evaluated analytically in terms of Clebsch-Gordan coefficients. Let us denote this geometric coupling term as <span class="arithmatex">\(\mathcal{G}^{\ell m}_{j k, p q}\)</span>.The final mode-mixing transformation due to a supertranslation is:$<span class="arithmatex">\(\boxed{ h'_{\ell m}(u) = h_{\ell m}(u) - \sum_{j=0}^{j_{max}} \sum_{k=-j}^{j} \sum_{p, q} \alpha_{j k} \, \mathcal{G}^{\ell m}_{j k, p q} \, \dot{h}_{p q}(u) }\)</span>$</p>
+<h4 id="implications-for-catalog-comparison">Implications for Catalog Comparison<a class="headerlink" href="#implications-for-catalog-comparison" title="Permanent link">&para;</a></h4>
+<p>This result demonstrates that supertranslations induce mode mixing proportional to the time derivative of the waveform.
+- <span class="arithmatex">\(\ell=1\)</span> (Center of Mass Shift): The most dominant error in NR comparisons is often a displacement of the coordinate origin. This corresponds to optimizing the coefficients <span class="arithmatex">\(\alpha_{1m}\)</span>. This effectively "shifts" the waveform modes to correct for the center-of-mass drift or offset.
+- Higher Order (<span class="arithmatex">\(\ell \ge 2\)</span>): While typically smaller, differences in how NR codes handle the "corners" of the computational grid or the extraction surface can introduce higher-order supertranslation biases.</p>
+<p>To achieve the highest precision mismatch <span class="arithmatex">\(\mathcal{M}\)</span>, we should extend the optimization vector <span class="arithmatex">\(x\)</span> to include not just the rotation angles <span class="arithmatex">\((\alpha, \beta)\)</span> and time shift <span class="arithmatex">\(t_c\)</span> (which is <span class="arithmatex">\(\alpha_{00}\)</span>), but also the spatial translation coefficients <span class="arithmatex">\(\alpha_{1m}\)</span>.</p>
+<h3 id="quantifying-waveform-disagreements">Quantifying waveform disagreements<a class="headerlink" href="#quantifying-waveform-disagreements" title="Permanent link">&para;</a></h3>
+<p>We now define the agreement between the two waveforms via the standard noise-weighted inner product <span class="arithmatex">\(\langle \cdot | \cdot \rangle\)</span>. For two waveforms <span class="arithmatex">\(h_1\)</span> and <span class="arithmatex">\(h_2\)</span>, the overlap is given by:</p>
+<div class="arithmatex">\[\mathcal{O}(h_1, h_2) = \frac{\langle h_1 | h_2 \rangle}{\sqrt{\langle h_1 | h_1 \rangle \langle h_2 | h_2 \rangle}}\]</div>
+<p>where the inner product is defined as <span class="arithmatex">\(\langle h_1 | h_2 \rangle = 4 \Re \int_{f_{min}}^{f_{max}} \frac{\tilde{h}_1(f) \tilde{h}^*_2(f)}{S_n(f)} df\)</span>. Here, <span class="arithmatex">\(\tilde{h}(f)\)</span> denotes the Fourier transform of the time-domain strain, and <span class="arithmatex">\(S_n(f)\)</span> is the power spectral density of the detector noise (or a flat spectrum if a purely numerical comparison is desired).The comparison metric of interest is the mismatch (or unfaithfulness), <span class="arithmatex">\(\mathcal{M}\)</span>, which quantifies the disagreement between the catalog simulation and the surrogate model. To compute this, we must maximize the overlap over the extrinsic parameters: time of arrival <span class="arithmatex">\(t_c\)</span>, coalescing phase <span class="arithmatex">\(\phi_c\)</span>, and the spatial rotation parameters defining the frame <span class="arithmatex">\(\mathbf{F}(\rho, \sigma)\)</span> (often parameterized via Euler angles or a quaternion rotation <span class="arithmatex">\(R\)</span>). The mismatch is thus defined as:</p>
+<div class="arithmatex">\[\mathcal{M} = 1 - \max_{t_c, \phi_c, R \in SO(3)} \left[ \frac{\langle h^a(\vec{\theta}) | h^S_R(\vec{\theta}, t_c, \phi_c) \rangle}{\sqrt{\langle h^a | h^a \rangle \langle h^S | h^S \rangle}} \right]\]</div>
+<p>where <span class="arithmatex">\(h^S_R\)</span> denotes the surrogate waveform transformed by the rotation <span class="arithmatex">\(R\)</span> and shifted in time and phase. By minimizing this mismatch, we isolate the intrinsic numerical error of the catalog simulation relative to the consensus represented by the surrogate, decoupled from the arbitrary choices of initial frames and coordinate times. This methodology transforms the catalog comparison problem from a discrete nearest-neighbor search into a continuous optimization problem in the extrinsic parameter space, providing a far more stringent test of waveform accuracy.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>

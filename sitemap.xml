@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://gwnrtools.github.io/nr-catalog-tools/</loc>
+         <lastmod>2026-05-24</lastmod>
+    </url>
+    <url>
+         <loc>https://gwnrtools.github.io/nr-catalog-tools/architecture/</loc>
+         <lastmod>2026-05-24</lastmod>
+    </url>
+    <url>
+         <loc>https://gwnrtools.github.io/nr-catalog-tools/catalogs/</loc>
+         <lastmod>2026-05-24</lastmod>
+    </url>
+    <url>
+         <loc>https://gwnrtools.github.io/nr-catalog-tools/goal/</loc>
+         <lastmod>2026-05-24</lastmod>
+    </url>
+    <url>
+         <loc>https://gwnrtools.github.io/nr-catalog-tools/package/</loc>
+         <lastmod>2026-05-24</lastmod>
+    </url>
+    <url>
+         <loc>https://gwnrtools.github.io/nr-catalog-tools/waveform/</loc>
+         <lastmod>2026-05-24</lastmod>
+    </url>
+</urlset>
