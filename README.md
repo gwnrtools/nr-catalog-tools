@@ -1,107 +1,106 @@
 [![Code coverage](https://gwnrtools.github.io/nr-catalog-tools/cov_badge.svg)](https://gwnrtools.github.io/nr-catalog-tools/)
-# Interface to Numerical Relativity Catalogs
 
-The `nrcatalogtools` python package provides a unified
-high-level interface to multiple catalogs of data products
-from Numerical Relativity simulations of compact-object
-binary mergers. At the moment of writing, different
-research groups have separate formats of data and/or
-tools to interface with them. This package will be a
-convenience layer atop those for downstream research
-applications. This package derives where it can from
-the [`sxs`](https://github.com/sxs-collaboration/sxs)
-package of the [Simulating eXtreme Spacetimes](https://github.com/sxs-collaboration)
-collaboration, as that 
-has much of the capabilities for handling Numerical
-Relativity data that we need in general for all catalogs.
-Much of the interface here is deliberately identical to
-that in the `sxs` package to facilitate their interuse.
+# nr-catalog-tools
 
+A unified Python interface to public numerical-relativity (NR) binary black-hole waveform
+catalogs, designed for cross-catalog waveform comparison and downstream gravitational-wave
+data analysis.
 
-We currently support the following catalogs:
-- [Simulating eXtreme Spacetimes Waveforms Catalog](https://data.black-holes.org/waveforms/catalog.html)
-- [Georgia Tech Binary Black Hole Simulations](https://einstein.gatech.edu/catalog/)
-- [RIT Waveform Catalog](https://ccrg.rit.edu/content/data/rit-waveform-catalog)
+**Supported catalogs:**
 
-# Usage
-```
->>> from nrcatalogtools import RITCatalog
->>> rcatalog = RITCatalog.load()
->>> print(rcatalog.simulations_dataframe.index)
-Index(['RIT:BBH:0001-n100-id3', 'RIT:BBH:0002-n100-id0',
-       'RIT:BBH:0003-n100-id0', 'RIT:BBH:0004-n100-id0',
-       'RIT:BBH:0005-n100-id0', 'RIT:BBH:0006-n100-id3',
-       'RIT:BBH:0007-n100-id0', 'RIT:BBH:0008-n100-id0',
-       'RIT:BBH:0009-n100-id0', 'RIT:BBH:0010-n100-id0',
-       ...
-       'RIT:BBH:1914-n144-id1', 'RIT:BBH:1915-n144-id1',
-       'RIT:BBH:1916-n100-id1', 'RIT:BBH:1917-n100-id1',
-       'RIT:BBH:1918-n100-id1', 'RIT:BBH:1919-n100-id1',
-       'RIT:BBH:1920-n100-id1', 'RIT:BBH:1921-n100-id1',
-       'RIT:BBH:1922-n100-id1', 'RIT:BBH:1923-n100-id1'],
-      dtype='object', length=1879)
+| Catalog | Code | Example simulation name |
+|---------|------|------------------------|
+| [SXS](https://data.black-holes.org/waveforms/catalog.html) | SpEC | `SXS:BBH:0001` |
+| [RIT](https://ccrg.rit.edu/content/data/rit-waveform-catalog) | LazEv | `RIT:BBH:0001-n100-id3` |
+| [MAYA / GT](https://einstein.gatech.edu/catalog/) | MayaKranc | `GT0001` |
+
+---
+
+## Installation
+
+```bash
+pip install nrcatalogtools
 ```
 
-Now, if one needs a particular simulation, they can do:
-```
->>> rwf = rcatalog.get('RIT:BBH:0003-n100-id0')
-```
-To check which modes are available for this simulation:
-```
->>> print(rwf.LM)
-[[ 2 -2]
- [ 2 -1]
- [ 2  0]
- [ 2  1]
- [ 2  2]
- [ 3 -3]
- [ 3 -2]
- [ 3 -1]
- [ 3  0]
- [ 3  1]
- [ 3  2]
- [ 3  3]
- [ 4 -4]
- [ 4 -3]
- [ 4 -2]
- [ 4 -1]
- [ 4  0]
- [ 4  1]
- [ 4  2]
- [ 4  3]
- [ 4  4]]
-```
-To extract a single mode from this:
-```
->>> rwf.get_mode(2, 2)
-array([[-1.18175000e+03,  8.41055081e-02,  6.60652456e-04],
-       [-1.18150000e+03,  8.41034759e-02, -7.94687302e-04],
-       [-1.18125000e+03,  8.40763695e-02, -2.25019642e-03],
-       ...,
-       [ 3.61000000e+02,  2.56889323e-12, -3.97799029e-25],
-       [ 3.61250000e+02,  1.30444912e-12, -1.64922275e-25],
-       [ 3.61500000e+02,  0.00000000e+00,  0.00000000e+00]])
-```
-To get polarizations for the same simulation:
-```
->>> pols = rwf.get_td_waveform(total_mass = 40, # solar masses
-                               distance = 100., # Megaparsecs
-                               inclination = 0.2, # radians
-                               coa_phase = 0.3) # radians
->>> hp, hc = pols.real(), -1 * pols.imag()
-```
-which can subsequently be plotted easily:
-```
->>> import matplotlib.pyplot as plt
->>> plt.plot(hp.sample_times, hp, label='+')
->>> plt.plot(hc.sample_times, hc, label='x')
->>> plt.legend()
->>> plt.show()
-```
-which should give the following figure:
+Dependencies: `sxs >= 2025.0.0`, `pycbc`, `lal`, `h5py`, `quaternionic`, `spherical`, `scipy`.
+See [docs/index.md](docs/index.md#dependencies) for the full list.
 
-![RIT-BBH-0003](https://github.com/gwnrtools/nr-catalog-tools/blob/master/test/validation_data/RIT-BBH-0003-n100-id0_m40_d100_inc0p2_coaph0p3.png)
+---
 
+## Quick Start
 
+### Load a catalog
 
+```python
+import nrcatalogtools as nrcat
 
+ritcat  = nrcat.RITCatalog.load()
+sxscat  = nrcat.SXSCatalog.load(download=False)
+mayacat = nrcat.MayaCatalog.load()
+```
+
+### Browse simulations
+
+```python
+print(ritcat.simulations_dataframe.index)
+# Index(['RIT:BBH:0001-n100-id3', 'RIT:BBH:0002-n100-id0', ...], length=1879)
+```
+
+### Load a waveform
+
+```python
+wfm = ritcat.get("RIT:BBH:0003-n100-id0")
+print(wfm.LM)     # available (ell, m) mode pairs
+```
+
+### Extract a single mode in physical units
+
+```python
+mode22 = wfm.get_mode(2, 2,
+                      total_mass=60.0,   # M_sun
+                      distance=100.0,    # Mpc
+                      delta_t=1./4096)   # seconds
+```
+
+### Get h₊ and h✕ polarizations
+
+```python
+pols = wfm.get_td_waveform(total_mass=40., distance=100.,
+                            inclination=0.2, coa_phase=0.3)
+hp, hc = pols.real(), -1 * pols.imag()
+```
+
+```python
+import matplotlib.pyplot as plt
+plt.plot(hp.sample_times, hp, label='h+')
+plt.plot(hc.sample_times, hc, label='hx')
+plt.legend(); plt.show()
+```
+
+![RIT-BBH-0003](test/validation_data/RIT-BBH-0003-n100-id0_m40_d100_inc0p2_coaph0p3.png)
+
+### Get PyCBC-compatible source parameters
+
+```python
+params = ritcat.get_parameters("RIT:BBH:0001-n100-id3", total_mass=60.0)
+# {'mass1': 30.0, 'mass2': 30.0, 'spin1x': 0.0, ..., 'f_lower': 23.4}
+```
+
+---
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/index.md](docs/index.md) | Full documentation hub and dependency list |
+| [docs/catalogs.md](docs/catalogs.md) | Per-catalog reference: SXS, RIT, MAYA |
+| [docs/waveform.md](docs/waveform.md) | `WaveformModes` API reference |
+| [docs/architecture.md](docs/architecture.md) | Architectural overview and design decisions |
+| [docs/package.md](docs/package.md) | Detailed package internals |
+| [docs/goal.md](docs/goal.md) | Scientific motivation and mismatch formalism |
+
+---
+
+## License
+
+See [LICENSE](LICENSE).
