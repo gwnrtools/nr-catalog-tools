@@ -5,8 +5,6 @@ import lal
 import numpy as np
 import quaternionic
 import spherical
-from pycbc.filter import highpass, lowpass
-from pycbc.psd import interpolate
 from pycbc.types import TimeSeries
 from pycbc.waveform import frequency_from_polarizations
 from scipy.interpolate import InterpolatedUnivariateSpline
@@ -43,6 +41,9 @@ class WaveformModes(sxs_WaveformModes):
         verbosity=0,
         **w_attributes,
     ) -> None:
+        # Extract _filepath before passing w_attributes to the parent so it
+        # becomes a per-instance attribute, not a class-level one.
+        filepath = w_attributes.pop("_filepath", None)
         self = super().__new__(
             cls,
             data,
@@ -54,7 +55,7 @@ class WaveformModes(sxs_WaveformModes):
             **w_attributes,
         )
         self._t_ref_nr = None
-        self._filepath = None
+        self._filepath = filepath  # instance attribute, not class attribute
         self.verbosity = verbosity
         return self
 
@@ -115,14 +116,9 @@ class WaveformModes(sxs_WaveformModes):
         else:
             raise RuntimeError(f"Could not use or open {file_path_or_open_file}")
 
-        # Set the file path attribute
-        cls._filepath = h5_file.filename
-
-        # If _metadata is not already a set attribute, then set it here.
-        try:
-            cls._metadata
-        except AttributeError:
-            cls._metadata = metadata
+        # Record the file path so it can be set as a per-instance attribute
+        # in __new__ (passed via w_attributes["_filepath"]).
+        h5_filepath = h5_file.filename
 
         ell_min, ell_max = 99, -1
         LM = []
@@ -179,6 +175,7 @@ class WaveformModes(sxs_WaveformModes):
             data[:, idx] = amp_interp(times) * np.exp(1j * phase_interp(times))
 
         w_attributes = {}
+        w_attributes["_filepath"] = h5_filepath  # stored as instance attr in __new__
         w_attributes["metadata"] = metadata
         w_attributes["history"] = ""
         w_attributes["frame"] = quaternionic.array([[1.0, 0.0, 0.0, 0.0]])
@@ -243,12 +240,8 @@ class WaveformModes(sxs_WaveformModes):
             elem = substr[0].split("_")
             return (int(elem[0].strip("l")), int(elem[1].strip("m")))
 
-        # Set the file path attribute
-        cls._filepath = file_path
-
-        # If _metadata is not already a set attribute, then set it here.
-        if not hasattr(cls, "_metadata"):
-            cls._metadata = metadata
+        # _filepath is passed through w_attributes so __new__ sets it as
+        # a per-instance attribute rather than a shared class-level one.
 
         ell_min, ell_max = 99, -1
         t_min, t_max, dt = -1e99, 1e99, 1
@@ -339,6 +332,7 @@ class WaveformModes(sxs_WaveformModes):
             data[:, idx] = mode_real_interp(times) + 1j * mode_imag_interp(times)
 
         w_attributes = {}
+        w_attributes["_filepath"] = file_path  # stored as instance attr in __new__
         w_attributes["metadata"] = metadata
         w_attributes["history"] = ""
         w_attributes["frame"] = quaternionic.array([[1.0, 0.0, 0.0, 0.0]])
@@ -383,27 +377,57 @@ class WaveformModes(sxs_WaveformModes):
         """Return the simulation metadata dictionary"""
         return self.sim_metadata
 
+    def _get_label_params(self):
+        """Extract mass ratio and spin components from metadata in a
+        catalog-agnostic way. Returns (q, s1x, s1y, s1z, s2x, s2y, s2z)
+        using whichever metadata keys are present (RIT, MAYA, or SXS)."""
+        md = self.metadata
+        try:
+            # RIT catalog
+            if "relaxed_mass_ratio_1_over_2" in md:
+                q = md["relaxed_mass_ratio_1_over_2"]
+                s1x, s1y, s1z = md.get("relaxed_chi1x", float("nan")), md.get("relaxed_chi1y", float("nan")), md.get("relaxed_chi1z", float("nan"))
+                s2x, s2y, s2z = md.get("relaxed_chi2x", float("nan")), md.get("relaxed_chi2y", float("nan")), md.get("relaxed_chi2z", float("nan"))
+            # MAYA / GT catalog
+            elif "q" in md:
+                q = md["q"]
+                s1x, s1y, s1z = md.get("a1x", float("nan")), md.get("a1y", float("nan")), md.get("a1z", float("nan"))
+                s2x, s2y, s2z = md.get("a2x", float("nan")), md.get("a2y", float("nan")), md.get("a2z", float("nan"))
+            # SXS catalog
+            elif "reference_mass_ratio" in md:
+                q = md["reference_mass_ratio"]
+                sp1 = md.get("reference_dimensionless_spin1", [float("nan")] * 3)
+                sp2 = md.get("reference_dimensionless_spin2", [float("nan")] * 3)
+                s1x, s1y, s1z = sp1[0], sp1[1], sp1[2]
+                s2x, s2y, s2z = sp2[0], sp2[1], sp2[2]
+            else:
+                q = float("nan")
+                s1x = s1y = s1z = s2x = s2y = s2z = float("nan")
+        except Exception:
+            q = float("nan")
+            s1x = s1y = s1z = s2x = s2y = s2z = float("nan")
+        return q, s1x, s1y, s1z, s2x, s2y, s2z
+
     @property
     def label(self):
-        """Return a Latex label that summarizes key simulation details"""
-        md = self.metadata
-
+        """Return a LaTeX label summarizing key simulation parameters.
+        Works for RIT, MAYA, and SXS catalogs."""
+        q, s1x, s1y, s1z, s2x, s2y, s2z = self._get_label_params()
         return (
-            f"$q{md['relaxed_mass_ratio_1_over_2']:0.3f}\\_"
-            f"\\chi_A{md['relaxed_chi1x']:0.3f}\\_{md['relaxed_chi1y']:0.3f}\\_"
-            f"{md['relaxed_chi1z']:0.3f}\\_\\_"
-            f"\\chi_B{md['relaxed_chi2x']:0.3f}\\_{md['relaxed_chi2y']:0.3f}\\_"
-            f"{md['relaxed_chi2z']:0.3f}$"
+            f"$q{q:0.3f}\\_"
+            f"\\chi_A{s1x:0.3f}\\_{s1y:0.3f}\\_{s1z:0.3f}\\_\\_"
+            f"\\chi_B{s2x:0.3f}\\_{s2y:0.3f}\\_{s2z:0.3f}$"
         )
 
     @property
     def label_nolatex(self):
-        """Return a Latex label that summarizes key simulation details"""
-        md = self.metadata
-        return f"""q{md['relaxed_mass_ratio_1_over_2']:0.3f}-sA{
-            md['relaxed_chi1x']:0.3f}-{md['relaxed_chi1y']:0.3f}-{
-                md['relaxed_chi1z']:0.3f}--sB{md['relaxed_chi2x']:0.3f}-{
-                    md['relaxed_chi2y']:0.3f}-{md['relaxed_chi2z']:0.3f}"""
+        """Return a plain-text label summarizing key simulation parameters.
+        Works for RIT, MAYA, and SXS catalogs."""
+        q, s1x, s1y, s1z, s2x, s2y, s2z = self._get_label_params()
+        return (
+            f"q{q:0.3f}-sA{s1x:0.3f}-{s1y:0.3f}-{s1z:0.3f}"
+            f"--sB{s2x:0.3f}-{s2y:0.3f}-{s2z:0.3f}"
+        )
 
     def get_parameters(self, total_mass=1.0):
         """
@@ -462,55 +486,98 @@ class WaveformModes(sxs_WaveformModes):
         delta_t=None,
         to_pycbc=True,
     ):
-        """Get individual modes, rescaled appropriately for a compact-object
-        binary with given total mass and distance from a GW detector.
+        """Return a single (ℓ, m) waveform mode, rescaled to physical units.
 
-        Args:
-            ell (int): mode l value
-            em (int): mode m value
-            total_mass (float, optional): Total Mass (Solar Masses).
-                                          Defaults to 1.
-            distance (float, optional): Distance to Source (Megaparsecs).
-                                        Defaults to 1.
-            delta_t (float, optional): Sample rate (in Hz or M).
-                                       Defaults to None.
-            to_pycbc (bool, optional) : Return `pycbc.types.TimeSeries` or
-                `sxs.TimeSeries`. Defaults to True.
-        Returns:
-            `pycbc.types.TimeSeries(numpy.complex128)` or
-                `sxs.TimeSeries(numpy.complex128)`:
-                Complex waveform mode time series
+        The raw NR mode data in ``self`` is in **dimensionless units**
+        (amplitude in units of *r·c²/G·M*, time in units of *G·M/c³*).
+        This method rescales to physical strain and returns a time series
+        aligned so that **t = 0 corresponds to the peak of the (2,2) mode**.
+
+        Parameters
+        ----------
+        ell : int
+            Spherical-harmonic ℓ index.
+        em : int
+            Spherical-harmonic m index.
+        total_mass : float, optional
+            Total mass of the binary in **solar masses** (M☉).  Default 1.
+        distance : float, optional
+            Luminosity distance in **megaparsecs** (Mpc).  Default 1.
+        delta_t : float, optional
+            Desired sample spacing.  Two conventions are supported:
+
+            * **delta_t > 1/128** — interpreted as **dimensionless M units**
+              (typical NR time steps are 0.1–1 M).
+            * **delta_t ≤ 1/128** — interpreted as **physical seconds**
+              (e.g. ``1/4096`` s for detector-band data).
+
+            If *None*, the native NR time step is used (dimensionless M units).
+        to_pycbc : bool, optional
+            If *True* (default) return a ``pycbc.types.TimeSeries``; otherwise
+            return an ``sxs.TimeSeries``.
+
+        Returns
+        -------
+        pycbc.types.TimeSeries or sxs.TimeSeries
+            Complex time series ``h_{ℓm}(t)`` in **physical strain units**
+            (dimensionless).  The ``delta_t`` of the returned series is always
+            in **physical seconds**, regardless of the input convention.
+            The epoch (``start_time``) is set so that t = 0 is the peak of the
+            (2,2) mode amplitude.
+
+        Notes
+        -----
+        Amplitude scaling follows::
+
+            h_{ℓm}^{phys} = h_{ℓm}^{NR} × (G M_tot / c² r)
+                           = h_{ℓm}^{NR} × (M_tot [M☉] × MRSUN_SI) / (distance [Mpc] × MPC_SI)
+
+        To obtain the real (plus) polarization at a given sky location and
+        inclination, sum over modes with spin-weight −2 spherical harmonics.
+        For a quick (2,2)-only approximation::
+
+            h_plus ≈ mode.real()
         """
         if delta_t is None:
             delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
 
-        # we assume that we generally do not sample at a rate below 128Hz.
-        # Therefore, depending on the numerical value of dt, we deduce whether
-        # dt is in dimensionless units or in seconds.
+        # Convert between physical seconds and dimensionless M units.
+        # self.time is always in dimensionless M units; new_time must match.
+        # We assume delta_t > 1/128 means it is in dimensionless M units
+        # (typical NR step ~ 0.1-1 M), and delta_t <= 1/128 means it is in
+        # physical seconds (e.g. 1/4096 s for GW detector sampling).
+        m_secs = utils.time_to_physical(total_mass)
         if delta_t > 1.0 / 128:
-            m_secs = 1
-            new_time = np.arange(min(self.time), max(self.time), delta_t)
+            # delta_t is in dimensionless M units
+            dt_dimless = delta_t
+            dt_physical = delta_t * m_secs
         else:
-            m_secs = utils.time_to_physical(total_mass)
-            new_time = np.arange(min(self.time), max(self.time), delta_t / m_secs)
+            # delta_t is in physical seconds
+            dt_physical = delta_t
+            dt_dimless = delta_t / m_secs
+
+        new_time = np.arange(min(self.time), max(self.time), dt_dimless)
 
         # --- OPTIMIZATION: Interpolate only the requested mode ---
-        mode_data = self.data[:, self.index_from_ell_m(ell, em)]
+        # sxs.WaveformModes uses .index(l, m) to get the column index.
+        # Explicitly convert to a writable numpy array (sxs may return a memoryview).
+        mode_data = np.array(self.data[:, self.index(ell, em)], dtype=complex)
         mode_ts = sxs_TimeSeries(mode_data, time=self.time)
         interpolated_mode_ts = mode_ts.interpolate(new_time)
 
-        h_mode_complex = interpolated_mode_ts.data
+        h_mode_complex = np.array(interpolated_mode_ts.data, dtype=complex)
         h_mode_complex *= utils.amp_to_physical(total_mass, distance)
 
         # --- OPTIMIZATION: Use cached peak time of (2,2) mode to set epoch ---
-        # The epoch is set to shift the time axis so that the peak is at t=0
+        # The epoch is set to shift the time axis so that the peak is at t=0.
+        # peak_time_22 is in dimensionless M units; convert to physical seconds.
         peak_time_sec = self.peak_time_22 * m_secs
         start_time_sec = new_time[0] * m_secs
         epoch = start_time_sec - peak_time_sec
 
         retval = self.to_pycbc(
             input_array=h_mode_complex,
-            delta_t=delta_t,
+            delta_t=dt_physical,
             epoch=epoch,
         )
         if not to_pycbc:
@@ -518,6 +585,47 @@ class WaveformModes(sxs_WaveformModes):
         return retval
 
     def f_lower_at_1Msun(self, t=None):
+        """Return the instantaneous GW frequency of the (2,2) mode, scaled to
+        a total mass of **1 solar mass**.
+
+        The raw NR time axis (``self.time``) is in **dimensionless M units**.
+        The returned frequency is likewise for a 1 M☉ system; to obtain the
+        physical frequency for a system with total mass *M* (in solar masses),
+        divide the result by *M*::
+
+            f_lower_hz = wfm.f_lower_at_1Msun(t=t_dimless) / total_mass_msun
+
+        Parameters
+        ----------
+        t : float or None, optional
+            Evaluation time in **dimensionless M units** (same grid as
+            ``self.time``).  If *None* the frequency at the first sample
+            (start of the waveform) is returned.
+
+        Returns
+        -------
+        float
+            GW frequency in Hz evaluated at 1 M☉ (i.e. in units of
+            ``1 / (M☉ × G/c³)``).  Divide by ``total_mass`` [M☉] to get
+            the physical frequency in Hz.
+
+        Notes
+        -----
+        The frequency is estimated from the (2,2) mode via
+        ``pycbc.waveform.utils.frequency_from_polarizations``, using the raw
+        (dimensionless) time step ``Δt = np.diff(self.time)[0]``.  The
+        conversion to physical units uses ``lal.MTSUN_SI`` (seconds per solar
+        mass).
+
+        Examples
+        --------
+        >>> # Frequency at the start of the waveform for a 60 M☉ binary
+        >>> f_start = wfm.f_lower_at_1Msun() / 60.0   # Hz
+        >>>
+        >>> # Frequency at a specific dimensionless time (e.g. relaxation time)
+        >>> t_relax_dimless = wfm.time[0] + metadata["relaxed-time"]
+        >>> f_relax = wfm.f_lower_at_1Msun(t=t_relax_dimless) / 60.0  # Hz
+        """
         mode22 = self.get_mode_data(2, 2)
         fr22 = frequency_from_polarizations(
             TimeSeries(mode22[:, 1], delta_t=np.diff(self.time)[0]),
@@ -530,6 +638,70 @@ class WaveformModes(sxs_WaveformModes):
         sample_times = self.time[: len(fr22)]
         interp_fr22 = InterpolatedUnivariateSpline(sample_times, fr22, k=3)
         return float(interp_fr22(t) / lal.MTSUN_SI)
+
+    def _get_relaxation_time_dimless(self):
+        """Return the relaxation time in dimensionless M units from metadata.
+
+        Tries the following metadata keys in order:
+        - ``'relaxed-time'`` (RIT catalog)
+        - ``'relaxation_time'`` (SXS catalog)
+        - ``'reference_time'`` (SXS catalog fallback)
+
+        Returns 0.0 if no relaxation time is found.
+        """
+        md = self.sim_metadata
+        for key in ("relaxed-time", "relaxation_time", "reference_time"):
+            if key in md and md[key] is not None:
+                return float(md[key])
+        return 0.0
+
+    def trim_to_relaxation_time(self, total_mass, delta_t=1.0 / 4096):
+        """Return the (2,2) mode trimmed to start at the relaxation epoch.
+
+        The relaxation time marks the epoch after which the NR simulation has
+        settled from its initial-data transient.  Comparisons against waveform
+        models should use data starting from this time.
+
+        Parameters
+        ----------
+        total_mass : float
+            Total mass of the binary (solar masses).
+        delta_t : float, optional
+            Sample spacing in seconds (default 1/4096).
+
+        Returns
+        -------
+        pycbc.types.TimeSeries
+            Complex (2,2) mode starting at the relaxation time.
+        """
+        t_relax = self._get_relaxation_time_dimless()
+        mode = self.get_mode(2, 2, total_mass=total_mass, distance=1.0, delta_t=delta_t)
+        t_start = mode.start_time
+        t_relax_phys = t_relax * utils.time_to_physical(total_mass)
+        idx = 0
+        for i, t in enumerate(mode.sample_times):
+            if t >= t_start + t_relax_phys:
+                idx = i
+                break
+        return mode[idx:]
+
+    def f_lower_at_relaxation(self, total_mass):
+        """Return the GW frequency at the relaxation epoch, in Hz.
+
+        Parameters
+        ----------
+        total_mass : float
+            Total mass of the binary (solar masses).
+
+        Returns
+        -------
+        float
+            The instantaneous GW frequency (from the (2,2) mode) at the
+            relaxation time, in Hz.
+        """
+        t_relax = self._get_relaxation_time_dimless()
+        t_eval = self.time[0] + t_relax  # both in dimensionless M units
+        return self.f_lower_at_1Msun(t=t_eval) / total_mass
 
     def get_polarizations(
         self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6
@@ -569,51 +741,72 @@ class WaveformModes(sxs_WaveformModes):
         k=3,
         kind=None,
         tol=1e-6,
+        lal_convention=False,
     ):
-        """Sum over modes data and return plus and cross GW polarizations,
-        rescaled appropriately for a compact-object binary with given
-        total mass and distance from GW detectors.
+        """Sum over modes and return GW polarizations rescaled to physical units.
 
-        Returns:
-            Tuple(numpy.ndarray): Numpy Arrays containing polarizations
-                time-series
+        The waveform modes are summed using spin-weight −2 spherical harmonics
+        evaluated at the observer angles (θ, ψ, α) computed from the NR source
+        frame, following DCC-T1600045:
 
-        Args:
-            total_mass (_type_): _description_
-            distance (_type_): _description_
-            inclination (float): Inclination angle between the line-of-sight
-                orbital angular momentum vector [radians]
-            coa_phase (float): Coalesence orbital phase [radians]
-            delta_t (_type_, optional): _description_. Defaults to None.
-            f_ref (float, optional) : The reference frequency.
-            t_ref (float, optional) : The reference time.
-            k (int, optional) : The interpolation order to use with
-                                `scipy.interpolate.InterpolatedUnivariateSpline`.
-                                This is the method used by default with value 3.
-                                This parameter `k` is given preference over
-                                `kind` (see below).
-            kind (str, optional) : The interpolation order to use with
-                                    `scipy.interpolate.interp1d`
-                                (`linear`, `quadratic`, `cubic`) or
-                                `CubicSpline` to use `scipy.interpolate.CubicSpline`.
-            tol (float, optional) : The tolerance to allow for
-                                    floating point precision errors
-                                    in the computation of rotation
-                                    angles. Default value is 1e-6.
-        Returns:
-            pycbc.TimeSeries(numpy.complex128): Complex polarizations
-                stored in `pycbc` container `TimeSeries`
+            h₊ − i h× = Σ_{ℓm} h_{ℓm} · ⁻²Y_{ℓm}(θ, ψ, α)
+
+        The returned complex PyCBC TimeSeries has the convention:
+
+            retval.real() = h₊
+            retval.imag() = h×      (note: positive h×, i.e. conjugated)
+
+        This differs from the LAL convention where ``hp - i*hc`` is returned
+        with separate real TimeSeries objects.  Set ``lal_convention=True`` to
+        get a complex TimeSeries whose imaginary part equals −h× (matching
+        ``lalsimulation`` output), i.e. retval = h₊ − i h×.
+
+        Parameters
+        ----------
+        total_mass : float
+            Total mass of the binary (solar masses).
+        distance : float
+            Luminosity distance (megaparsecs).
+        inclination : float
+            Inclination angle between the line-of-sight and the orbital
+            angular momentum (radians).
+        coa_phase : float
+            Coalescence orbital phase (radians).
+        delta_t : float, optional
+            Sample spacing.  Values > 1/128 are interpreted as dimensionless
+            M units; values ≤ 1/128 are interpreted as physical seconds.
+            Defaults to the native NR time step.
+        f_ref : float, optional
+            Reference gravitational-wave frequency (Hz).
+        t_ref : float, optional
+            Reference time (dimensionless M units).
+        k : int, optional
+            Spline interpolation order (default 3).
+        kind : str, optional
+            Alternative interpolation method: ``'linear'``, ``'quadratic'``,
+            ``'cubic'``, or ``'CubicSpline'``.
+        tol : float, optional
+            Floating-point tolerance for rotation angle computation (1e-6).
+        lal_convention : bool, optional
+            If True, return h₊ − i h× (imaginary part = −h×), matching
+            ``lalsimulation`` conventions.  Default False returns h₊ + i h×
+            (imaginary part = +h×).
+
+        Returns
+        -------
+        pycbc.types.TimeSeries (complex128)
+            Complex waveform.  With default ``lal_convention=False``:
+            ``retval.real() = h₊``, ``retval.imag() = h×``.
         """
         if delta_t is None:
             delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
         m_secs = utils.time_to_physical(total_mass)
-        # we assume that we generally do not sample at a rate below 128Hz.
-        # Therefore, depending on the numerical value of dt, we deduce whether
-        # dt is in dimensionless units or in seconds.
+        # Values > 1/128 are treated as dimensionless M units; <= 1/128 as seconds.
         if delta_t > 1.0 / 128:
-            new_time = np.arange(min(self.time), max(self.time), delta_t)
+            dt_dimless = delta_t
         else:
-            new_time = np.arange(min(self.time), max(self.time), delta_t / m_secs)
+            dt_dimless = delta_t / m_secs
+        new_time = np.arange(min(self.time), max(self.time), dt_dimless)
 
         # Get angles
         angles = self.get_angles(
@@ -623,6 +816,7 @@ class WaveformModes(sxs_WaveformModes):
             t_ref=t_ref,
             tol=tol,
         )
+        # evaluate() returns h₊ − i h× (sxs convention)
         h = interpolate_in_amp_phase(
             self.evaluate([angles["theta"], angles["psi"], angles["alpha"]]),
             new_time,
@@ -631,8 +825,13 @@ class WaveformModes(sxs_WaveformModes):
         ) * utils.amp_to_physical(total_mass, distance)
 
         h.time *= m_secs
-        # Return conjugated waveform to comply with lal
-        return self.to_pycbc(np.conjugate(h))
+
+        if lal_convention:
+            # Return h₊ − i h× so that real()=h₊, imag()=−h× (LAL convention)
+            return self.to_pycbc(h)
+        else:
+            # Return conjugate: h₊ + i h× so that real()=h₊, imag()=+h×
+            return self.to_pycbc(np.conjugate(h))
 
     def get_angles(self, inclination, coa_phase, f_ref=None, t_ref=None, tol=1e-6):
         """Get the inclination, azimuthal and polarization angles
@@ -829,13 +1028,13 @@ class WaveformModes(sxs_WaveformModes):
 
         # Use the raw (non-interpolated) data of the object
         try:
-            mode22_idx = self.index_from_ell_m(2, 2)
+            mode22_idx = self.index(2, 2)
         except ValueError:
             # Fallback if 2,2 mode is not present, though it is standard.
             self._peak_time_22 = 0.0
             return self._peak_time_22
 
-        mode22_data = self.data[:, mode22_idx]
+        mode22_data = np.array(self.data[:, mode22_idx], dtype=complex)
         amp22 = np.abs(mode22_data)
 
         # Find the peak of the amplitude vs. time
@@ -901,60 +1100,128 @@ class WaveformModes(sxs_WaveformModes):
 
         return rotated_self
 
+    def match_single_mode(
+        self,
+        other,
+        ell,
+        em,
+        psd,
+        f_lower,
+        delta_t=1.0 / 4096,
+        f_upper=None,
+    ):
+        """Compute the noise-weighted match for a single spherical harmonic mode.
+
+        Maximizes over time shift t₀ and phase shift φ₀:
+
+            M_{ℓm} = max_{t₀,φ₀} |⟨h₁_{ℓm} | h₂_{ℓm}(t₀,φ₀)⟩|
+                      / sqrt(⟨h₁_{ℓm}|h₁_{ℓm}⟩ · ⟨h₂_{ℓm}|h₂_{ℓm}⟩)
+
+        The mode-dependent lower frequency cutoff ``f_lower * |m| / 2`` is
+        applied automatically (the (ℓ,m) mode oscillates at frequency
+        |m|/2 × orbital frequency, so the GW frequency for mode m is
+        |m|/2 × f_orb).
+
+        Parameters
+        ----------
+        other : WaveformModes or dict
+            The second waveform.  Can be a ``WaveformModes`` object or a dict
+            of ``{(l, m): pycbc.types.TimeSeries}`` as returned by
+            ``pycbc.waveform.get_td_waveform_modes``.
+        ell : int
+            Spherical harmonic ℓ index.
+        em : int
+            Spherical harmonic m index.
+        psd : pycbc.types.FrequencySeries
+            One-sided noise power spectral density.
+        f_lower : float
+            Orbital reference frequency in Hz (the mode cutoff
+            ``f_lower * |m| / 2`` is applied internally).
+        delta_t : float, optional
+            Sample spacing in physical seconds (default 1/4096).
+        f_upper : float, optional
+            Upper frequency cutoff in Hz (Nyquist if None).
+
+        Returns
+        -------
+        float
+            Match value in [0, 1].
+        """
+        from pycbc.filter import match as pycbc_match
+
+        h1 = self.get_mode(ell, em, to_pycbc=True, delta_t=delta_t).real()
+
+        if isinstance(other, dict):
+            # dict from pycbc.waveform.get_td_waveform_modes: values are (re, im)
+            if (ell, em) not in other:
+                raise KeyError(f"Mode ({ell}, {em}) not found in other waveform dict.")
+            val = other[(ell, em)]
+            h2 = val[0] if isinstance(val, (tuple, list)) else val.real()
+        else:
+            h2 = other.get_mode(ell, em, to_pycbc=True, delta_t=delta_t).real()
+
+        # Pad to same length
+        target_len = max(len(h1), len(h2))
+        h1.resize(target_len)
+        h2.resize(target_len)
+
+        psd_copy = psd.copy()
+        psd_copy.resize(len(h1.to_frequencyseries()))
+
+        mode_f_lower = f_lower * abs(em) / 2.0 if em != 0 else f_lower
+
+        mm, _ = pycbc_match(
+            h1,
+            h2,
+            psd=psd_copy,
+            low_frequency_cutoff=mode_f_lower,
+            high_frequency_cutoff=f_upper,
+        )
+        return float(mm)
+
     def match_sphere_averaged(
         self,
         other,
         psd,
         f_lower,
         f_upper=None,
+        delta_t=1.0 / 4096,
     ):
         """Calculates the match between this waveform and another.
 
         The match is a measure of similarity between two waveforms, maximized over
         extrinsic parameters (time shift, phase shift, and spatial orientation).
-        It is defined as the noise-weighted inner product, normalized bye
-        waveform norms.
+        It is defined as the noise-weighted inner product, normalized by the
+        waveform norms:
 
-        The function finds the maximum of the overlap functional, which is given by:
+        Overlap(h₁, h₂) = |(h̃₁ | h̃₂)| / sqrt( (h̃₁ | h̃₁) · (h̃₂ | h̃₂) )
 
-        Overlap(h₁, h₂) = |(h̃₁ | h̃₂)| / sqrt( (h̃₁ | h̃₁) * (h̃₂ | h̃₂) )
+        The noise-weighted inner product is:
 
-        where the noise-weighted inner product (h̃₁ | h̃₂) is defined as:
+        (h̃₁ | h̃₂) = 4 Re ∫ h̃₁*(f) h̃₂(f; t₀, φ₀, R) / Sₙ(f) df
 
-        (h̃₁ | h̃₂) = 4 * Re ∫[ h̃₁(f) * conj(h̃₂(f; t₀, φ₀, R)) / Sₙ(f) ] df
-
-        The maximization is performed over:
-        - t₀ : A relative time shift between the waveforms.
-        - φ₀ : A relative phase shift.
-        - R  : A relative 3D rotation, parameterized by Euler angles.
-
-        Sₙ(f) is the noise power spectral density (`psd`). The integral is
-        approximated as a discrete sum over frequency bins from `f_lower` to
-        `f_upper`.
-
-        The calculation is performed by summing the inner products of all common
-        spherical harmonic modes (l, m) of the two waveforms.
-
-        The optimization is done by minimizing (1 - Overlap) using the
-        'Nelder-Mead' algorithm.
+        Maximization is over:
+        - t₀ : time shift
+        - φ₀ : phase shift
+        - R ∈ SO(3) : 3D rotation (Euler angles α, β, γ)
 
         Parameters
         ----------
-        other : Waveform
-            The other waveform object to compare against.
+        other : WaveformModes
+            The other waveform to compare against.
         psd : pycbc.types.FrequencySeries
-            The one-sided power spectral density (PSD) of the detector noise.
+            One-sided noise power spectral density.
         f_lower : float
-            The lower frequency cutoff for the match integral, in Hz.
+            Lower frequency cutoff in Hz.
         f_upper : float, optional
-            The upper frequency cutoff for the match integral, in Hz.
-            If None, it defaults to the Nyquist frequency of the waveforms.
+            Upper frequency cutoff in Hz (Nyquist if None).
+        delta_t : float, optional
+            Sample spacing in physical seconds (default 1/4096).
 
         Returns
         -------
         float
-            The maximum match value, a float between 0 and 1.
-
+            Maximum match value in [0, 1].
         """
         from scipy.optimize import minimize
 
@@ -971,9 +1238,9 @@ class WaveformModes(sxs_WaveformModes):
             common_modes = set(map(tuple, self.LM)) & set(map(tuple, other_rot.LM))
 
             for l, m in common_modes:
-                h1_mode_ts = self.get_mode(l, m, to_pycbc=True, delta_t=1 / 4096)
+                h1_mode_ts = self.get_mode(l, m, to_pycbc=True, delta_t=delta_t)
                 h2_mode_ts = other_rot.get_mode(
-                    l, m, to_pycbc=True, delta_t=1 / 4096
+                    l, m, to_pycbc=True, delta_t=delta_t
                 )
 
                 # Align lengths
@@ -1060,17 +1327,36 @@ class WaveformModes(sxs_WaveformModes):
 
         Notes
         -----
-        The supertranslated waveform modes are computed in the frequency domain via:
+        **BMS supertranslation formula:**
 
-        h̃'_lm(f) = h̃_lm(f) - Σ_{j,k,p,q} α_jk * G^{lm}_{jk,pq} * h̃̇_pq(f)
+        A supertranslation α(θ,φ) = Σ_{jk} α_{jk} Y_{jk}(θ,φ) acts on the
+        strain modes as (arXiv:1002.1727, eq. 11):
 
-        where `α_jk` are the supertranslation coefficients, `G` is the Gaunt
-        integral computed by `scri.coupling_coefficients`, and `h̃̇` is the
-        Fourier transform of the time-derivative of the waveform mode.
-        The optimization is performed over `(t_c, φ_c, R, α_jk)`.
+            h'_{ℓm} = h_{ℓm} - Σ_{j,k,p,q} α_{jk} G^{ℓm}_{jk;pq} ḣ_{pq}
+
+        where the spin-weighted Gaunt coefficient is:
+
+            G^{ℓm}_{jk;pq} = ∫ ⁻²Ȳ_{ℓm} · Y_{jk} · ⁻²Y_{pq} dΩ
+
+        In the frequency domain, ḣ_{pq}(f) = i·2πf · h̃_{pq}(f), which is the
+        multiplication applied in ``self_modes_dot_tilde``.
+
+        The ``scri.coupling_coefficients`` call uses ``s_prime=-2`` for the
+        left spin-weight factor (the conjugated ⁻²Y_{ℓm}), ``s1=0`` for the
+        scalar Y_{jk}, and ``s2=-2`` for ⁻²Y_{pq}`, which matches the formula.
+
+        The optimization is performed over ``(t_c, φ_c, R, α_jk)`` where R is
+        parameterized by Euler angles (α_E, β_E, γ_E) via Nelder-Mead.
+        Requires the ``scri`` package (``pip install scri``).
         """
         from scipy.optimize import minimize
-        import scri
+        try:
+            import scri
+        except ImportError as e:
+            raise ImportError(
+                "The 'scri' package is required for BMS supertranslation optimization. "
+                "Install it with: pip install scri"
+            ) from e
 
         # Determine the supertranslation coefficients to be optimized
         alpha_jk_indices = []
@@ -1181,6 +1467,80 @@ class WaveformModes(sxs_WaveformModes):
         result = minimize(objective_function, x0, method="Nelder-Mead")
 
         return 1.0 - result.fun
+
+
+def apply_wigner_rotation_to_mode_dict(mode_dict, R, ell_max=4):
+    """Apply a Wigner rotation to a dictionary of spherical harmonic modes.
+
+    This is useful for rotating the output of ``gwsurrogate`` or
+    ``pycbc.waveform.get_td_waveform_modes`` (which return dicts) into the
+    NR source frame before computing mode-by-mode matches.
+
+    The rotation is applied mode-by-mode via Wigner D-matrices:
+
+        h'_{ℓm}(t) = Σ_{m'} D^{(ℓ)}_{m'm}(R) h_{ℓm'}(t)
+
+    where R ∈ SO(3) is a unit quaternion and D^{(ℓ)} is the (2ℓ+1)×(2ℓ+1)
+    Wigner D-matrix for angular momentum ℓ.
+
+    Parameters
+    ----------
+    mode_dict : dict
+        Keys are ``(l, m)`` integer tuples; values are complex
+        ``pycbc.types.TimeSeries`` objects (or 1-D numpy arrays of matching
+        length).  The dict is typically the output of
+        ``pycbc.waveform.get_td_waveform_modes`` or ``gwsurrogate``.
+    R : quaternionic.array
+        Unit quaternion representing the rotation.
+    ell_max : int, optional
+        Maximum ℓ to include (default 4).
+
+    Returns
+    -------
+    dict
+        Rotated mode dictionary with the same ``(l, m)`` keys and the same
+        value type (TimeSeries or ndarray) as the input.
+    """
+    wigner = spherical.Wigner(ell_max)
+
+    # Group modes by ℓ
+    by_ell = {}
+    for (l, m), val in mode_dict.items():
+        if l > ell_max:
+            continue
+        by_ell.setdefault(l, {})[m] = val
+
+    rotated = {}
+    for l, m_dict in by_ell.items():
+        # Build matrix of shape (n_times, 2l+1) in m order: -l … +l
+        m_vals = list(range(-l, l + 1))
+
+        # Determine output type and length from the first available mode
+        first = next(iter(m_dict.values()))
+        is_timeseries = hasattr(first, "delta_t")
+        n = len(first)
+
+        # Assemble input block; zero-pad missing m values
+        block = np.zeros((n, 2 * l + 1), dtype=complex)
+        for i, mv in enumerate(m_vals):
+            if mv in m_dict:
+                block[:, i] = np.asarray(m_dict[mv])
+
+        # D-matrix shape: (2l+1, 2l+1), rows = output m, cols = input m
+        D = wigner.D(R, l)  # shape (2l+1, 2l+1)
+
+        # rotated_block[t, m_out] = Σ_{m_in} D[m_out, m_in] block[t, m_in]
+        rotated_block = block @ D.T  # (n, 2l+1)
+
+        for i, mv in enumerate(m_vals):
+            if is_timeseries:
+                rotated[(l, mv)] = type(first)(
+                    rotated_block[:, i], delta_t=first.delta_t, epoch=first.start_time
+                )
+            else:
+                rotated[(l, mv)] = rotated_block[:, i]
+
+    return rotated
 
 
 def interpolate_in_amp_phase(obj, new_time, k=3, kind=None):
