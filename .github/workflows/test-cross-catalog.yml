@@ -61,7 +61,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ env.NR_CATALOG_CACHE }}
-          key: nr-data-v1-RIT-BBH-0001-SXS-BBH-0001-GT0355
+          key: nr-data-v1-RIT-BBH-0001-SXS-BBH-0001-GT0905
 
       # ── 6. Download NR data (skipped when cache hits) ─────────────────────
       - name: Download RIT simulation
@@ -94,7 +94,7 @@ jobs:
           import warnings; warnings.filterwarnings("ignore")
           import nrcatalogtools as nrcat
           cat = nrcat.MayaCatalog.load(verbosity=0)
-          cat.download_waveform_data("GT0355")
+          cat.download_waveform_data("GT0905")
           print("MAYA download done.")
           EOF
 

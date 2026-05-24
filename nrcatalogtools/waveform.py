@@ -631,6 +631,10 @@ class WaveformModes(sxs_WaveformModes):
             TimeSeries(mode22[:, 1], delta_t=np.diff(self.time)[0]),
             TimeSeries(-1 * mode22[:, 2], delta_t=np.diff(self.time)[0]),
         )
+        # Ensure positive frequency regardless of catalog phase convention.
+        # SXS stores h_{lm} = A·exp(−iΦ) while RIT/MAYA store A·exp(+iΦ),
+        # so frequency_from_polarizations can return negative values for SXS.
+        fr22 = np.abs(fr22)
         # If time value is not provided, return the initial f_lower
         if t is None:
             return float(fr22[0] / lal.MTSUN_SI)
@@ -1024,8 +1028,6 @@ class WaveformModes(sxs_WaveformModes):
         if hasattr(self, "_peak_time_22"):
             return self._peak_time_22
 
-        from scipy.interpolate import InterpolatedUnivariateSpline
-
         # Use the raw (non-interpolated) data of the object
         try:
             mode22_idx = self.index(2, 2)
@@ -1037,18 +1039,11 @@ class WaveformModes(sxs_WaveformModes):
         mode22_data = np.array(self.data[:, mode22_idx], dtype=complex)
         amp22 = np.abs(mode22_data)
 
-        # Find the peak of the amplitude vs. time
-        x_axis = self.time
-        y_axis = amp22
-
-        f = InterpolatedUnivariateSpline(x_axis, y_axis, k=4)
-        cr_pts = f.derivative().roots()
-        # also check the endpoints of the interval
-        cr_pts = np.append(cr_pts, (x_axis[0], x_axis[-1]))
-        cr_vals = f(cr_pts)
-        max_index = np.argmax(cr_vals)
-
-        self._peak_time_22 = cr_pts[max_index]
+        # Find the peak of the amplitude via np.argmax.  The spline-derivative
+        # approach is fragile for oscillatory waveforms (many local maxima fool
+        # the root finder into picking the wrong one).
+        x_axis = np.array(self.time)
+        self._peak_time_22 = float(x_axis[np.argmax(amp22)])
         return self._peak_time_22
 
     def rotated(self, R):

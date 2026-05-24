@@ -165,4 +165,14 @@ class CatalogBase(CatalogABC, sxs_Catalog):
             dict: Initial binary parameters with names compatible with PyCBC.
         """
         metadata = self.get_metadata(sim_name)
-        return md.get_source_parameters_from_metadata(metadata, total_mass=total_mass)
+        params = md.get_source_parameters_from_metadata(metadata, total_mass=total_mass)
+        # If frequency metadata is absent or zero, compute f_lower from the
+        # waveform data itself via f_lower_at_1Msun().
+        if params.get("f_lower", -1) <= 0:
+            try:
+                wfm = self.get(sim_name, quantity="waveform")
+                f1 = wfm.f_lower_at_1Msun()
+                params["f_lower"] = f1 / total_mass
+            except Exception:
+                pass
+        return params
