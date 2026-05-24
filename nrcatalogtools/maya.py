@@ -320,13 +320,25 @@ class MayaCatalog(catalog.CatalogBase):
                     )
 
     def psi4_filename_from_simname(self, sim_name):
-        return
+        raise NotImplementedError(
+            "PSI4 data is not available for the MAYA catalog. "
+            "Use the strain waveform data instead."
+        )
 
     def psi4_filepath_from_simname(self, sim_name):
-        return
+        raise NotImplementedError(
+            "PSI4 data is not available for the MAYA catalog. "
+            "Use the strain waveform data instead."
+        )
 
     def psi4_url_from_simname(self, sim_name):
-        return
+        raise NotImplementedError(
+            "PSI4 data is not available for the MAYA catalog. "
+            "Use the strain waveform data instead."
+        )
 
     def download_psi4_data(self, sim_name):
-        return
+        raise NotImplementedError(
+            "PSI4 data is not available for the MAYA catalog. "
+            "Use the strain waveform data instead."
+        )
