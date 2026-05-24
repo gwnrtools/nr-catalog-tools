@@ -23,7 +23,6 @@ import unittest
 from pathlib import Path
 
 from nrcatalogtools.maya import MayaCatalog
-from nrcatalogtools.utils import maya_catalog_info
 from pycbc import pnutils
 from nrcatalogtools.lvc import transform_spins_nr_to_lal
 
@@ -38,6 +37,8 @@ from waveformtools.waveformtools import message, roll, xtract_camp_phase
 
 # unittest helper funcs
 from helper import rms_errs
+
+_VALIDATION_DIR = Path(__file__).parent / "validation_data"
 
 sim_name = "GT0001"
 
@@ -104,9 +105,9 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     if lal_use_coa_phase_as_phi_ref is False:
         lal_coa_phase = phi_ref_obs
 
-    fdir = maya_catalog_info["data_dir"]
+    fdir = str(_VALIDATION_DIR)
     fname = f"{sim_name}.h5"
-    file = f"{fdir}/{fname}"
+    file = str(_VALIDATION_DIR / fname)
 
     f = h5py.File(file, "a")
 

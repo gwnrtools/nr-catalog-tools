@@ -1,0 +1,4 @@
+# Ignore loose HDF5 files dropped in the test root.
+# Only test/validation_data/*.h5 should be tracked.
+*.h5
+!validation_data/*.h5
