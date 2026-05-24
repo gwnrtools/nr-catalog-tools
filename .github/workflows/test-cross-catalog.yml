@@ -1,0 +1,124 @@
+name: Cross-catalog waveform tests
+
+# Run on every PR (any base branch) and on direct pushes to master/develop.
+on:
+  pull_request:
+  push:
+    branches: ["master", "develop"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      # All three catalogs will cache data under this directory.
+      NR_CATALOG_CACHE: ${{ github.workspace }}/.nr_cache
+      # Tell the sxs package where to write its cache.
+      SXS_CACHE: ${{ github.workspace }}/.nr_cache/SXS
+
+    steps:
+      # ── 1. Source ──────────────────────────────────────────────────────────
+      - uses: actions/checkout@v4
+
+      # ── 2. Python ─────────────────────────────────────────────────────────
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # ── 3. System libs required by lalsuite ───────────────────────────────
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q \
+            libgsl-dev libfftw3-dev libhdf5-dev
+
+      # ── 4. Python dependencies ────────────────────────────────────────────
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            "sxs>=2025.0.0" \
+            "lalsuite>=7.0" \
+            "pycbc>=2.0" \
+            "mayawaves>=2024.0" \
+            quaternionic \
+            spherical \
+            scipy \
+            numpy \
+            pandas \
+            h5py \
+            requests \
+            pytest \
+            pytest-xdist
+          pip install -e .
+
+      # ── 5. NR data cache ──────────────────────────────────────────────────
+      # Key includes the simulation names so the cache is invalidated if we
+      # ever swap to a different reference simulation.
+      - name: Restore NR data cache
+        id: nr-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.NR_CATALOG_CACHE }}
+          key: nr-data-v1-RIT-BBH-0001-SXS-BBH-0001-GT0355
+
+      # ── 6. Download NR data (skipped when cache hits) ─────────────────────
+      - name: Download RIT simulation
+        if: steps.nr-cache.outputs.cache-hit != 'true'
+        run: |
+          python - <<'EOF'
+          import warnings; warnings.filterwarnings("ignore")
+          import nrcatalogtools as nrcat
+          cat = nrcat.RITCatalog.load(verbosity=0)
+          cat.download_waveform_data("RIT:BBH:0001-n100-id3")
+          print("RIT download done.")
+          EOF
+
+      - name: Download SXS simulation
+        if: steps.nr-cache.outputs.cache-hit != 'true'
+        run: |
+          python - <<'EOF'
+          import warnings; warnings.filterwarnings("ignore")
+          import sxs
+          # download=True fetches both metadata and strain for SXS:BBH:0001
+          sim = sxs.load("SXS:BBH:0001", download=True, auto_supersede=True)
+          _ = sim.strain   # triggers the actual data fetch
+          print("SXS download done.")
+          EOF
+
+      - name: Download MAYA simulation
+        if: steps.nr-cache.outputs.cache-hit != 'true'
+        run: |
+          python - <<'EOF'
+          import warnings; warnings.filterwarnings("ignore")
+          import nrcatalogtools as nrcat
+          cat = nrcat.MayaCatalog.load(verbosity=0)
+          cat.download_waveform_data("GT0355")
+          print("MAYA download done.")
+          EOF
+
+      # ── 7. Run tests ──────────────────────────────────────────────────────
+      - name: Run cross-catalog tests
+        run: |
+          pytest test/test_cross_catalog_q1_nospin.py \
+            -v \
+            --tb=short \
+            -p no:warnings \
+            --junit-xml=test-results.xml
+
+      # ── 8. Publish test report ────────────────────────────────────────────
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: test-results.xml
+
+      - name: Publish test summary
+        if: always()
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: test-results.xml
+          comment_mode: always
+          check_name: "Cross-catalog test results"
