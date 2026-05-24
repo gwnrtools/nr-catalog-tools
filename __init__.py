@@ -6,4 +6,7 @@
 
 from __future__ import print_function, division, absolute_import
 
-from .nrcatalogtools import *
+try:
+    from .nrcatalogtools import *
+except ImportError:
+    pass

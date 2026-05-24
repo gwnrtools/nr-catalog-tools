@@ -49,10 +49,11 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
             spin2y=s2y,
             spin2z=s2z,
         )
-        # Now father initial frequency information
-        if not np.isnan(metadata["freq_start_22"]):
+        # Now gather initial frequency information
+        freq22 = metadata["freq_start_22"]
+        if not np.isnan(freq22) and float(freq22) > 0:
             parameters.update(
-                f_lower=float(metadata["freq_start_22"]) / (total_mass * lal.MTSUN_SI)
+                f_lower=float(freq22) / (total_mass * lal.MTSUN_SI)
             )
         else:
             parameters.update(f_lower=-1)
@@ -64,10 +65,15 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
         parameters.update(mass1=m1, mass2=m2)
         for suffix in ["1x", "1y", "1z", "2x", "2y", "2z"]:
             parameters["spin" + suffix] = metadata["a" + suffix]
-        if not np.isnan(metadata["Momega"]):
+        # MAYA metadata uses 'omega_orbital' (orbital angular frequency in M units).
+        # GW frequency = omega_orbital / pi (since f_gw = 2 * f_orbital = omega_orbital/pi).
+        omega = metadata.get("omega_orbital", None)
+        if omega is not None and not np.isnan(float(omega)) and float(omega) > 0:
             parameters.update(
-                f_lower=float(metadata["Momega"]) / np.pi / (total_mass * lal.MTSUN_SI)
+                f_lower=float(omega) / np.pi / (total_mass * lal.MTSUN_SI)
             )
+        elif "f_lower_at_1MSUN" in metadata and not np.isnan(float(metadata["f_lower_at_1MSUN"])):
+            parameters.update(f_lower=float(metadata["f_lower_at_1MSUN"]) / total_mass)
         else:
             parameters.update(f_lower=-1)
     else:

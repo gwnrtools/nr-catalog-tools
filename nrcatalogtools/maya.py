@@ -2,8 +2,6 @@ import collections
 import functools
 import os
 import zipfile
-from mayawaves import coalescence as maya_coalescence
-from mayawaves.utils import postprocessingutils as maya_postprocessingutils
 import pandas as pd
 from nrcatalogtools import catalog, utils
 
@@ -294,6 +292,14 @@ class MayaCatalog(catalog.CatalogBase):
                 if maya_format:
                     if self._verbosity > 2:
                         print("...exporting to LVCNR catalog format")
+                    try:
+                        from mayawaves import coalescence as maya_coalescence
+                        from mayawaves.utils import postprocessingutils as maya_postprocessingutils
+                    except ImportError as exc:
+                        raise ImportError(
+                            "mayawaves is required to convert MAYA-format files. "
+                            "Install it with: pip install mayawaves"
+                        ) from exc
                     maya_postprocessingutils.export_to_lvcnr_catalog(
                         maya_coalescence.Coalescence(local_file_path),
                         self.waveform_data_dir,
