@@ -9,7 +9,7 @@ from . import lvc, maya, metadata, rit, sxs, utils, waveform
 from .maya import MayaCatalog
 from .rit import RITCatalog
 from .sxs import SXSCatalog
-from .waveform import WaveformModes
+from .waveform import WaveformModes, apply_wigner_rotation_to_mode_dict
 
 
 def get_version_information():
