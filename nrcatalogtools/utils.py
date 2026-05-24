@@ -61,6 +61,14 @@ maya_catalog_info = {
 maya_catalog_info["data_dir"] = maya_catalog_info["cache_dir"] / "data/"
 maya_catalog_info["metadata_dir"] = maya_catalog_info["cache_dir"] / "metadata"
 
+sxs_catalog_info = {
+    "cache_dir": nrcatalog_cache_dir / "SXS",
+    "data_url": "https://www.black-holes.org/waveforms/",
+    "metadata_url": "https://www.black-holes.org/waveforms/metadata.json",
+}
+sxs_catalog_info["data_dir"] = sxs_catalog_info["cache_dir"] / "data/"
+sxs_catalog_info["metadata_dir"] = sxs_catalog_info["cache_dir"] / "metadata"
+
 
 def url_exists(link, num_retries=100):
     """Check if a given URL exists on the web.
@@ -85,6 +93,26 @@ def url_exists(link, num_retries=100):
 
 
 def download_file(url, path, progress=False, if_newer=True):
+    """
+    Download a file from the given URL to the specified local path.
+
+    This function attempts to download the file at `url` and save it to `path`.
+    It first tries to use the `sxs.utilities.downloads.download_file` utility (if available).
+    If that fails, it falls back to using the Python `requests` package, with SSL
+    verification disabled and up to 100 retry attempts.
+
+    Args:
+        url (str): The URL to download the file from.
+        path (str or pathlib.Path): The destination path where the file should be saved.
+        progress (bool, optional): Whether to show a progress bar if supported.
+        if_newer (bool, optional): Only download if the remote file is newer than the local file.
+
+    Returns:
+        The path (as a pathlib.Path object) to the downloaded file.
+
+    Raises:
+        RuntimeError: If the file could not be downloaded due to network or server errors.
+    """
     if url_exists(url):
         try:
             return sxs.utilities.downloads.download_file(
@@ -117,12 +145,24 @@ def download_file(url, path, progress=False, if_newer=True):
 
 def call_with_timeout(myfunc, args=(), kwargs={}, timeout=5):
     """
-    This function calls user-provided `myfunc` with user-provided
-    `args` and `kwargs` in a separate multiprocessing.Process.
-    if the function evaluation takes more than `timeout` seconds, the
-    `Process` is terminated and error raised. If it evalutes within
-    `timeout` seconds, the results are fetched from the `Queue` and
-    returned.
+    Call a function with a time limit in a separate process.
+
+    Executes the provided function `myfunc` with given positional (`args`) and keyword
+    arguments (`kwargs`) in a separate process. If the function does not complete
+    within `timeout` seconds, the process is terminated and an exception is raised.
+    If the function completes within the timeout, its result is returned.
+
+    Args:
+        myfunc (callable): The function to execute.
+        args (tuple, optional): Positional arguments to pass to `myfunc`. Defaults to ().
+        kwargs (dict, optional): Keyword arguments to pass to `myfunc`. Defaults to {}.
+        timeout (int or float, optional): Maximum allowed execution time in seconds. Defaults to 5.
+
+    Returns:
+        The result of `myfunc(*args, **kwargs)` if completed within the timeout.
+
+    Raises:
+        Exception: If the function does not complete within the specified timeout.
     """
 
     from multiprocessing import Process, Queue
@@ -149,7 +189,8 @@ def call_with_timeout(myfunc, args=(), kwargs={}, timeout=5):
 
 
 def time_to_physical(M):
-    """Factor to convert time from dimensionless units to SI units
+    """
+    Factor to convert time from dimensionless units to SI units
 
     parameters
     ----------
@@ -164,7 +205,8 @@ def time_to_physical(M):
 
 
 def amp_to_physical(M, D):
-    """Factor to rescale strain to mass M and distance D convert from
+    """
+    Factor to rescale strain to mass M and distance D convert from
     dimensionless units to SI units
 
     parameters
@@ -178,3 +220,64 @@ def amp_to_physical(M, D):
     """
 
     return lal.G_SI * M * lal.MSUN_SI / (lal.C_SI**2 * D * 1e6 * lal.PC_SI)
+
+
+def amplitude_phase_frequency_from_complex_mode(hlm):
+    """
+    Compute amplitude, phase, and instantaneous frequency from a complex mode time series.
+
+    Parameters
+    ----------
+    hlm : tuple of (real, imag) pycbc.types.TimeSeries, or a single complex pycbc.types.TimeSeries
+        Either a tuple of real and imaginary parts of a mode (as PyCBC TimeSeries with matching sample_times),
+        or a single complex-valued PyCBC TimeSeries.
+
+    Returns
+    -------
+    amp : pycbc.types.TimeSeries
+        The instantaneous amplitude as a function of time.
+    phase : pycbc.types.TimeSeries
+        The instantaneous phase as a function of time.
+    freq : pycbc.types.TimeSeries
+        The instantaneous frequency (cycles per unit time) as a function of time.
+    """
+    import numpy as np
+    from pycbc.types import TimeSeries
+
+    # Check if hlm is a tuple with PyCBC TimeSeries (real, imag)
+    if isinstance(hlm, tuple) and len(hlm) == 2:
+        re, im = hlm
+        h_complex = re.numpy() + 1j * im.numpy()
+        # Assume re/im have sample_times attribute if PyCBC TimeSeries
+        if hasattr(re, "sample_times"):
+            t = re.sample_times.numpy()
+        else:
+            raise AttributeError(
+                "Real/Imag PyCBC TimeSeries objects must have sample_times."
+            )
+        delta_t = re.delta_t
+    else:
+        # Accept complex-valued PyCBC TimeSeries input
+        if isinstance(hlm, TimeSeries) and np.iscomplexobj(hlm):
+            h_complex = hlm.numpy()
+            delta_t = hlm.delta_t
+            re = hlm  # use for .start_time and .delta_t
+        else:
+            raise ValueError(
+                "Input must be a tuple of PyCBC TimeSeries (re, im), or a complex-valued PyCBC TimeSeries."
+            )
+
+    # Compute amplitude
+    amp_arr = np.abs(h_complex)
+
+    amp = TimeSeries(amp_arr, delta_t=delta_t, epoch=re.start_time)
+
+    # Compute phase
+    phase_arr = np.unwrap(np.angle(h_complex))
+    phase = TimeSeries(phase_arr, delta_t=delta_t, epoch=re.start_time)
+
+    # Compute dphase/dt (frequency) as a TimeSeries (using uniform time steps)
+    # (careful: np.gradient(y, dx) is d(y)/d(x) for uniform x spacing dx)
+    dphase_dt_arr = np.gradient(phase_arr, re.delta_t)
+    freq = TimeSeries(dphase_dt_arr / 2 / np.pi, delta_t=delta_t, epoch=re.start_time)
+    return amp, phase, freq

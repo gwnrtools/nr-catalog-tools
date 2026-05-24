@@ -2,8 +2,6 @@ import collections
 import functools
 import os
 import zipfile
-from mayawaves import coalescence as maya_coalescence
-from mayawaves.utils import postprocessingutils as maya_postprocessingutils
 import pandas as pd
 from nrcatalogtools import catalog, utils
 
@@ -181,9 +179,9 @@ class MayaCatalog(catalog.CatalogBase):
         if any([col not in existing_cols for col in new_cols]):
             for sim_name in metadata_dict:
                 if "metadata_location" not in existing_cols:
-                    metadata_dict[sim_name][
-                        "metadata_location"
-                    ] = self.metadata_filepath_from_simname(sim_name)
+                    metadata_dict[sim_name]["metadata_location"] = (
+                        self.metadata_filepath_from_simname(sim_name)
+                    )
                 if "metadata_link" not in existing_cols:
                     metadata_dict[sim_name]["metadata_link"] = self.metadata_url
                 if "waveform_data_link" not in existing_cols:
@@ -191,9 +189,9 @@ class MayaCatalog(catalog.CatalogBase):
                         self.waveform_data_url + "/" + f"{sim_name}.h5"
                     )
                 if "waveform_data_location" not in existing_cols:
-                    metadata_dict[sim_name][
-                        "waveform_data_location"
-                    ] = self.waveform_filepath_from_simname(sim_name)
+                    metadata_dict[sim_name]["waveform_data_location"] = (
+                        self.waveform_filepath_from_simname(sim_name)
+                    )
 
     @property
     @functools.lru_cache()
@@ -294,6 +292,14 @@ class MayaCatalog(catalog.CatalogBase):
                 if maya_format:
                     if self._verbosity > 2:
                         print("...exporting to LVCNR catalog format")
+                    try:
+                        from mayawaves import coalescence as maya_coalescence
+                        from mayawaves.utils import postprocessingutils as maya_postprocessingutils
+                    except ImportError as exc:
+                        raise ImportError(
+                            "mayawaves is required to convert MAYA-format files. "
+                            "Install it with: pip install mayawaves"
+                        ) from exc
                     maya_postprocessingutils.export_to_lvcnr_catalog(
                         maya_coalescence.Coalescence(local_file_path),
                         self.waveform_data_dir,
@@ -320,13 +326,25 @@ class MayaCatalog(catalog.CatalogBase):
                     )
 
     def psi4_filename_from_simname(self, sim_name):
-        return
+        raise NotImplementedError(
+            "PSI4 data is not available for the MAYA catalog. "
+            "Use the strain waveform data instead."
+        )
 
     def psi4_filepath_from_simname(self, sim_name):
-        return
+        raise NotImplementedError(
+            "PSI4 data is not available for the MAYA catalog. "
+            "Use the strain waveform data instead."
+        )
 
     def psi4_url_from_simname(self, sim_name):
-        return
+        raise NotImplementedError(
+            "PSI4 data is not available for the MAYA catalog. "
+            "Use the strain waveform data instead."
+        )
 
     def download_psi4_data(self, sim_name):
-        return
+        raise NotImplementedError(
+            "PSI4 data is not available for the MAYA catalog. "
+            "Use the strain waveform data instead."
+        )

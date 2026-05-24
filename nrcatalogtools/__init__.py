@@ -2,13 +2,14 @@
 nr-catalog-tools is a toolkit for interfacing with gravitational-wave
 catalogs generated via Numerical Relativity simulations
 """
+
 from __future__ import absolute_import
 
 from . import lvc, maya, metadata, rit, sxs, utils, waveform
 from .maya import MayaCatalog
 from .rit import RITCatalog
 from .sxs import SXSCatalog
-from .waveform import WaveformModes
+from .waveform import WaveformModes, apply_wigner_rotation_to_mode_dict
 
 
 def get_version_information():

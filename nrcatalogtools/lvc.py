@@ -295,7 +295,10 @@ def check_interp_req(h5_file=None, metadata=None, ref_time=None, avail_ref_time=
         if abs(avail_ref_time - ref_time) < 1e-5:
             interp = False
     else:
-        return interp, avail_ref_time
+        # ref_time was not supplied (None or non-float); no interpolation needed.
+        interp = False
+
+    return interp, avail_ref_time
 
 
 def get_ref_freq_from_ref_time(h5_file, ref_time):
@@ -763,7 +766,7 @@ def get_nr_to_lal_rotation_angles(
                 t_ref = get_ref_time_from_ref_freq(h5_file, f_ref)
 
                 # Check if interpolation is required
-                interp, avail_ref_time = check_interp_req(h5_file, t_ref)
+                interp, avail_ref_time = check_interp_req(h5_file, ref_time=t_ref)
             except Exception as excep:
                 print(
                     f"Could not obtain reference time from given reference frequency {f_ref}.",
@@ -772,7 +775,7 @@ def get_nr_to_lal_rotation_angles(
                 print("Choosing available reference time")
                 interp = False
     else:
-        interp, avail_ref_time = check_interp_req(h5_file, t_ref)
+        interp, avail_ref_time = check_interp_req(h5_file, ref_time=t_ref)
 
     if interp is False:
         # Then load default values from the NR data

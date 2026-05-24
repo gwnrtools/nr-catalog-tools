@@ -49,10 +49,11 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
             spin2y=s2y,
             spin2z=s2z,
         )
-        # Now father initial frequency information
-        if not np.isnan(metadata["freq_start_22"]):
+        # Now gather initial frequency information
+        freq22 = metadata["freq_start_22"]
+        if not np.isnan(freq22) and float(freq22) > 0:
             parameters.update(
-                f_lower=float(metadata["freq_start_22"]) / (total_mass * lal.MTSUN_SI)
+                f_lower=float(freq22) / (total_mass * lal.MTSUN_SI)
             )
         else:
             parameters.update(f_lower=-1)
@@ -63,36 +64,45 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
         m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, eta)
         parameters.update(mass1=m1, mass2=m2)
         for suffix in ["1x", "1y", "1z", "2x", "2y", "2z"]:
-            parameters["s" + suffix] = metadata["a" + suffix]
-        if not np.isnan(metadata["Momega"]):
+            parameters["spin" + suffix] = metadata["a" + suffix]
+        # MAYA metadata uses 'omega_orbital' (orbital angular frequency in M units).
+        # GW frequency = omega_orbital / pi (since f_gw = 2 * f_orbital = omega_orbital/pi).
+        omega = metadata.get("omega_orbital", None)
+        if omega is not None and not np.isnan(float(omega)) and float(omega) > 0:
             parameters.update(
-                f_lower=float(metadata["Momega"]) / np.pi / (total_mass * lal.MTSUN_SI)
+                f_lower=float(omega) / np.pi / (total_mass * lal.MTSUN_SI)
             )
+        elif "f_lower_at_1MSUN" in metadata and not np.isnan(float(metadata["f_lower_at_1MSUN"])):
+            parameters.update(f_lower=float(metadata["f_lower_at_1MSUN"]) / total_mass)
         else:
             parameters.update(f_lower=-1)
     else:
-        # SXS Catalog
-        if metadata["relaxation_time"] == metadata["reference_time"]:
-            q = metadata["reference_mass_ratio"]
-            eta = min(q / (1 + q) ** 2, 0.25)
-            m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, eta)
-            spin1 = metadata["reference_dimensionless_spin1"]
-            spin2 = metadata["reference_dimensionless_spin2"]
-            parameters.update(
-                mass1=m1,
-                mass2=m2,
-                spin1x=spin1[0],
-                spin1y=spin1[1],
-                spin1z=spin1[2],
-                spin2x=spin2[0],
-                spin2y=spin2[1],
-                spin2z=spin2[2],
+        # SXS Catalog — always use the reference_time epoch (canonical SXS epoch).
+        # reference_time may differ from relaxation_time; when they differ,
+        # the reference epoch is chosen by SXS to coincide with a given GW
+        # frequency, making it the more physically meaningful choice.
+        if metadata["relaxation_time"] != metadata["reference_time"]:
+            import warnings
+            warnings.warn(
+                "SXS simulation has relaxation_time != reference_time. "
+                "Using reference_time values (spins, mass ratio) as the canonical epoch.",
+                UserWarning,
             )
-        else:
-            raise IOError(
-                """`relaxation_time` is not the same as `reference_time`
-for this SXS simulation. Its not clear what to do in such a situation."""
-            )
+        q = metadata["reference_mass_ratio"]
+        eta = min(q / (1 + q) ** 2, 0.25)
+        m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, eta)
+        spin1 = metadata["reference_dimensionless_spin1"]
+        spin2 = metadata["reference_dimensionless_spin2"]
+        parameters.update(
+            mass1=m1,
+            mass2=m2,
+            spin1x=spin1[0],
+            spin1y=spin1[1],
+            spin1z=spin1[2],
+            spin2x=spin2[0],
+            spin2y=spin2[1],
+            spin2z=spin2[2],
+        )
 
         Momega = (np.array(metadata["reference_orbital_frequency"]) ** 2).sum() ** 0.5
         if not np.isnan(Momega):
