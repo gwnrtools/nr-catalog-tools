@@ -60,7 +60,7 @@ def process_rit_simulation(one_sim):
         )
         return (one_sim, "incompatible", None)
 
-    # Fetch the relaxation time
+    # Fetch the relaxation time (in dimensionless M units)
     t_relax_rit = one_sim_metadata["relaxed-time"]
 
     # Waveform modes in sxs.WaveformModes class
@@ -69,9 +69,10 @@ def process_rit_simulation(one_sim):
     # Fetch simulation's parameters and update any that need to be before
     # using them to generate model waveforms
     one_sim_params = ritcatalog.get_parameters(one_sim, total_mass=total_mass)
+    # f_lower at relaxation time: pass dimensionless time (self.time[0] + t_relax)
     one_sim_relax_f_lower = float(
         wfm_rit.f_lower_at_1Msun(
-            wfm_rit.time[0] + ritcatalog.get_metadata(one_sim)["relaxed-time"]
+            wfm_rit.time[0] + t_relax_rit  # both in dimensionless M units
         )
         / total_mass
     )
@@ -94,9 +95,11 @@ def process_rit_simulation(one_sim):
             # coa_phase=np.pi / 2 - 0,
             delta_t=delta_t,
         )
-        # Remove the part before relaxation time
+        # Remove the part before relaxation time.
+        # t_relax_rit is in dimensionless M units; convert to physical seconds.
+        t_relax_phys = t_relax_rit * total_mass * lal.MTSUN_SI
         for idx_relax, t_ in enumerate(mode_rit.sample_times):
-            if t_ >= mode_rit.start_time + t_relax_rit * total_mass * lal.MTSUN_SI:
+            if t_ >= mode_rit.start_time + t_relax_phys:
                 break
         mode_relax_rit = mode_rit[idx_relax:]
 
