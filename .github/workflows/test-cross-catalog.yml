@@ -70,7 +70,7 @@ jobs:
           python - <<'EOF'
           import warnings; warnings.filterwarnings("ignore")
           import nrcatalogtools as nrcat
-          cat = nrcat.RITCatalog.load(verbosity=0)
+          cat = nrcat.RITCatalog.load(download=True, verbosity=0)
           cat.download_waveform_data("RIT:BBH:0001-n100-id3")
           print("RIT download done.")
           EOF
