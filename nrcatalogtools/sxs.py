@@ -94,7 +94,6 @@ class SXSCatalog(catalog.CatalogBase):
         # Accessing the psi4 property will trigger the download
         _ = sim.psi4
 
-
     def get(self, sim_name, extrapolation_order=2, download=True):
         # sxs >= 2024 uses a Simulation_v3 object; access .strain for WaveformModes.
         # auto_supersede=True resolves deprecated simulation IDs automatically.
@@ -130,7 +129,9 @@ class SXSCatalog(catalog.CatalogBase):
         raise NotImplementedError("This shouldn't be called.")
 
     def metadata_url_from_simname(self, sim_name):
-        raise NotImplementedError("Direct URL access not supported for SXS; use sxs.load().")
+        raise NotImplementedError(
+            "Direct URL access not supported for SXS; use sxs.load()."
+        )
 
     def _add_paths_to_metadata(self):
         # For the SXS catalog, resolving per-simulation paths requires calling

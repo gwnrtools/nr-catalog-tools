@@ -2,11 +2,20 @@
 
 ## What it Does
 
-This package provides a unified Python interface to three public NR binary-black-hole waveform
-catalogs — SXS (SpEC), RIT (LazEv), and MAYA/GT (MayaKranc) — for the purpose of cross-catalog
-waveform comparison. The scientific goal is to quantify NR catalog accuracy by computing
-noise-weighted mismatches between waveforms, maximized over frame ambiguities: SO(3) rotations,
-time/phase shifts, and BMS supertranslations.
+This package provides a **stable, unified Python interface** to three public NR binary-black-hole
+waveform catalogs — SXS (SpEC), RIT (LazEv), and MAYA/GT (MayaKranc) — serving three
+overlapping communities:
+
+- **LIGO-Virgo-KAGRA analyses**: PyCBC-compatible waveform time series and parameter dicts with
+  consistent physical units and epoch conventions across all catalogs, for use in injection
+  studies, template banks, and parameter estimation
+- **Waveform modeling**: frame-alignment tools (Wigner D-matrix rotation, `f_lower` extraction,
+  surrogate mode rotation) for calibrating and validating EOB, phenomenological, and surrogate
+  models against any NR catalog
+- **Cross-catalog accuracy studies**: noise-weighted mismatch minimization over SO(3) rotations,
+  time/phase shifts, and BMS supertranslations to quantify intrinsic NR catalog errors
+
+All three backends implement an identical interface so analysis code is catalog-agnostic.
 
 ---
 

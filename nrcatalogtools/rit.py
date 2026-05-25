@@ -194,6 +194,12 @@ class RITCatalog(catalog.CatalogBase):
     def waveform_filepath_from_simname(self, sim_name):
         file_path = self.get_metadata(sim_name)["waveform_data_location"]
         if not os.path.exists(file_path):
+            # The stored path may be an absolute path from a different machine
+            # (e.g. a committed CSV with developer-local paths).  Re-anchor the
+            # filename under the current cache directory.
+            canonical = self._helper.data_dir / os.path.basename(file_path)
+            if os.path.exists(canonical):
+                return str(canonical)
             if self._verbosity > 2:
                 print(
                     f"WARNING: Could not resolve path for {sim_name}"

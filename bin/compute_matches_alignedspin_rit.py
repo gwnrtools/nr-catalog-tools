@@ -13,21 +13,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import lal
-import lalsimulation as ls
-import gwsurrogate as gws
 import nrcatalogtools as nrcat
 from mayawaves.utils.catalogutils import Catalog as MWCatalog
 import pycbc.waveform as wf
 import pycbc.psd
 from pycbc.filter import match
 import multiprocessing
-import gc
 import argparse
 
 # import gwsurrogate as gws
 # nrsur = gws.LoadSurrogate("NRSur7dq4")
 os.environ["LAL_DATA_PATH"] = (
-    "/media/prayush/Data/src/lalsuite-extra/data/lalsimulation/:/media/prayush/Data/src/lalsuite-waveform-data/waveform_data"
+    "/media/prayush/Data/src/lalsuite-extra/data/lalsimulation/:"
+    "/media/prayush/Data/src/lalsuite-waveform-data/waveform_data"
 )
 
 
@@ -119,7 +117,7 @@ def process_rit_simulation(one_sim):
             modes2 = wf.get_td_waveform_modes(
                 approximant=app, coa_phase=coa_phase + 0 * np.pi / 2, **one_sim_params
             )
-        except RuntimeError as wf_err:
+        except RuntimeError:
             print(f"Model {app} generation failed for\n{one_sim_params}")
             continue
 
@@ -129,7 +127,8 @@ def process_rit_simulation(one_sim):
     # we skip computing matches and move to the next simulation
     if len(modes) == 0:
         print(
-            f"Skipping simulation {one_sim} as we could not generate any of {approximants} waveform(s) corresponding to it."
+            f"Skipping simulation {one_sim} as we could not generate any of"
+            f" {approximants} waveform(s) corresponding to it."
         )
         return (one_sim, "wf_failure", None)
 

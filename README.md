@@ -2,9 +2,19 @@
 
 # nr-catalog-tools
 
-A unified Python interface to public numerical-relativity (NR) binary black-hole waveform
-catalogs, designed for cross-catalog waveform comparison and downstream gravitational-wave
-data analysis.
+A stable, unified Python interface to public numerical-relativity (NR) binary black-hole
+waveform catalogs, built to serve a broad range of gravitational-wave science:
+
+- **LIGO-Virgo-KAGRA analyses** — reliable, PyCBC-compatible waveform and parameter access
+  for parameter estimation, injection studies, and template bank construction
+- **Waveform modeling** — consistent loading, physical scaling, and frame-alignment tools
+  for calibrating and validating EOB, phenomenological, and surrogate models against any
+  NR catalog
+- **Cross-catalog studies** — tools to compare simulations across codes, including
+  noise-weighted mismatch computation maximized over SO(3) rotations and BMS supertranslations
+
+All three backends expose an identical interface so that analysis code written against one
+catalog works against all others without modification.
 
 **Supported catalogs:**
 

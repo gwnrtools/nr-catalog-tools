@@ -196,12 +196,12 @@ print("=" * 70)
 
 for ell, em in MODES:
     mode_tag = f"({ell},{em})"
-    print(f"\n{'─'*60}")
+    print(f"\n{'─' * 60}")
     print(f"Mode  {mode_tag}")
-    print(f"{'─'*60}")
+    print(f"{'─' * 60}")
 
     # ── Raw dimensionless amplitudes ──────────────────────────────────────────
-    print(f"  Raw dimensionless peak amplitudes:")
+    print("  Raw dimensionless peak amplitudes:")
     raw_peaks = {}
     for label, wfm in WAVEFORMS:
         if not mode_available(wfm, ell, em):
@@ -265,7 +265,7 @@ for ell, em in MODES:
                 print(f"    ratio {a}/{b} = {ratio:.4f}  ({pct:+.2f}%){flag}")
 
     # ── Phase comparison ──────────────────────────────────────────────────────
-    print(f"  Phase accumulated in last 0.1 s before merger:")
+    print("  Phase accumulated in last 0.1 s before merger:")
     phase_infos = {}  # label -> (t, amp, phase)
     for label, mode in phys_modes.items():
         t = np.array(mode.sample_times)
@@ -389,7 +389,7 @@ print("\n=== Generating amplitude-ratio summary figure ===")
 
 # Pairs of catalogs to compare
 pairs = [("RIT", "SXS"), ("RIT", "MAYA"), ("SXS", "MAYA")]
-mode_labels = [f"({l},{m})" for l, m in MODES]
+mode_labels = [f"({ell},{m})" for ell, m in MODES]
 
 fig, ax = plt.subplots(figsize=(10, 5))
 x = np.arange(len(MODES))
@@ -442,11 +442,11 @@ for ell, em in MODES:
     rp = res["raw_peaks"]
     pp = res["phys_peaks"]
     row = f"({ell},{em})    "
-    row += f"  {rp.get('RIT',  float('nan')):10.5f}"
-    row += f"  {rp.get('SXS',  float('nan')):10.5f}"
+    row += f"  {rp.get('RIT', float('nan')):10.5f}"
+    row += f"  {rp.get('SXS', float('nan')):10.5f}"
     row += f"  {rp.get('MAYA', float('nan')):10.5f}"
-    row += f"  {pp.get('RIT',  float('nan')):12.4e}"
-    row += f"  {pp.get('SXS',  float('nan')):12.4e}"
+    row += f"  {pp.get('RIT', float('nan')):12.4e}"
+    row += f"  {pp.get('SXS', float('nan')):12.4e}"
     row += f"  {pp.get('MAYA', float('nan')):12.4e}"
     print(row)
 
@@ -463,12 +463,12 @@ print("-" * len(header2))
 for ell, em in MODES:
     dv = results[(ell, em)]["drift_vals"]
     row = f"({ell},{em})    "
-    row += f"  {dv.get('RIT',  float('nan')):12.4f}"
-    row += f"  {dv.get('SXS',  float('nan')):12.4f}"
+    row += f"  {dv.get('RIT', float('nan')):12.4f}"
+    row += f"  {dv.get('SXS', float('nan')):12.4f}"
     row += f"  {dv.get('MAYA', float('nan')):12.4f}"
     for a, b in [("RIT", "SXS"), ("RIT", "MAYA"), ("SXS", "MAYA")]:
         if a in dv and b in dv:
-            row += f"  {dv[a]-dv[b]:+10.4f}"
+            row += f"  {dv[a] - dv[b]:+10.4f}"
         else:
             row += f"  {'N/A':>10}"
     print(row)

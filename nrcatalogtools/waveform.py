@@ -29,7 +29,7 @@ from sxs.waveforms.format_handlers.nrar import (
 ELL_MIN, ELL_MAX = 2, 10
 
 
-class WaveformModes(sxs_WaveformModes): 
+class WaveformModes(sxs_WaveformModes):
     def __new__(
         cls,
         data,
@@ -386,13 +386,29 @@ class WaveformModes(sxs_WaveformModes):
             # RIT catalog
             if "relaxed_mass_ratio_1_over_2" in md:
                 q = md["relaxed_mass_ratio_1_over_2"]
-                s1x, s1y, s1z = md.get("relaxed_chi1x", float("nan")), md.get("relaxed_chi1y", float("nan")), md.get("relaxed_chi1z", float("nan"))
-                s2x, s2y, s2z = md.get("relaxed_chi2x", float("nan")), md.get("relaxed_chi2y", float("nan")), md.get("relaxed_chi2z", float("nan"))
+                s1x, s1y, s1z = (
+                    md.get("relaxed_chi1x", float("nan")),
+                    md.get("relaxed_chi1y", float("nan")),
+                    md.get("relaxed_chi1z", float("nan")),
+                )
+                s2x, s2y, s2z = (
+                    md.get("relaxed_chi2x", float("nan")),
+                    md.get("relaxed_chi2y", float("nan")),
+                    md.get("relaxed_chi2z", float("nan")),
+                )
             # MAYA / GT catalog
             elif "q" in md:
                 q = md["q"]
-                s1x, s1y, s1z = md.get("a1x", float("nan")), md.get("a1y", float("nan")), md.get("a1z", float("nan"))
-                s2x, s2y, s2z = md.get("a2x", float("nan")), md.get("a2y", float("nan")), md.get("a2z", float("nan"))
+                s1x, s1y, s1z = (
+                    md.get("a1x", float("nan")),
+                    md.get("a1y", float("nan")),
+                    md.get("a1z", float("nan")),
+                )
+                s2x, s2y, s2z = (
+                    md.get("a2x", float("nan")),
+                    md.get("a2y", float("nan")),
+                    md.get("a2z", float("nan")),
+                )
             # SXS catalog
             elif "reference_mass_ratio" in md:
                 q = md["reference_mass_ratio"]
@@ -1064,24 +1080,21 @@ class WaveformModes(sxs_WaveformModes):
 
         wigner = spherical.Wigner(self.ell_max)
 
-        # Get the mode indices
-        modes = self.LM
-
         rotated_data = np.zeros_like(self.data)
 
-        for l in range(self.ell_min, self.ell_max + 1):
-            if l not in self.ells:
+        for ell in range(self.ell_min, self.ell_max + 1):
+            if ell not in self.ells:
                 continue
 
-            # Get the modes for this l
-            l_modes_indices = np.where(self.LM[:, 0] == l)[0]
+            # Get the modes for this ell
+            l_modes_indices = np.where(self.LM[:, 0] == ell)[0]
             if len(l_modes_indices) == 0:
                 continue
 
             l_modes = self.data[:, l_modes_indices]
 
-            # Get the Wigner D-matrix for this l
-            D = wigner.D(R, l)
+            # Get the Wigner D-matrix for this ell
+            D = wigner.D(R, ell)
 
             # Apply the rotation
             rotated_l_modes = l_modes @ D
@@ -1232,11 +1245,9 @@ class WaveformModes(sxs_WaveformModes):
 
             common_modes = set(map(tuple, self.LM)) & set(map(tuple, other_rot.LM))
 
-            for l, m in common_modes:
-                h1_mode_ts = self.get_mode(l, m, to_pycbc=True, delta_t=delta_t)
-                h2_mode_ts = other_rot.get_mode(
-                    l, m, to_pycbc=True, delta_t=delta_t
-                )
+            for ell, m in common_modes:
+                h1_mode_ts = self.get_mode(ell, m, to_pycbc=True, delta_t=delta_t)
+                h2_mode_ts = other_rot.get_mode(ell, m, to_pycbc=True, delta_t=delta_t)
 
                 # Align lengths
                 if len(h1_mode_ts) > len(h2_mode_ts):
@@ -1345,6 +1356,7 @@ class WaveformModes(sxs_WaveformModes):
         Requires the ``scri`` package (``pip install scri``).
         """
         from scipy.optimize import minimize
+
         try:
             import scri
         except ImportError as e:
@@ -1358,15 +1370,17 @@ class WaveformModes(sxs_WaveformModes):
         for j in range(1, j_max + 1):
             for k in range(-j, j + 1):
                 alpha_jk_indices.append((j, k))
-        
+
         # Pre-compute all frequency-domain modes of `self` on a common grid
         # to handle mode-mixing.
         max_len = 0
-        for l, m in self.LM:
-            max_len = max(max_len, len(self.get_mode(l, m, to_pycbc=True, delta_t=1/4096)))
-        
+        for ell, m in self.LM:
+            max_len = max(
+                max_len, len(self.get_mode(ell, m, to_pycbc=True, delta_t=1 / 4096))
+            )
+
         # Use a reference mode to define the frequency grid
-        ref_mode_ts = self.get_mode(2, 2, to_pycbc=True, delta_t=1/4096)
+        ref_mode_ts = self.get_mode(2, 2, to_pycbc=True, delta_t=1 / 4096)
         ref_mode_ts.resize(max_len)
         ref_fs = ref_mode_ts.to_frequencyseries()
         freqs = ref_fs.sample_frequencies
@@ -1374,16 +1388,15 @@ class WaveformModes(sxs_WaveformModes):
 
         self_modes_tilde = {}
         self_modes_dot_tilde = {}
-        for l, m in self.LM:
-            h_ts = self.get_mode(l, m, to_pycbc=True, delta_t=1/4096)
+        for ell, m in self.LM:
+            h_ts = self.get_mode(ell, m, to_pycbc=True, delta_t=1 / 4096)
             h_ts.resize(max_len)
             h_tilde = h_ts.to_frequencyseries(delta_f=delta_f)
-            self_modes_tilde[(l, m)] = h_tilde
-            
+            self_modes_tilde[(ell, m)] = h_tilde
+
             h_dot_tilde = h_tilde.copy()
             h_dot_tilde.data *= 1j * 2 * np.pi * freqs
-            self_modes_dot_tilde[(l, m)] = h_dot_tilde
-
+            self_modes_dot_tilde[(ell, m)] = h_dot_tilde
 
         def objective_function(x):
             # Unpack parameters: 5 for rigid transformations, rest for BMS
@@ -1402,33 +1415,41 @@ class WaveformModes(sxs_WaveformModes):
 
             # Pre-compute supertranslated modes for `self`
             self_modes_tilde_st = {}
-            for l, m in common_modes:
-                h1_tilde = self_modes_tilde[(l,m)]
+            for ell, m in common_modes:
+                h1_tilde = self_modes_tilde[(ell, m)]
                 st_correction = np.zeros_like(h1_tilde.data, dtype=complex)
-                
+
                 for (j, k), alpha_jk in alpha_jk_coeffs.items():
                     for p, q in self.LM:
-                        # G = ∫ Y*_{l,m} Y_{j,k} Y_{p,q} dΩ
-                        G = scri.coupling_coefficients(s_prime=-2, l_prime=l, m_prime=m,
-                                                     s1=0, l1=j, m1=k,
-                                                     s2=-2, l2=p, m2=q)
+                        # G = ∫ Y*_{ell,m} Y_{j,k} Y_{p,q} dΩ
+                        G = scri.coupling_coefficients(
+                            s_prime=-2,
+                            l_prime=ell,
+                            m_prime=m,
+                            s1=0,
+                            l1=j,
+                            m1=k,
+                            s2=-2,
+                            l2=p,
+                            m2=q,
+                        )
                         if G == 0:
                             continue
                         h_dot_pq = self_modes_dot_tilde[(p, q)]
                         st_correction += alpha_jk * G * h_dot_pq.data
-                
+
                 h1_tilde_st = h1_tilde.copy()
                 h1_tilde_st.data -= st_correction
-                self_modes_tilde_st[(l,m)] = h1_tilde_st
+                self_modes_tilde_st[(ell, m)] = h1_tilde_st
 
-            for l, m in common_modes:
-                h1_tilde = self_modes_tilde_st[(l, m)]
-                h2_mode_ts = other_rot.get_mode(l, m, to_pycbc=True, delta_t=1 / 4096)
+            for ell, m in common_modes:
+                h1_tilde = self_modes_tilde_st[(ell, m)]
+                h2_mode_ts = other_rot.get_mode(ell, m, to_pycbc=True, delta_t=1 / 4096)
 
                 # Align lengths
                 h2_mode_ts.resize(max_len)
                 h2_tilde = h2_mode_ts.to_frequencyseries(delta_f=delta_f)
-                
+
                 temp_psd = psd.copy()
                 temp_psd.resize(len(h1_tilde))
 
@@ -1500,15 +1521,15 @@ def apply_wigner_rotation_to_mode_dict(mode_dict, R, ell_max=4):
 
     # Group modes by ℓ
     by_ell = {}
-    for (l, m), val in mode_dict.items():
-        if l > ell_max:
+    for (ell, m), val in mode_dict.items():
+        if ell > ell_max:
             continue
-        by_ell.setdefault(l, {})[m] = val
+        by_ell.setdefault(ell, {})[m] = val
 
     rotated = {}
-    for l, m_dict in by_ell.items():
-        # Build matrix of shape (n_times, 2l+1) in m order: -l … +l
-        m_vals = list(range(-l, l + 1))
+    for ell, m_dict in by_ell.items():
+        # Build matrix of shape (n_times, 2*ell+1) in m order: -ell … +ell
+        m_vals = list(range(-ell, ell + 1))
 
         # Determine output type and length from the first available mode
         first = next(iter(m_dict.values()))
@@ -1516,24 +1537,24 @@ def apply_wigner_rotation_to_mode_dict(mode_dict, R, ell_max=4):
         n = len(first)
 
         # Assemble input block; zero-pad missing m values
-        block = np.zeros((n, 2 * l + 1), dtype=complex)
+        block = np.zeros((n, 2 * ell + 1), dtype=complex)
         for i, mv in enumerate(m_vals):
             if mv in m_dict:
                 block[:, i] = np.asarray(m_dict[mv])
 
-        # D-matrix shape: (2l+1, 2l+1), rows = output m, cols = input m
-        D = wigner.D(R, l)  # shape (2l+1, 2l+1)
+        # D-matrix shape: (2*ell+1, 2*ell+1), rows = output m, cols = input m
+        D = wigner.D(R, ell)  # shape (2*ell+1, 2*ell+1)
 
         # rotated_block[t, m_out] = Σ_{m_in} D[m_out, m_in] block[t, m_in]
-        rotated_block = block @ D.T  # (n, 2l+1)
+        rotated_block = block @ D.T  # (n, 2*ell+1)
 
         for i, mv in enumerate(m_vals):
             if is_timeseries:
-                rotated[(l, mv)] = type(first)(
+                rotated[(ell, mv)] = type(first)(
                     rotated_block[:, i], delta_t=first.delta_t, epoch=first.start_time
                 )
             else:
-                rotated[(l, mv)] = rotated_block[:, i]
+                rotated[(ell, mv)] = rotated_block[:, i]
 
     return rotated
 

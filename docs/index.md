@@ -12,18 +12,43 @@
 
 ---
 
-## Scientific Purpose
+## Purpose and Scope
 
-`nr-catalog-tools` provides a **unified Python interface** to three publicly available NR BBH
-waveform catalogs for cross-catalog comparison. The scientific goal is to quantify NR catalog
-accuracy by computing noise-weighted mismatches between waveforms from different codes,
-maximized over source-frame ambiguities:
+`nr-catalog-tools` provides a **stable, unified Python interface** to three publicly available
+NR BBH waveform catalogs, designed to serve a broad community of gravitational-wave researchers.
 
-- Spatial rotations $R \in SO(3)$ (Wigner D-matrix mode mixing)
-- Time translations $t_c$ and coalescence phase offsets $\phi_c$
-- BMS supertranslations $\alpha(\theta, \phi)$ (direction-dependent retarded-time shifts)
+### LIGO-Virgo-KAGRA data analysis
 
-See [goal.md](goal.md) for the full derivation.
+The package is designed to be a reliable upstream dependency for LVK analysis pipelines.
+It provides:
+
+- PyCBC-compatible waveform time series and source parameter dicts directly from any catalog
+- Consistent physical unit conventions (masses in M☉, distances in Mpc, strain amplitude
+  scaling, time epoch at (2,2) peak) across all three backends
+- A stable API that abstracts away catalog-specific file formats, metadata schemas, and
+  download mechanisms, so injection studies, template bank construction, and parameter
+  estimation workflows are not sensitive to which NR catalog is used
+
+### Waveform modeling
+
+The package provides the data-loading and preprocessing layer needed when calibrating or
+validating analytical waveform models (EOB, phenomenological, surrogate) against NR:
+
+- Frame alignment tools: SO(3) rotation via Wigner D-matrices, time/phase alignment
+- `get_parameters()` returns PyCBC-compatible intrinsic parameter dicts ready to pass
+  directly to `pycbc.waveform.get_td_waveform_modes()` or surrogate model evaluators
+- `apply_wigner_rotation_to_mode_dict()` rotates surrogate mode dicts into the NR catalog
+  frame for direct mode-by-mode comparison
+
+### Cross-catalog comparison
+
+The package additionally supports rigorous NR accuracy studies:
+
+- Noise-weighted mismatch minimized over $t_c$, $\phi_c$, and $R \in SO(3)$
+- Extended mismatch optimization over BMS supertranslations $\alpha(\theta,\phi)$
+  (direction-dependent retarded-time shifts at null infinity)
+
+See [goal.md](goal.md) for the full scientific derivation.
 
 ---
 

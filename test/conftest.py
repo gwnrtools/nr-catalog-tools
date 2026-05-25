@@ -11,7 +11,6 @@ cross_catalog
     Test compares results across all three catalogs simultaneously.
     Skipped automatically (via fixture) when any one catalog is unavailable.
 """
-import pytest
 
 
 def pytest_configure(config):

@@ -324,7 +324,9 @@ class TestGTPol(unittest.TestCase):
                         distance=distance,
                     )
                 except RuntimeError as exc:
-                    self.skipTest(f"LAL waveform generation failed (missing data?): {exc}")
+                    self.skipTest(
+                        f"LAL waveform generation failed (missing data?): {exc}"
+                    )
                 # Prepare TimeSeries
                 t_n, wf_n, a_n, p_n = waveforms["nrcat"]
 

@@ -1,9 +1,13 @@
-from coverage import coverage
+from coverage import Coverage
 
-cov = coverage()
+cov = Coverage()
 cov.load()
-total_cov = round(cov.report())
 
+try:
+    total_cov = round(cov.report())
+except Exception as e:
+    print(f"Warning: Could not generate coverage report: {e}")
+    total_cov = 0
 
 badge = f"""<svg width="120" height="20" xmlns="http://www.w3.org/2000/svg">
   <rect width="80" height="20" rx="0" ry="5" fill="black" x="0" y="0" />

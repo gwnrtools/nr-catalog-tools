@@ -250,7 +250,7 @@ def amplitude_phase_frequency_from_complex_mode(hlm):
         h_complex = re.numpy() + 1j * im.numpy()
         # Assume re/im have sample_times attribute if PyCBC TimeSeries
         if hasattr(re, "sample_times"):
-            t = re.sample_times.numpy()
+            re.sample_times.numpy()
         else:
             raise AttributeError(
                 "Real/Imag PyCBC TimeSeries objects must have sample_times."

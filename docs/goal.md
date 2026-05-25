@@ -1,4 +1,51 @@
-## Comparison of promiment BBH waveform catalogs
+## Package Goals and Scope
+
+`nr-catalog-tools` is designed to be a **stable, cohesive interface** to all publicly available
+NR binary black-hole waveform catalogs. The scope is intentionally broad, serving three
+overlapping communities:
+
+### 1. LIGO-Virgo-KAGRA data analysis
+
+Gravitational-wave detection and parameter estimation pipelines (PyCBC, LALInference, Bilby)
+require NR waveforms as injection signals, as validation targets, and as calibration references.
+`nr-catalog-tools` provides:
+
+- A single `catalog.get(sim_name)` call that returns a PyCBC-compatible `TimeSeries` regardless
+  of which NR code produced the simulation
+- `get_parameters()` returning mass, spin, and initial frequency in PyCBC-native conventions,
+  ready for direct use in `pycbc.waveform.get_td_waveform_modes()`
+- Consistent epoch definition (t = 0 at (2,2) peak), amplitude scaling, and sampling
+  conventions across all three backends so injection sets are internally consistent
+
+### 2. Waveform modeling
+
+Calibrating and validating analytical waveform models (EOB, phenomenological, surrogate, EOBNR,
+IMRPhenom, etc.) against NR requires reliable, correctly-framed NR data. The package provides:
+
+- Frame alignment: Wigner D-matrix rotation of NR modes into any reference frame, and
+  `apply_wigner_rotation_to_mode_dict()` for rotating surrogate mode output into the NR frame
+- `f_lower_at_1Msun()` and `f_lower_at_relaxation()` for determining the starting frequency
+  of any NR simulation at any total mass, a key input for model calibration workflows
+- A uniform metadata interface so model calibration scripts can sweep across all three catalogs
+  without catalog-specific code paths
+
+### 3. Cross-catalog accuracy studies
+
+Understanding the intrinsic accuracy of NR catalogs requires comparing waveforms produced by
+independent codes for nominally identical binary configurations. The package provides:
+
+- Noise-weighted mismatch computation maximized over source-frame ambiguities
+  (rotations, time/phase shifts, BMS supertranslations)
+- Support for surrogate-model-mediated comparison, eliminating the need for exact
+  parameter-space matches between catalog entries
+
+The remainder of this document focuses on the scientific formalism underlying the
+cross-catalog comparison capability, as this represents the most technically involved
+aspect of the package.
+
+---
+
+## Cross-catalog comparison of BBH waveform catalogs
 ### Motivation
 There are now many
 families of waveform models that groups around the world have been developing
