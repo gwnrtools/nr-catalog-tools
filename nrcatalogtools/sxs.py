@@ -1,9 +1,11 @@
-import functools
 import os
 from pathlib import Path
 
 import sxs
 from nrcatalogtools import catalog, waveform
+
+# Module-level singleton — same stale-result fix as RITCatalog.
+_sxs_catalog_singleton = None
 
 
 class SXSCatalog(catalog.CatalogBase):
@@ -14,30 +16,46 @@ class SXSCatalog(catalog.CatalogBase):
             super().__init__(catalog, **kwargs)
         else:
             obj = type(self).load(verbosity=verbosity, **kwargs)
-            super().__init__(obj)
+            super().__init__(obj._dict)
         self._verbosity = verbosity
         self._add_paths_to_metadata()
 
     @classmethod
-    @functools.lru_cache()
     def load(cls, download=None, verbosity=0, **kwargs):
-        """Load the SXS catalog
+        """Load the SXS catalog.
 
-        This is a wrapper around `sxs.load`.
+        This is a wrapper around ``sxs.load``.  The result is cached in a
+        module-level singleton; pass ``download=True`` or call
+        ``SXSCatalog.reload()`` to force a fresh download.
 
         Parameters
         ----------
         download : {None, bool}, optional
             If False, this function will look for the catalog in the cache and
-            raise an error if it is not found.  If True, this function will download
-            the catalog and raise an error if the download fails.  If None (the
-            default), it will try to download the file, warn but fall back to the cache
-            if that fails, and only raise an error if the catalog is not found in the
-            cache.
+            raise an error if it is not found.  If True, this function will
+            download the catalog and raise an error if the download fails.
+            If None (the default), it will try to download the file, warn but
+            fall back to the cache if that fails, and only raise an error if
+            the catalog is not found in the cache.
         """
+        global _sxs_catalog_singleton
+        if _sxs_catalog_singleton is not None and download is not True:
+            return _sxs_catalog_singleton
+
         sxs_catalog = sxs.load("catalog", download=download, **kwargs)
         # sxs.Catalog is not subscriptable; pass the underlying dict
-        return cls(catalog=sxs_catalog._dict, verbosity=verbosity)
+        _sxs_catalog_singleton = cls(catalog=sxs_catalog._dict, verbosity=verbosity)
+        return _sxs_catalog_singleton
+
+    @classmethod
+    def reload(cls, **kwargs):
+        """Force a fresh download and replace the cached singleton.
+
+        Equivalent to ``SXSCatalog.load(download=True, **kwargs)``.
+        """
+        global _sxs_catalog_singleton
+        _sxs_catalog_singleton = None
+        return cls.load(download=True, **kwargs)
 
     def waveform_filename_from_simname(self, sim_name):
         return os.path.basename(self.waveform_filepath_from_simname(sim_name))

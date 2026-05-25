@@ -10,6 +10,11 @@ from tqdm import tqdm
 
 from nrcatalogtools import catalog, utils
 
+# Module-level singleton — avoids the stale-result bug that lru_cache caused:
+# lru_cache keyed on all arguments, so load(download=True) after an earlier
+# load(download=False) returned the first (possibly incomplete) result.
+_rit_catalog_singleton = None
+
 
 class RITCatalog(catalog.CatalogBase):
     CATALOG_TYPE = "RIT"
@@ -32,7 +37,6 @@ class RITCatalog(catalog.CatalogBase):
         self.write_metadata_df_to_disk = self._helper.write_metadata_df_to_disk
 
     @classmethod
-    @functools.lru_cache()
     def load(
         cls,
         download=None,
@@ -40,26 +44,37 @@ class RITCatalog(catalog.CatalogBase):
         acceptable_scraping_fraction=0.7,
         verbosity=0,
     ):
-        """Load the RIT catalog
+        """Load the RIT catalog.
 
-        Note that this function is itself cached, meaning that the same
-        dict will be returned on each call in a given python session.  If you want to
-        avoid that behavior, use `RITCatalog.reload`.
+        The result is cached in a module-level singleton after the first
+        successful load.  Subsequent calls return the cached instance without
+        re-reading disk or the network, unless ``download=True`` is passed.
+
+        Pass ``download=True`` to force a fresh download and replace the
+        singleton, or call ``RITCatalog.reload()`` for the same effect.
 
         Parameters
         ----------
         download : {None, bool}, optional
             If False, this function will look for the catalog in the cache and
-            raise an error if it is not found.  If True, this function will download
-            the catalog and raise an error if the download fails.  If None (the
-            default), it will try to download the file, warn but fall back to the cache
-            if that fails, and only raise an error if the catalog is not found in the
-            cache.  Note that this ignores the configuration file entirely.
+            raise an error if it is not found.  If True, this function will
+            download the catalog and raise an error if the download fails.
+            If None (the default), it will try to download the file, warn but
+            fall back to the cache if that fails, and only raise an error if
+            the catalog is not found in the cache.
 
         See Also
         --------
-        nrcatalogtools.utils.rit_catalog_info : Catalog info, including cache directory
+        RITCatalog.reload : Force a fresh download and replace the singleton.
+        nrcatalogtools.utils.rit_catalog_info : Catalog info, including cache directory.
         """
+        global _rit_catalog_singleton
+        # Return the cached instance unless the caller explicitly wants a
+        # fresh download.  This avoids the lru_cache bug where
+        # load(download=True) after load(download=False) returned a stale result.
+        if _rit_catalog_singleton is not None and download is not True:
+            return _rit_catalog_singleton
+
         helper = RITCatalogHelper(use_cache=True, verbosity=verbosity)
         if verbosity > 2:
             print("..Going to read RIT catalog metadata from cache.")
@@ -102,15 +117,28 @@ class RITCatalog(catalog.CatalogBase):
                         helper.metadata_dir
                     )
                 )
-        # Get the catalog from helper object
-        catalog = {}
+        # Build the catalog dict from the helper's DataFrame
+        catalog_dict = {}
         simulations = {}
         for idx, row in catalog_df.iterrows():
             name = row["simulation_name"]
             metadata_dict = row.to_dict()
             simulations[name] = metadata_dict
-        catalog["simulations"] = simulations
-        return cls(catalog=catalog, helper=helper, verbosity=verbosity)
+        catalog_dict["simulations"] = simulations
+        _rit_catalog_singleton = cls(
+            catalog=catalog_dict, helper=helper, verbosity=verbosity
+        )
+        return _rit_catalog_singleton
+
+    @classmethod
+    def reload(cls, **kwargs):
+        """Force a fresh download and replace the cached singleton.
+
+        Equivalent to ``RITCatalog.load(download=True, **kwargs)``.
+        """
+        global _rit_catalog_singleton
+        _rit_catalog_singleton = None
+        return cls.load(download=True, **kwargs)
 
     @property
     @functools.lru_cache()
