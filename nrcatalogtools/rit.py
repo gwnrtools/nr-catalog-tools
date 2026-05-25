@@ -33,10 +33,6 @@ class RITCatalog(catalog.CatalogBase):
         self._dict["modified"] = {}
         self._dict["records"] = {}
 
-        self.refresh_metadata_df_on_disk = self._helper.refresh_metadata_df_on_disk
-        self.download_data_for_catalog = self._helper.download_data_for_catalog
-        self.write_metadata_df_to_disk = self._helper.write_metadata_df_to_disk
-
     @classmethod
     def load(
         cls,
@@ -244,6 +240,30 @@ class RITCatalog(catalog.CatalogBase):
             + "/"
             + self.waveform_filename_from_simname(sim_name)
         )
+
+    def refresh_metadata_df_on_disk(self, num_sims_to_crawl=2000):
+        return self._helper.refresh_metadata_df_on_disk(
+            num_sims_to_crawl=num_sims_to_crawl
+        )
+
+    def download_data_for_catalog(
+        self,
+        num_sims_to_crawl=2000,
+        which_data="waveform",
+        possible_res=None,
+        max_id_in_name=-1,
+        use_cache=True,
+    ):
+        return self._helper.download_data_for_catalog(
+            num_sims_to_crawl=num_sims_to_crawl,
+            which_data=which_data,
+            possible_res=possible_res if possible_res is not None else [],
+            max_id_in_name=max_id_in_name,
+            use_cache=use_cache,
+        )
+
+    def write_metadata_df_to_disk(self):
+        return self._helper.write_metadata_df_to_disk()
 
     def download_waveform_data(self, sim_name, use_cache=None):
         return self._helper.download_waveform_data(sim_name, use_cache=use_cache)
