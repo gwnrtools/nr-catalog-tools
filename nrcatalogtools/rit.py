@@ -3,6 +3,7 @@ import functools
 import glob
 import os
 import subprocess
+import time
 
 import pandas as pd
 import requests
@@ -545,18 +546,32 @@ class RITCatalogHelper(object):
 
         return nxt, opts
 
-    def metadata_from_link(self, link, save_to=None):
+    def metadata_from_link(self, link, save_to=None, num_retries=5):
         if save_to is not None:
             utils.download_file(link, save_to, progress=True)
             return self.metadata_from_file(save_to)
         else:
             requests.packages.urllib3.disable_warnings()
-            for n in range(100):
+            last_exc = None
+            response = None
+            for attempt in range(num_retries):
                 try:
                     response = requests.get(link, verify=False)
                     break
-                except Exception:
-                    continue
+                except Exception as exc:
+                    last_exc = exc
+                    if attempt < num_retries - 1:
+                        delay = min(2**attempt, 30)
+                        if self.verbosity > 0:
+                            print(
+                                f"metadata_from_link: attempt {attempt + 1}/{num_retries}"
+                                f" failed for {link}; retrying in {delay}s"
+                            )
+                        time.sleep(delay)
+            if response is None:
+                raise ConnectionError(
+                    f"Failed to fetch metadata from '{link}' after {num_retries} attempts"
+                ) from last_exc
             return self.parse_metadata_txt(response.content.decode().split("\n"))
 
     def metadata_from_file(self, file_path):
