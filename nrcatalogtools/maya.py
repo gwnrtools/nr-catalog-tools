@@ -5,6 +5,9 @@ import zipfile
 import pandas as pd
 from nrcatalogtools import catalog, utils
 
+# Module-level singleton — same stale-result fix as RITCatalog.
+_maya_catalog_singleton = None
+
 
 class MayaCatalog(catalog.CatalogBase):
     CATALOG_TYPE = "MAYA"
@@ -58,9 +61,12 @@ class MayaCatalog(catalog.CatalogBase):
             os.remove(cache_path)
 
     @classmethod
-    @functools.lru_cache()
     def load(cls, download=None, verbosity=0, show_progress=True):
-        # Create cache dir if it does not exit
+        global _maya_catalog_singleton
+        if _maya_catalog_singleton is not None and download is not True:
+            return _maya_catalog_singleton
+
+        # Create cache dir if it does not exist
         utils.maya_catalog_info["cache_dir"].mkdir(parents=True, exist_ok=True)
 
         metadata_url = utils.maya_catalog_info["metadata_url"]
@@ -159,14 +165,25 @@ class MayaCatalog(catalog.CatalogBase):
                     for s in column
                 ]
         catalog_df = pd.DataFrame(catalog_dict)
-        catalog = {}
+        catalog_obj = {}
         simulations = {}
         for idx, row in catalog_df.iterrows():
             name = row["GTID"]
             metadata_dict = row.to_dict()
             simulations[name] = metadata_dict
-        catalog["simulations"] = simulations
-        return cls(catalog=catalog, verbosity=verbosity)
+        catalog_obj["simulations"] = simulations
+        _maya_catalog_singleton = cls(catalog=catalog_obj, verbosity=verbosity)
+        return _maya_catalog_singleton
+
+    @classmethod
+    def reload(cls, **kwargs):
+        """Force a fresh download and replace the cached singleton.
+
+        Equivalent to ``MayaCatalog.load(download=True, **kwargs)``.
+        """
+        global _maya_catalog_singleton
+        _maya_catalog_singleton = None
+        return cls.load(download=True, **kwargs)
 
     def _add_paths_to_metadata(self):
         metadata_dict = self._dict["simulations"]
