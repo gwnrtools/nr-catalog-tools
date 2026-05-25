@@ -1,8 +1,10 @@
 # nr-catalog-tools: Package Overview
 
-## 1. Scientific Purpose
+## 1. Purpose and Scope
 
-`nr-catalog-tools` provides a **unified Python interface** to three publicly available numerical-relativity (NR) binary black-hole (BBH) waveform catalogs:
+`nr-catalog-tools` provides a **stable, unified Python interface** to three publicly available
+NR binary black-hole (BBH) waveform catalogs, designed to serve a broad range of
+gravitational-wave research:
 
 | Catalog | Code | Naming convention |
 |---------|------|-------------------|
@@ -10,7 +12,22 @@
 | **RIT** | LazEv | `RIT:BBH:0001-n100-id3`, `RIT:eBBH:1843-n100-ecc`, … |
 | **MAYA/GT** | MayaKranc | `GT0001`, `GT0355`, … |
 
-The scientific goal (documented in [goal.md](goal.md)) is to enable large-scale cross-catalog comparison of BBH waveforms via noise-weighted inner products (matches), maximized over source-frame ambiguities — rotations $R \in SO(3)$, time translations $t_c$, phase offsets $\phi_c$, and BMS supertranslations. The package is the data-loading and preprocessing layer for this analysis pipeline.
+The package is designed to serve three overlapping communities:
+
+**LIGO-Virgo-KAGRA data analysis.** Provides PyCBC-compatible waveform time series, physical
+parameter dicts (`get_parameters()`), and consistent unit/epoch conventions across all backends,
+so that injection studies, template banks, and parameter estimation workflows are not sensitive
+to which NR catalog is used as the source.
+
+**Waveform modeling.** Provides the data-loading, physical scaling, and frame-alignment
+infrastructure needed for calibrating and validating EOB, phenomenological, and surrogate
+models against NR. This includes Wigner D-matrix rotation, `f_lower` extraction at any epoch,
+and `apply_wigner_rotation_to_mode_dict()` for rotating surrogate output into the NR frame.
+
+**Cross-catalog accuracy studies.** Enables rigorous comparison of waveforms from independent
+NR codes via noise-weighted mismatch minimization over source-frame ambiguities — rotations
+$R \in SO(3)$, time translations $t_c$, phase offsets $\phi_c$, and BMS supertranslations.
+See [goal.md](goal.md) for the full scientific formalism.
 
 ---
 

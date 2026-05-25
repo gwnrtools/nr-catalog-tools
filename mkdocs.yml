@@ -1,5 +1,5 @@
 site_name: nr-catalog-tools
-site_description: A unified Python interface to NR binary black-hole waveform catalogs
+site_description: A stable, unified Python interface to NR binary black-hole waveform catalogs for LVK analyses, waveform modeling, and cross-catalog comparison
 site_url: https://gwnrtools.github.io/nr-catalog-tools/
 repo_url: https://github.com/gwnrtools/nr-catalog-tools
 repo_name: gwnrtools/nr-catalog-tools

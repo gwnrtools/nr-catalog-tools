@@ -10,6 +10,31 @@ from .maya import MayaCatalog
 from .rit import RITCatalog
 from .sxs import SXSCatalog
 from .waveform import WaveformModes, apply_wigner_rotation_to_mode_dict
+from .metadata import (
+    RIT_KEYS,
+    SXS_KEYS,
+    MAYA_KEYS,
+    CANONICAL_TO_CATALOG,
+    CANONICAL_TO_PYCBC,
+    PYCBC_KEYS,
+)
+
+__all__ = [
+    # Catalogs
+    "MayaCatalog",
+    "RITCatalog",
+    "SXSCatalog",
+    # Waveform
+    "WaveformModes",
+    "apply_wigner_rotation_to_mode_dict",
+    # Metadata key mappings
+    "RIT_KEYS",
+    "SXS_KEYS",
+    "MAYA_KEYS",
+    "CANONICAL_TO_CATALOG",
+    "CANONICAL_TO_PYCBC",
+    "PYCBC_KEYS",
+]
 
 
 def get_version_information():
