@@ -1,0 +1,40 @@
+# Mapping from canonical physical-quantity names to MAYA/GT metadata keys.
+#
+# Note that MAYA does not record a dedicated relaxation time, initial ADM
+# quantities, or a separate reference epoch distinct from the simulation start.
+
+# --- Identification ---
+simulation_id: "GTID"               # e.g. "GT0001"
+run_name: "GT_Tag"
+
+# --- Masses (code units, total mass ~ 1) ---
+mass1: "m1"
+mass2: "m2"
+mass1_irreducible: "m1_irr"
+mass2_irreducible: "m2_irr"
+mass_ratio: "q"                     # m1/m2 >= 1
+eta: "eta"                          # symmetric mass ratio
+
+# --- Spins (dimensionless chi = S/m^2) ---
+spin1x: "a1x"
+spin1y: "a1y"
+spin1z: "a1z"
+spin2x: "a2x"
+spin2y: "a2y"
+spin2z: "a2z"
+
+# --- Orbital dynamics ---
+separation_initial: "separation"
+eccentricity: "eccentricity"
+mean_anomaly: "mean_anomaly"
+merger_time: "merge_time"
+
+# --- Frequencies ---
+# omega_orbital is M*Omega_orb (code units);
+# f_GW^(2,2) = omega_orbital / pi  (code units)
+orbital_frequency: "omega_orbital"
+freq_start_22_hz_1msun: "f_lower_at_1MSUN"  # Hz at M_tot = 1 M_sun
+
+# --- File sizes ---
+maya_file_size_gb: "maya file size (GB)"
+lvcnr_file_size_gb: "lvcnr file size (GB)"

@@ -1,0 +1,76 @@
+# Mapping from canonical physical-quantity names to RIT metadata keys (hyphenated).
+#
+# In the simulations_dataframe these keys appear as-is (with hyphens).
+# get_source_parameters_from_metadata() accesses them with underscores after
+# parse_metadata_txt() converts hyphens to underscores during DataFrame
+# construction.
+
+# --- Identification ---
+simulation_id: "catalog-tag"        # e.g. "RIT:BBH:0001"
+resolution_tag: "resolution-tag"    # e.g. "n100"
+id_tag: "id-tag"                    # e.g. "id3" or "ecc"
+run_name: "run-name"
+spin_config: "system-type"          # "Aligned", "Precessing", "Nonspinning"
+
+# --- Masses (physical / relaxed epoch, code units M=1) ---
+mass1: "relaxed-mass1"
+mass2: "relaxed-mass2"
+total_mass: "relaxed-total-mass"
+mass_ratio: "relaxed-mass-ratio-1-over-2"  # m1/m2 >= 1
+mass1_initial: "initial-mass1"
+mass2_initial: "initial-mass2"
+mass_final: "final-mass"
+
+# --- Spins (physical / relaxed epoch, dimensionless chi = S/m^2) ---
+spin1x: "relaxed-chi1x"
+spin1y: "relaxed-chi1y"
+spin1z: "relaxed-chi1z"
+spin2x: "relaxed-chi2x"
+spin2y: "relaxed-chi2y"
+spin2z: "relaxed-chi2z"
+spin1x_initial: "initial-bh-chi1x"
+spin1y_initial: "initial-bh-chi1y"
+spin1z_initial: "initial-bh-chi1z"
+spin2x_initial: "initial-bh-chi2x"
+spin2y_initial: "initial-bh-chi2y"
+spin2z_initial: "initial-bh-chi2z"
+spin_final_magnitude: "final-chi"
+
+# --- Reference / relaxation epoch ---
+reference_time: "relaxed-time"
+relaxation_time: "relaxed-time"     # same key in RIT
+
+# --- Orbital dynamics ---
+separation_initial: "initial-separation"
+eccentricity: "eccentricity"
+n_orbits: "number-of-orbits"
+n_cycles_22: "number-of-cycles-22"
+
+# --- Frequencies (code units: M*Omega or M*f) ---
+freq_start_22: "freq-start-22"                   # M * f_GW^(2,2) at waveform start
+freq_start_22_hz_1msun: "freq-start-22-Hz-1Msun" # Hz at M_tot = 1 M_sun
+
+# orbital angular momentum direction at relaxed epoch
+LNhat_x: "relaxed-LNhatx"
+LNhat_y: "relaxed-LNhaty"
+LNhat_z: "relaxed-LNhatz"
+
+# separation unit vector at relaxed epoch
+nhat_x: "relaxed-nhatx"
+nhat_y: "relaxed-nhaty"
+nhat_z: "relaxed-nhatz"
+
+# --- Remnant / merger ---
+peak_omega_22: "peak-omega-22"
+peak_amplitude_22: "peak-ampl-22"
+remnant_kick_kmps: "final-kick"     # km/s
+
+# --- ADM quantities ---
+adm_energy_initial: "initial-ADM-energy"
+adm_Lmag_initial: "initial-orbital-angular-momentum"
+
+# --- Numerical method ---
+fd_order: "fd-order"
+cfl: "cfl"
+evolution_system: "evolution-system"
+initial_data_type: "initial-data-type"

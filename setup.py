@@ -116,7 +116,7 @@ if __name__ == "__main__":
         package_dir={NAME: NAME},
         package_data={
             # version info
-            NAME: [write_version_file(VERSION)],
+            NAME: [write_version_file(VERSION), "schemas/*.yaml"],
             "template.data": [],
         },
         install_requires=get_requirements(),
