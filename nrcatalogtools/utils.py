@@ -2,6 +2,7 @@ import functools
 import os
 import pathlib
 import shutil
+import time
 
 import lal
 import requests
@@ -70,64 +71,95 @@ sxs_catalog_info["data_dir"] = sxs_catalog_info["cache_dir"] / "data/"
 sxs_catalog_info["metadata_dir"] = sxs_catalog_info["cache_dir"] / "metadata"
 
 
-def url_exists(link, num_retries=100):
+def url_exists(link, num_retries=5, verbosity=0):
     """Check if a given URL exists on the web.
+
+    Retries up to ``num_retries`` times on network errors, with exponential
+    backoff (``2**attempt`` seconds, capped at 30 s).  A non-OK HTTP status
+    is returned immediately as ``False`` without retrying (the URL exists but
+    is not accessible / not found — no point retrying).
 
     Args:
         link : complete web URL
+        num_retries (int): Maximum number of attempts. Defaults to 5.
+        verbosity (int): Print retry progress when > 0. Defaults to 0.
 
     Returns:
-        bool: True/False whether the URL could be found on WWW.
+        bool: True if the URL returned HTTP 200, False otherwise.
     """
     requests.packages.urllib3.disable_warnings()
-    for n in range(num_retries):
+    for attempt in range(num_retries):
         try:
             response = requests.head(link, verify=False)
-            if response.status_code == requests.codes.ok:
-                return True
-            else:
-                return False
+            return response.status_code == requests.codes.ok
         except Exception:
-            continue
+            if attempt < num_retries - 1:
+                delay = min(2**attempt, 30)
+                if verbosity > 0:
+                    print(
+                        f"url_exists: attempt {attempt + 1}/{num_retries} failed"
+                        f" for {link}; retrying in {delay}s"
+                    )
+                time.sleep(delay)
+    if verbosity > 0:
+        print(f"url_exists: all {num_retries} attempts failed for {link}")
     return False
 
 
-def download_file(url, path, progress=False, if_newer=True):
+def download_file(url, path, progress=False, if_newer=True, num_retries=5, verbosity=0):
     """
     Download a file from the given URL to the specified local path.
 
     This function attempts to download the file at `url` and save it to `path`.
     It first tries to use the `sxs.utilities.downloads.download_file` utility (if available).
     If that fails, it falls back to using the Python `requests` package, with SSL
-    verification disabled and up to 100 retry attempts.
+    verification disabled and up to ``num_retries`` attempts with exponential
+    backoff (``2**attempt`` seconds, capped at 30 s).
 
     Args:
         url (str): The URL to download the file from.
         path (str or pathlib.Path): The destination path where the file should be saved.
         progress (bool, optional): Whether to show a progress bar if supported.
         if_newer (bool, optional): Only download if the remote file is newer than the local file.
+        num_retries (int): Maximum number of fallback attempts. Defaults to 5.
+        verbosity (int): Print retry progress when > 0. Defaults to 0.
 
     Returns:
         The path (as a pathlib.Path object) to the downloaded file.
 
     Raises:
-        RuntimeError: If the file could not be downloaded due to network or server errors.
+        ConnectionError: If the file could not be fetched after all retry attempts.
+        RuntimeError: If the server returned a non-200 status.
     """
-    if url_exists(url):
+    if url_exists(url, num_retries=num_retries, verbosity=verbosity):
         try:
             return sxs.utilities.downloads.download_file(
                 url, path, progress=progress, if_newer=if_newer
             )
         except Exception:
             requests.packages.urllib3.disable_warnings()
-            for n in range(100):
+            last_exc = None
+            r = None
+            for attempt in range(num_retries):
                 try:
                     r = requests.get(
                         url, verify=False, stream=True, allow_redirects=True
                     )
                     break
-                except Exception:
-                    continue
+                except Exception as exc:
+                    last_exc = exc
+                    if attempt < num_retries - 1:
+                        delay = min(2**attempt, 30)
+                        if verbosity > 0:
+                            print(
+                                f"download_file: attempt {attempt + 1}/{num_retries}"
+                                f" failed for {url}; retrying in {delay}s"
+                            )
+                        time.sleep(delay)
+            else:
+                raise ConnectionError(
+                    f"Failed to download '{url}' after {num_retries} attempts"
+                ) from last_exc
             if r.status_code != 200:
                 print(f"An error occurred when trying to access <{url}>.")
                 try:
