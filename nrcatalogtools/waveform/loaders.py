@@ -161,9 +161,9 @@ def load_from_targz(cls, file_path, metadata={}, verbosity=0):
         return os.path.splitext(os.path.splitext(os.path.basename(name))[0])[0]
 
     def get_el_em_from_filename(filename: str):
-        substr = re.search(pattern=r"l\d_m\d", string=filename)
+        substr = re.search(pattern=r"l\d+_m\d+", string=filename)
         if substr is None:
-            substr = re.search(pattern=r"l\d_m-\d", string=filename)
+            substr = re.search(pattern=r"l\d+_m-\d+", string=filename)
         elem = substr[0].split("_")
         return (int(elem[0].strip("l")), int(elem[1].strip("m")))
 
