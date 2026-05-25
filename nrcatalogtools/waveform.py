@@ -29,7 +29,7 @@ from sxs.waveforms.format_handlers.nrar import (
 ELL_MIN, ELL_MAX = 2, 10
 
 
-class WaveformModes(sxs_WaveformModes): 
+class WaveformModes(sxs_WaveformModes):
     def __new__(
         cls,
         data,
@@ -386,13 +386,29 @@ class WaveformModes(sxs_WaveformModes):
             # RIT catalog
             if "relaxed_mass_ratio_1_over_2" in md:
                 q = md["relaxed_mass_ratio_1_over_2"]
-                s1x, s1y, s1z = md.get("relaxed_chi1x", float("nan")), md.get("relaxed_chi1y", float("nan")), md.get("relaxed_chi1z", float("nan"))
-                s2x, s2y, s2z = md.get("relaxed_chi2x", float("nan")), md.get("relaxed_chi2y", float("nan")), md.get("relaxed_chi2z", float("nan"))
+                s1x, s1y, s1z = (
+                    md.get("relaxed_chi1x", float("nan")),
+                    md.get("relaxed_chi1y", float("nan")),
+                    md.get("relaxed_chi1z", float("nan")),
+                )
+                s2x, s2y, s2z = (
+                    md.get("relaxed_chi2x", float("nan")),
+                    md.get("relaxed_chi2y", float("nan")),
+                    md.get("relaxed_chi2z", float("nan")),
+                )
             # MAYA / GT catalog
             elif "q" in md:
                 q = md["q"]
-                s1x, s1y, s1z = md.get("a1x", float("nan")), md.get("a1y", float("nan")), md.get("a1z", float("nan"))
-                s2x, s2y, s2z = md.get("a2x", float("nan")), md.get("a2y", float("nan")), md.get("a2z", float("nan"))
+                s1x, s1y, s1z = (
+                    md.get("a1x", float("nan")),
+                    md.get("a1y", float("nan")),
+                    md.get("a1z", float("nan")),
+                )
+                s2x, s2y, s2z = (
+                    md.get("a2x", float("nan")),
+                    md.get("a2y", float("nan")),
+                    md.get("a2z", float("nan")),
+                )
             # SXS catalog
             elif "reference_mass_ratio" in md:
                 q = md["reference_mass_ratio"]
@@ -1234,9 +1250,7 @@ class WaveformModes(sxs_WaveformModes):
 
             for l, m in common_modes:
                 h1_mode_ts = self.get_mode(l, m, to_pycbc=True, delta_t=delta_t)
-                h2_mode_ts = other_rot.get_mode(
-                    l, m, to_pycbc=True, delta_t=delta_t
-                )
+                h2_mode_ts = other_rot.get_mode(l, m, to_pycbc=True, delta_t=delta_t)
 
                 # Align lengths
                 if len(h1_mode_ts) > len(h2_mode_ts):
@@ -1345,6 +1359,7 @@ class WaveformModes(sxs_WaveformModes):
         Requires the ``scri`` package (``pip install scri``).
         """
         from scipy.optimize import minimize
+
         try:
             import scri
         except ImportError as e:
@@ -1358,15 +1373,17 @@ class WaveformModes(sxs_WaveformModes):
         for j in range(1, j_max + 1):
             for k in range(-j, j + 1):
                 alpha_jk_indices.append((j, k))
-        
+
         # Pre-compute all frequency-domain modes of `self` on a common grid
         # to handle mode-mixing.
         max_len = 0
         for l, m in self.LM:
-            max_len = max(max_len, len(self.get_mode(l, m, to_pycbc=True, delta_t=1/4096)))
-        
+            max_len = max(
+                max_len, len(self.get_mode(l, m, to_pycbc=True, delta_t=1 / 4096))
+            )
+
         # Use a reference mode to define the frequency grid
-        ref_mode_ts = self.get_mode(2, 2, to_pycbc=True, delta_t=1/4096)
+        ref_mode_ts = self.get_mode(2, 2, to_pycbc=True, delta_t=1 / 4096)
         ref_mode_ts.resize(max_len)
         ref_fs = ref_mode_ts.to_frequencyseries()
         freqs = ref_fs.sample_frequencies
@@ -1375,15 +1392,14 @@ class WaveformModes(sxs_WaveformModes):
         self_modes_tilde = {}
         self_modes_dot_tilde = {}
         for l, m in self.LM:
-            h_ts = self.get_mode(l, m, to_pycbc=True, delta_t=1/4096)
+            h_ts = self.get_mode(l, m, to_pycbc=True, delta_t=1 / 4096)
             h_ts.resize(max_len)
             h_tilde = h_ts.to_frequencyseries(delta_f=delta_f)
             self_modes_tilde[(l, m)] = h_tilde
-            
+
             h_dot_tilde = h_tilde.copy()
             h_dot_tilde.data *= 1j * 2 * np.pi * freqs
             self_modes_dot_tilde[(l, m)] = h_dot_tilde
-
 
         def objective_function(x):
             # Unpack parameters: 5 for rigid transformations, rest for BMS
@@ -1403,23 +1419,31 @@ class WaveformModes(sxs_WaveformModes):
             # Pre-compute supertranslated modes for `self`
             self_modes_tilde_st = {}
             for l, m in common_modes:
-                h1_tilde = self_modes_tilde[(l,m)]
+                h1_tilde = self_modes_tilde[(l, m)]
                 st_correction = np.zeros_like(h1_tilde.data, dtype=complex)
-                
+
                 for (j, k), alpha_jk in alpha_jk_coeffs.items():
                     for p, q in self.LM:
                         # G = ∫ Y*_{l,m} Y_{j,k} Y_{p,q} dΩ
-                        G = scri.coupling_coefficients(s_prime=-2, l_prime=l, m_prime=m,
-                                                     s1=0, l1=j, m1=k,
-                                                     s2=-2, l2=p, m2=q)
+                        G = scri.coupling_coefficients(
+                            s_prime=-2,
+                            l_prime=l,
+                            m_prime=m,
+                            s1=0,
+                            l1=j,
+                            m1=k,
+                            s2=-2,
+                            l2=p,
+                            m2=q,
+                        )
                         if G == 0:
                             continue
                         h_dot_pq = self_modes_dot_tilde[(p, q)]
                         st_correction += alpha_jk * G * h_dot_pq.data
-                
+
                 h1_tilde_st = h1_tilde.copy()
                 h1_tilde_st.data -= st_correction
-                self_modes_tilde_st[(l,m)] = h1_tilde_st
+                self_modes_tilde_st[(l, m)] = h1_tilde_st
 
             for l, m in common_modes:
                 h1_tilde = self_modes_tilde_st[(l, m)]
@@ -1428,7 +1452,7 @@ class WaveformModes(sxs_WaveformModes):
                 # Align lengths
                 h2_mode_ts.resize(max_len)
                 h2_tilde = h2_mode_ts.to_frequencyseries(delta_f=delta_f)
-                
+
                 temp_psd = psd.copy()
                 temp_psd.resize(len(h1_tilde))
 

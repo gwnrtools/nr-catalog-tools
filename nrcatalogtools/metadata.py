@@ -28,64 +28,64 @@ from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 
 RIT_KEYS = {
     # --- Identification ---
-    "simulation_id":         "catalog-tag",         # e.g. "RIT:BBH:0001"
-    "resolution_tag":        "resolution-tag",       # e.g. "n100"
-    "id_tag":                "id-tag",               # e.g. "id3" or "ecc"
-    "run_name":              "run-name",
-    "spin_config":           "system-type",          # "Aligned", "Precessing", "Nonspinning"
+    "simulation_id": "catalog-tag",  # e.g. "RIT:BBH:0001"
+    "resolution_tag": "resolution-tag",  # e.g. "n100"
+    "id_tag": "id-tag",  # e.g. "id3" or "ecc"
+    "run_name": "run-name",
+    "spin_config": "system-type",  # "Aligned", "Precessing", "Nonspinning"
     # --- Masses (physical / relaxed epoch, code units M=1) ---
-    "mass1":                 "relaxed-mass1",
-    "mass2":                 "relaxed-mass2",
-    "total_mass":            "relaxed-total-mass",
-    "mass_ratio":            "relaxed-mass-ratio-1-over-2",   # m1/m2 >= 1
-    "mass1_initial":         "initial-mass1",
-    "mass2_initial":         "initial-mass2",
-    "mass_final":            "final-mass",
+    "mass1": "relaxed-mass1",
+    "mass2": "relaxed-mass2",
+    "total_mass": "relaxed-total-mass",
+    "mass_ratio": "relaxed-mass-ratio-1-over-2",  # m1/m2 >= 1
+    "mass1_initial": "initial-mass1",
+    "mass2_initial": "initial-mass2",
+    "mass_final": "final-mass",
     # --- Spins (physical / relaxed epoch, dimensionless chi = S/m^2) ---
-    "spin1x":                "relaxed-chi1x",
-    "spin1y":                "relaxed-chi1y",
-    "spin1z":                "relaxed-chi1z",
-    "spin2x":                "relaxed-chi2x",
-    "spin2y":                "relaxed-chi2y",
-    "spin2z":                "relaxed-chi2z",
-    "spin1x_initial":        "initial-bh-chi1x",
-    "spin1y_initial":        "initial-bh-chi1y",
-    "spin1z_initial":        "initial-bh-chi1z",
-    "spin2x_initial":        "initial-bh-chi2x",
-    "spin2y_initial":        "initial-bh-chi2y",
-    "spin2z_initial":        "initial-bh-chi2z",
-    "spin_final_magnitude":  "final-chi",
+    "spin1x": "relaxed-chi1x",
+    "spin1y": "relaxed-chi1y",
+    "spin1z": "relaxed-chi1z",
+    "spin2x": "relaxed-chi2x",
+    "spin2y": "relaxed-chi2y",
+    "spin2z": "relaxed-chi2z",
+    "spin1x_initial": "initial-bh-chi1x",
+    "spin1y_initial": "initial-bh-chi1y",
+    "spin1z_initial": "initial-bh-chi1z",
+    "spin2x_initial": "initial-bh-chi2x",
+    "spin2y_initial": "initial-bh-chi2y",
+    "spin2z_initial": "initial-bh-chi2z",
+    "spin_final_magnitude": "final-chi",
     # --- Reference / relaxation epoch ---
-    "reference_time":        "relaxed-time",
-    "relaxation_time":       "relaxed-time",         # same key in RIT
+    "reference_time": "relaxed-time",
+    "relaxation_time": "relaxed-time",  # same key in RIT
     # --- Orbital dynamics ---
-    "separation_initial":    "initial-separation",
-    "eccentricity":          "eccentricity",
-    "n_orbits":              "number-of-orbits",
-    "n_cycles_22":           "number-of-cycles-22",
+    "separation_initial": "initial-separation",
+    "eccentricity": "eccentricity",
+    "n_orbits": "number-of-orbits",
+    "n_cycles_22": "number-of-cycles-22",
     # --- Frequencies (code units: M*Omega or M*f) ---
-    "freq_start_22":         "freq-start-22",        # M * f_GW^(2,2) at waveform start
-    "freq_start_22_hz_1msun":"freq-start-22-Hz-1Msun",  # Hz at M_tot = 1 M_sun
+    "freq_start_22": "freq-start-22",  # M * f_GW^(2,2) at waveform start
+    "freq_start_22_hz_1msun": "freq-start-22-Hz-1Msun",  # Hz at M_tot = 1 M_sun
     # orbital angular momentum direction at relaxed epoch
-    "LNhat_x":               "relaxed-LNhatx",
-    "LNhat_y":               "relaxed-LNhaty",
-    "LNhat_z":               "relaxed-LNhatz",
+    "LNhat_x": "relaxed-LNhatx",
+    "LNhat_y": "relaxed-LNhaty",
+    "LNhat_z": "relaxed-LNhatz",
     # separation unit vector at relaxed epoch
-    "nhat_x":                "relaxed-nhatx",
-    "nhat_y":                "relaxed-nhaty",
-    "nhat_z":                "relaxed-nhatz",
+    "nhat_x": "relaxed-nhatx",
+    "nhat_y": "relaxed-nhaty",
+    "nhat_z": "relaxed-nhatz",
     # --- Remnant / merger ---
-    "peak_omega_22":         "peak-omega-22",
-    "peak_amplitude_22":     "peak-ampl-22",
-    "remnant_kick_kmps":     "final-kick",           # km/s
+    "peak_omega_22": "peak-omega-22",
+    "peak_amplitude_22": "peak-ampl-22",
+    "remnant_kick_kmps": "final-kick",  # km/s
     # --- ADM quantities ---
-    "adm_energy_initial":    "initial-ADM-energy",
-    "adm_Lmag_initial":      "initial-orbital-angular-momentum",
+    "adm_energy_initial": "initial-ADM-energy",
+    "adm_Lmag_initial": "initial-orbital-angular-momentum",
     # --- Numerical method ---
-    "fd_order":              "fd-order",
-    "cfl":                   "cfl",
-    "evolution_system":      "evolution-system",
-    "initial_data_type":     "initial-data-type",
+    "fd_order": "fd-order",
+    "cfl": "cfl",
+    "evolution_system": "evolution-system",
+    "initial_data_type": "initial-data-type",
 }
 """Mapping from canonical quantity names to RIT metadata keys (hyphenated).
 
@@ -97,59 +97,59 @@ construction.
 
 SXS_KEYS = {
     # --- Identification ---
-    "simulation_id":              "alternative_names",      # e.g. "SXS:BBH:0001"
-    "run_name":                   "simulation_name",        # internal directory path
-    "object_types":               "object_types",           # "BHBH", "NSNS", "BHNS"
+    "simulation_id": "alternative_names",  # e.g. "SXS:BBH:0001"
+    "run_name": "simulation_name",  # internal directory path
+    "object_types": "object_types",  # "BHBH", "NSNS", "BHNS"
     # --- Masses (reference epoch, code units) ---
-    "mass1":                      "reference_mass1",
-    "mass2":                      "reference_mass2",
-    "mass_ratio":                 "reference_mass_ratio",   # m1/m2 >= 1
-    "mass1_initial":              "initial_mass1",
-    "mass2_initial":              "initial_mass2",
-    "mass_final":                 "remnant_mass",
+    "mass1": "reference_mass1",
+    "mass2": "reference_mass2",
+    "mass_ratio": "reference_mass_ratio",  # m1/m2 >= 1
+    "mass1_initial": "initial_mass1",
+    "mass2_initial": "initial_mass2",
+    "mass_final": "remnant_mass",
     # --- Spins (reference epoch, dimensionless chi = S/m^2, 3-vectors) ---
     # Note: SXS stores spins as 3-element lists; index [0]=x, [1]=y, [2]=z
-    "spin1_vector":               "reference_dimensionless_spin1",
-    "spin2_vector":               "reference_dimensionless_spin2",
-    "spin1x":                     None,  # reference_dimensionless_spin1[0]
-    "spin1y":                     None,  # reference_dimensionless_spin1[1]
-    "spin1z":                     None,  # reference_dimensionless_spin1[2]
-    "spin2x":                     None,  # reference_dimensionless_spin2[0]
-    "spin2y":                     None,  # reference_dimensionless_spin2[1]
-    "spin2z":                     None,  # reference_dimensionless_spin2[2]
-    "spin1_magnitude":            "reference_chi1_mag",
-    "spin2_magnitude":            "reference_chi2_mag",
-    "chi_eff":                    "reference_chi_eff",
-    "spin1_perp":                 "reference_chi1_perp",
-    "spin2_perp":                 "reference_chi2_perp",
-    "spin1_vector_initial":       "initial_dimensionless_spin1",
-    "spin2_vector_initial":       "initial_dimensionless_spin2",
-    "remnant_spin_vector":        "remnant_dimensionless_spin",
+    "spin1_vector": "reference_dimensionless_spin1",
+    "spin2_vector": "reference_dimensionless_spin2",
+    "spin1x": None,  # reference_dimensionless_spin1[0]
+    "spin1y": None,  # reference_dimensionless_spin1[1]
+    "spin1z": None,  # reference_dimensionless_spin1[2]
+    "spin2x": None,  # reference_dimensionless_spin2[0]
+    "spin2y": None,  # reference_dimensionless_spin2[1]
+    "spin2z": None,  # reference_dimensionless_spin2[2]
+    "spin1_magnitude": "reference_chi1_mag",
+    "spin2_magnitude": "reference_chi2_mag",
+    "chi_eff": "reference_chi_eff",
+    "spin1_perp": "reference_chi1_perp",
+    "spin2_perp": "reference_chi2_perp",
+    "spin1_vector_initial": "initial_dimensionless_spin1",
+    "spin2_vector_initial": "initial_dimensionless_spin2",
+    "remnant_spin_vector": "remnant_dimensionless_spin",
     # --- Reference / relaxation epoch ---
-    "reference_time":             "reference_time",
-    "relaxation_time":            "relaxation_time",
+    "reference_time": "reference_time",
+    "relaxation_time": "relaxation_time",
     # --- Orbital dynamics ---
     # orbital_frequency is a 3-vector; magnitude = M*Omega_orb;
     # f_GW^(2,2) = |Omega| / pi  (in code units)
-    "orbital_frequency_vector":   "reference_orbital_frequency",
-    "separation_initial":         "initial_separation",
-    "separation_reference":       "reference_separation",
-    "eccentricity":               "reference_eccentricity",
-    "mean_anomaly":               "reference_mean_anomaly",
-    "n_orbits":                   "number_of_orbits",
-    "merger_time":                "common_horizon_time",
+    "orbital_frequency_vector": "reference_orbital_frequency",
+    "separation_initial": "initial_separation",
+    "separation_reference": "reference_separation",
+    "eccentricity": "reference_eccentricity",
+    "mean_anomaly": "reference_mean_anomaly",
+    "n_orbits": "number_of_orbits",
+    "merger_time": "common_horizon_time",
     # --- Remnant ---
-    "remnant_kick_vector":        "remnant_velocity",       # [vx,vy,vz] in units of c
+    "remnant_kick_vector": "remnant_velocity",  # [vx,vy,vz] in units of c
     # --- ADM quantities ---
-    "adm_energy_initial":         "initial_ADM_energy",
-    "adm_angular_momentum_vector":"initial_ADM_angular_momentum",
+    "adm_energy_initial": "initial_ADM_energy",
+    "adm_angular_momentum_vector": "initial_ADM_angular_momentum",
     "adm_linear_momentum_vector": "initial_ADM_linear_momentum",
-    "position1_initial":          "initial_position1",
-    "position2_initial":          "initial_position2",
+    "position1_initial": "initial_position1",
+    "position2_initial": "initial_position2",
     # --- Center-of-mass correction ---
-    "com_parameters":             "com_parameters",
+    "com_parameters": "com_parameters",
     # --- Numerical method ---
-    "initial_data_type":          "initial_data_type",
+    "initial_data_type": "initial_data_type",
 }
 """Mapping from canonical quantity names to SXS metadata keys (snake_case).
 
@@ -163,35 +163,35 @@ signal that they must be accessed by index::
 
 MAYA_KEYS = {
     # --- Identification ---
-    "simulation_id":         "GTID",             # e.g. "GT0001"
-    "run_name":              "GT_Tag",
+    "simulation_id": "GTID",  # e.g. "GT0001"
+    "run_name": "GT_Tag",
     # --- Masses (code units, total mass ~ 1) ---
-    "mass1":                 "m1",
-    "mass2":                 "m2",
-    "mass1_irreducible":     "m1_irr",
-    "mass2_irreducible":     "m2_irr",
-    "mass_ratio":            "q",                # m1/m2 >= 1
-    "eta":                   "eta",              # symmetric mass ratio
+    "mass1": "m1",
+    "mass2": "m2",
+    "mass1_irreducible": "m1_irr",
+    "mass2_irreducible": "m2_irr",
+    "mass_ratio": "q",  # m1/m2 >= 1
+    "eta": "eta",  # symmetric mass ratio
     # --- Spins (dimensionless chi = S/m^2) ---
-    "spin1x":                "a1x",
-    "spin1y":                "a1y",
-    "spin1z":                "a1z",
-    "spin2x":                "a2x",
-    "spin2y":                "a2y",
-    "spin2z":                "a2z",
+    "spin1x": "a1x",
+    "spin1y": "a1y",
+    "spin1z": "a1z",
+    "spin2x": "a2x",
+    "spin2y": "a2y",
+    "spin2z": "a2z",
     # --- Orbital dynamics ---
-    "separation_initial":    "separation",
-    "eccentricity":          "eccentricity",
-    "mean_anomaly":          "mean_anomaly",
-    "merger_time":           "merge_time",
+    "separation_initial": "separation",
+    "eccentricity": "eccentricity",
+    "mean_anomaly": "mean_anomaly",
+    "merger_time": "merge_time",
     # --- Frequencies ---
     # omega_orbital is M*Omega_orb (code units);
     # f_GW^(2,2) = omega_orbital / pi  (code units)
-    "orbital_frequency":     "omega_orbital",
-    "freq_start_22_hz_1msun":"f_lower_at_1MSUN",  # Hz at M_tot = 1 M_sun
+    "orbital_frequency": "omega_orbital",
+    "freq_start_22_hz_1msun": "f_lower_at_1MSUN",  # Hz at M_tot = 1 M_sun
     # --- File sizes ---
-    "maya_file_size_gb":     "maya file size (GB)",
-    "lvcnr_file_size_gb":    "lvcnr file size (GB)",
+    "maya_file_size_gb": "maya file size (GB)",
+    "lvcnr_file_size_gb": "lvcnr file size (GB)",
 }
 """Mapping from canonical quantity names to MAYA/GT metadata keys.
 
@@ -205,13 +205,11 @@ quantities, or a separate reference epoch distinct from the simulation start.
 
 CANONICAL_TO_CATALOG = {
     canonical: {
-        "RIT":  RIT_KEYS.get(canonical),
-        "SXS":  SXS_KEYS.get(canonical),
+        "RIT": RIT_KEYS.get(canonical),
+        "SXS": SXS_KEYS.get(canonical),
         "MAYA": MAYA_KEYS.get(canonical),
     }
-    for canonical in sorted(
-        set(RIT_KEYS) | set(SXS_KEYS) | set(MAYA_KEYS)
-    )
+    for canonical in sorted(set(RIT_KEYS) | set(SXS_KEYS) | set(MAYA_KEYS))
 }
 """Dict mapping each canonical quantity name to its key in every catalog.
 
@@ -232,14 +230,14 @@ catalog (see the per-catalog dict docstring for the access pattern).
 # ---------------------------------------------------------------------------
 
 PYCBC_KEYS = {
-    "mass1":   "mass1",    # M_sun
-    "mass2":   "mass2",    # M_sun
-    "spin1x":  "spin1x",
-    "spin1y":  "spin1y",
-    "spin1z":  "spin1z",
-    "spin2x":  "spin2x",
-    "spin2y":  "spin2y",
-    "spin2z":  "spin2z",
+    "mass1": "mass1",  # M_sun
+    "mass2": "mass2",  # M_sun
+    "spin1x": "spin1x",
+    "spin1y": "spin1y",
+    "spin1z": "spin1z",
+    "spin2x": "spin2x",
+    "spin2y": "spin2y",
+    "spin2z": "spin2z",
     "f_lower": "f_lower",  # Hz; -1 if unavailable
 }
 """PyCBC-compatible parameter names output by ``get_source_parameters_from_metadata()``.
@@ -250,16 +248,16 @@ related functions.  All catalog-specific keys are normalised to these names by
 """
 
 CANONICAL_TO_PYCBC = {
-    "mass1":   "mass1",
-    "mass2":   "mass2",
-    "spin1x":  "spin1x",
-    "spin1y":  "spin1y",
-    "spin1z":  "spin1z",
-    "spin2x":  "spin2x",
-    "spin2y":  "spin2y",
-    "spin2z":  "spin2z",
+    "mass1": "mass1",
+    "mass2": "mass2",
+    "spin1x": "spin1x",
+    "spin1y": "spin1y",
+    "spin1z": "spin1z",
+    "spin2x": "spin2x",
+    "spin2y": "spin2y",
+    "spin2z": "spin2z",
     "freq_start_22": "f_lower",
-    "orbital_frequency": "f_lower",   # after unit conversion
+    "orbital_frequency": "f_lower",  # after unit conversion
     "orbital_frequency_vector": "f_lower",
 }
 """Maps canonical quantity names to their PyCBC output parameter name.
@@ -317,9 +315,7 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
         # Now gather initial frequency information
         freq22 = metadata["freq_start_22"]
         if not np.isnan(freq22) and float(freq22) > 0:
-            parameters.update(
-                f_lower=float(freq22) / (total_mass * lal.MTSUN_SI)
-            )
+            parameters.update(f_lower=float(freq22) / (total_mass * lal.MTSUN_SI))
         else:
             parameters.update(f_lower=-1)
     elif "GTID" in metadata:
@@ -337,7 +333,9 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
             parameters.update(
                 f_lower=float(omega) / np.pi / (total_mass * lal.MTSUN_SI)
             )
-        elif "f_lower_at_1MSUN" in metadata and not np.isnan(float(metadata["f_lower_at_1MSUN"])):
+        elif "f_lower_at_1MSUN" in metadata and not np.isnan(
+            float(metadata["f_lower_at_1MSUN"])
+        ):
             parameters.update(f_lower=float(metadata["f_lower_at_1MSUN"]) / total_mass)
         else:
             parameters.update(f_lower=-1)
@@ -348,6 +346,7 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
         # frequency, making it the more physically meaningful choice.
         if metadata["relaxation_time"] != metadata["reference_time"]:
             import warnings
+
             warnings.warn(
                 "SXS simulation has relaxation_time != reference_time. "
                 "Using reference_time values (spins, mass ratio) as the canonical epoch.",

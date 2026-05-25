@@ -47,7 +47,7 @@ mayawavescatalog = MWCatalog()
 # within `mayawaves`
 mayawavescatalog.download_waveforms(
     mayawavescatalog.simulations,
-    save_wf_path=nrcat.utils.maya_catalog_info['data_dir'],
+    save_wf_path=nrcat.utils.maya_catalog_info["data_dir"],
     lvcnr_format=True,
 )
 

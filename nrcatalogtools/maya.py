@@ -294,7 +294,9 @@ class MayaCatalog(catalog.CatalogBase):
                         print("...exporting to LVCNR catalog format")
                     try:
                         from mayawaves import coalescence as maya_coalescence
-                        from mayawaves.utils import postprocessingutils as maya_postprocessingutils
+                        from mayawaves.utils import (
+                            postprocessingutils as maya_postprocessingutils,
+                        )
                     except ImportError as exc:
                         raise ImportError(
                             "mayawaves is required to convert MAYA-format files. "

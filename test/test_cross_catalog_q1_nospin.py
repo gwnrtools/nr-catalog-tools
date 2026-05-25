@@ -39,28 +39,28 @@ import numpy as np
 import pytest
 
 # ── Catalog / simulation configuration ────────────────────────────────────────
-RIT_SIM  = "RIT:BBH:0001-n100-id3"
-SXS_SIM  = "SXS:BBH:0001"
+RIT_SIM = "RIT:BBH:0001-n100-id3"
+SXS_SIM = "SXS:BBH:0001"
 MAYA_SIM = "GT0905"
 
-TOTAL_MASS = 60.0         # M_sun
-DISTANCE   = 100.0        # Mpc
-DELTA_T    = 1.0 / 4096  # physical seconds
+TOTAL_MASS = 60.0  # M_sun
+DISTANCE = 100.0  # Mpc
+DELTA_T = 1.0 / 4096  # physical seconds
 
 # Even-m modes carry physical power for q=1; odd-m modes must vanish.
 EVEN_M_MODES = [(2, 2), (3, 2), (4, 4)]
-ODD_M_MODES  = [(2, 1), (3, 3), (4, 3), (5, 5)]
-ALL_MODES    = EVEN_M_MODES + ODD_M_MODES
+ODD_M_MODES = [(2, 1), (3, 3), (4, 3), (5, 5)]
+ALL_MODES = EVEN_M_MODES + ODD_M_MODES
 
 # Tolerances
 # (2,2) is the dominant mode and is computed most accurately across codes.
 # Sub-dominant modes (3,2), (4,4) have larger genuine inter-code differences:
 # observed ~4% amplitude and ~0.8 rad phase-drift discrepancies are expected.
-AMP_RATIO_TOL_BY_MODE   = {(2, 2): 0.02, (3, 2): 0.08, (4, 4): 0.05}
-PHASE_DRIFT_TOL_BY_MODE = {(2, 2): 0.5,  (3, 2): 1.0,  (4, 4): 1.0}
-AMP_RATIO_TOL   = 0.05   # default fallback
-PHASE_DRIFT_TOL = 1.0    # default fallback
-ODD_MODE_TOL    = 0.05   # odd-m mode peak must be < 5% of (2,2) peak
+AMP_RATIO_TOL_BY_MODE = {(2, 2): 0.02, (3, 2): 0.08, (4, 4): 0.05}
+PHASE_DRIFT_TOL_BY_MODE = {(2, 2): 0.5, (3, 2): 1.0, (4, 4): 1.0}
+AMP_RATIO_TOL = 0.05  # default fallback
+PHASE_DRIFT_TOL = 1.0  # default fallback
+ODD_MODE_TOL = 0.05  # odd-m mode peak must be < 5% of (2,2) peak
 # Note: GT0355 has q=1.0001 (not exactly 1) and eccentricity ~0.003, which
 # produces a genuine ~4% (2,1) mode — the 5% threshold accommodates this.
 
@@ -70,6 +70,7 @@ def _try_import():
     """Return nrcatalogtools, or None if unavailable."""
     try:
         import nrcatalogtools as nrcat
+
         return nrcat
     except ImportError:
         return None
@@ -121,7 +122,9 @@ def wfm_rit():
 def wfm_sxs():
     wfm = _load_sxs()
     if wfm is None:
-        pytest.skip(f"SXS simulation {SXS_SIM} not available (not cached or download=False)")
+        pytest.skip(
+            f"SXS simulation {SXS_SIM} not available (not cached or download=False)"
+        )
     return wfm
 
 
@@ -150,19 +153,18 @@ def _raw_peak(wfm, ell, em):
 
 
 def _phys_peak(wfm, ell, em):
-    mode = wfm.get_mode(ell, em,
-                        total_mass=TOTAL_MASS,
-                        distance=DISTANCE,
-                        delta_t=DELTA_T)
+    mode = wfm.get_mode(
+        ell, em, total_mass=TOTAL_MASS, distance=DISTANCE, delta_t=DELTA_T
+    )
     return float(np.abs(mode.data).max()), mode
 
 
 def _phase_drift(mode, t_window=-0.1):
     """Phase accumulated from t_window to t=0 (merger)."""
-    t     = np.array(mode.sample_times)
+    t = np.array(mode.sample_times)
     phase = np.unwrap(np.angle(np.array(mode.data)))
     i_start = int(np.argmin(np.abs(t - t_window)))
-    i_end   = int(np.argmin(np.abs(t - 0.0)))
+    i_end = int(np.argmin(np.abs(t - 0.0)))
     return float(phase[i_end] - phase[i_start])
 
 
@@ -170,12 +172,14 @@ def _phase_drift(mode, t_window=-0.1):
 # Group 1 — Per-catalog, single-waveform mathematical properties
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
 @pytest.mark.requires_data
 class TestAmplitudeScaling:
     """The physical amplitude of get_mode() must equal raw_amplitude × amp_to_physical(M, d)."""
 
     def _check(self, wfm, label):
         from nrcatalogtools import utils
+
         scale = utils.amp_to_physical(TOTAL_MASS, DISTANCE)
 
         for ell, em in EVEN_M_MODES:
@@ -209,12 +213,11 @@ class TestEpochAlignment:
     """get_mode() must return a TimeSeries whose epoch places t=0 at the (2,2) peak."""
 
     def _check(self, wfm, label):
-        mode22 = wfm.get_mode(2, 2,
-                               total_mass=TOTAL_MASS,
-                               distance=DISTANCE,
-                               delta_t=DELTA_T)
-        t     = np.array(mode22.sample_times)
-        amp   = np.abs(np.array(mode22.data))
+        mode22 = wfm.get_mode(
+            2, 2, total_mass=TOTAL_MASS, distance=DISTANCE, delta_t=DELTA_T
+        )
+        t = np.array(mode22.sample_times)
+        amp = np.abs(np.array(mode22.data))
         t_peak = float(t[np.argmax(amp)])
 
         # Peak should be within 2 samples of t=0
@@ -247,30 +250,38 @@ class TestDeltaTConventions:
 
         # Convention A: delta_t in physical seconds
         dt_phys = 1.0 / 4096
-        mode_a = wfm.get_mode(2, 2, total_mass=TOTAL_MASS,
-                               distance=DISTANCE, delta_t=dt_phys)
+        mode_a = wfm.get_mode(
+            2, 2, total_mass=TOTAL_MASS, distance=DISTANCE, delta_t=dt_phys
+        )
         assert abs(mode_a.delta_t - dt_phys) < 1e-12, (
             f"[{label}] Convention A: mode.delta_t={mode_a.delta_t:.6g} s, "
             f"expected {dt_phys:.6g} s"
         )
 
         # Convention B: delta_t in dimensionless M units (value = 0.5 M)
-        dt_dimless = 0.5   # M units
+        dt_dimless = 0.5  # M units
         dt_expected = dt_dimless * m_secs  # physical seconds
-        mode_b = wfm.get_mode(2, 2, total_mass=TOTAL_MASS,
-                               distance=DISTANCE, delta_t=dt_dimless)
+        mode_b = wfm.get_mode(
+            2, 2, total_mass=TOTAL_MASS, distance=DISTANCE, delta_t=dt_dimless
+        )
         assert abs(mode_b.delta_t - dt_expected) < 1e-12, (
             f"[{label}] Convention B: mode.delta_t={mode_b.delta_t:.6g} s, "
             f"expected {dt_expected:.6g} s (0.5 M at {TOTAL_MASS} M☉)"
         )
 
         # Both conventions must produce the same epoch (t=0 at (2,2) peak)
-        t_peak_a = float(np.array(mode_a.sample_times)[np.argmax(np.abs(np.array(mode_a.data)))])
-        t_peak_b = float(np.array(mode_b.sample_times)[np.argmax(np.abs(np.array(mode_b.data)))])
-        assert abs(t_peak_a) < 2 * dt_phys, (
-            f"[{label}] Convention A epoch: peak at {t_peak_a:.6g} s ≠ 0")
-        assert abs(t_peak_b) < 2 * dt_expected, (
-            f"[{label}] Convention B epoch: peak at {t_peak_b:.6g} s ≠ 0")
+        t_peak_a = float(
+            np.array(mode_a.sample_times)[np.argmax(np.abs(np.array(mode_a.data)))]
+        )
+        t_peak_b = float(
+            np.array(mode_b.sample_times)[np.argmax(np.abs(np.array(mode_b.data)))]
+        )
+        assert (
+            abs(t_peak_a) < 2 * dt_phys
+        ), f"[{label}] Convention A epoch: peak at {t_peak_a:.6g} s ≠ 0"
+        assert (
+            abs(t_peak_b) < 2 * dt_expected
+        ), f"[{label}] Convention B epoch: peak at {t_peak_b:.6g} s ≠ 0"
 
     def test_rit(self, wfm_rit):
         self._check(wfm_rit, "RIT")
@@ -305,25 +316,30 @@ class TestParameterExtraction:
             )
 
         # Masses must be positive and sum to total_mass
-        assert params["mass1"] > 0 and params["mass2"] > 0, (
-            f"[{label}] Non-positive masses: m1={params['mass1']}, m2={params['mass2']}")
-        assert abs(params["mass1"] + params["mass2"] - TOTAL_MASS) < 1e-6, (
-            f"[{label}] m1+m2={params['mass1']+params['mass2']:.4f} ≠ {TOTAL_MASS}")
+        assert (
+            params["mass1"] > 0 and params["mass2"] > 0
+        ), f"[{label}] Non-positive masses: m1={params['mass1']}, m2={params['mass2']}"
+        assert (
+            abs(params["mass1"] + params["mass2"] - TOTAL_MASS) < 1e-6
+        ), f"[{label}] m1+m2={params['mass1']+params['mass2']:.4f} ≠ {TOTAL_MASS}"
 
         # f_lower must be positive and physically reasonable (5–300 Hz at 60 M_sun)
         f_lower = params["f_lower"]
         assert f_lower > 0, f"[{label}] f_lower={f_lower:.4f} Hz is not positive"
         assert 5 < f_lower < 300, (
             f"[{label}] f_lower={f_lower:.2f} Hz is outside [5, 300] Hz at "
-            f"{TOTAL_MASS} M☉ — check unit conversion")
+            f"{TOTAL_MASS} M☉ — check unit conversion"
+        )
 
         # For q=1 non-spinning: mass ratio must be ≈ 1, spins ≈ 0
         assert abs(params["mass1"] / params["mass2"] - 1.0) < 0.05, (
             f"[{label}] mass ratio {params['mass1']/params['mass2']:.3f} ≠ 1 "
-            f"for q=1 simulation")
+            f"for q=1 simulation"
+        )
         for key in self.SPIN_KEYS:
-            assert abs(params[key]) < 0.05, (
-                f"[{label}] {key}={params[key]:.4f} is non-zero for a non-spinning simulation")
+            assert (
+                abs(params[key]) < 0.05
+            ), f"[{label}] {key}={params[key]:.4f} is non-zero for a non-spinning simulation"
 
     def test_rit(self):
         nrcat = _try_import()
@@ -372,7 +388,8 @@ class TestOddMModesNearZero:
             fraction = pk / ref_peak
             assert fraction < ODD_MODE_TOL, (
                 f"[{label}] ({ell},{em}) peak = {pk:.4e} = {fraction*100:.2f}% of (2,2) peak "
-                f"({ref_peak:.4e}), expected < {ODD_MODE_TOL*100:.0f}% for q=1 non-spinning")
+                f"({ref_peak:.4e}), expected < {ODD_MODE_TOL*100:.0f}% for q=1 non-spinning"
+            )
 
     def test_rit(self, wfm_rit):
         self._check(wfm_rit, "RIT")
@@ -398,19 +415,22 @@ class TestFLowerAtOneMsun:
         # merger at t≈25000 M) begin well below the LIGO band; the lower bound
         # is therefore relaxed to 0 Hz.
         f_phys = f1 / TOTAL_MASS
-        assert 0 < f_phys < 300, (
-            f"[{label}] f_lower at {TOTAL_MASS} M☉ = {f_phys:.2f} Hz is outside (0, 300] Hz")
+        assert (
+            0 < f_phys < 300
+        ), f"[{label}] f_lower at {TOTAL_MASS} M☉ = {f_phys:.2f} Hz is outside (0, 300] Hz"
 
         # Evaluate at a specific time: must still be positive
         t_mid = float(wfm.time[len(wfm.time) // 2])
         f_mid = wfm.f_lower_at_1Msun(t=t_mid)
-        assert f_mid > 0, (
-            f"[{label}] f_lower_at_1Msun(t={t_mid:.1f} M) = {f_mid:.4f} is not positive")
+        assert (
+            f_mid > 0
+        ), f"[{label}] f_lower_at_1Msun(t={t_mid:.1f} M) = {f_mid:.4f} is not positive"
 
         # Frequency must increase towards merger (GW frequency sweeps up)
         assert f_mid > f1, (
             f"[{label}] GW frequency did not increase from start to midpoint: "
-            f"f_start={f1:.4f}, f_mid={f_mid:.4f} (both at 1 M☉)")
+            f"f_start={f1:.4f}, f_mid={f_mid:.4f} (both at 1 M☉)"
+        )
 
     def test_rit(self, wfm_rit):
         self._check(wfm_rit, "RIT")
@@ -425,6 +445,7 @@ class TestFLowerAtOneMsun:
 # ═══════════════════════════════════════════════════════════════════════════════
 # Group 2 — Cross-catalog consistency (all three required)
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 @pytest.mark.requires_data
 @pytest.mark.cross_catalog
@@ -455,7 +476,8 @@ class TestCrossCatalogConsistency:
                 ratio = peaks[a] / peaks[b]
                 assert abs(ratio - 1.0) < tol, (
                     f"({ell},{em}) amplitude ratio {a}/{b} = {ratio:.4f}, "
-                    f"expected 1.0 ± {tol} ({tol*100:.0f}%)")
+                    f"expected 1.0 ± {tol} ({tol*100:.0f}%)"
+                )
 
     @pytest.mark.parametrize("ell,em", EVEN_M_MODES)
     def test_phase_drift_consistency(self, all_waveforms, ell, em):
@@ -478,7 +500,8 @@ class TestCrossCatalogConsistency:
                 diff = abs(drifts[a] - drifts[b])
                 assert diff < tol, (
                     f"({ell},{em}) phase drift diff {a}-{b} = {diff:.4f} rad, "
-                    f"expected < {tol} rad")
+                    f"expected < {tol} rad"
+                )
 
     @pytest.mark.parametrize("ell,em", EVEN_M_MODES)
     def test_raw_amplitude_ratios(self, all_waveforms, ell, em):
@@ -499,7 +522,8 @@ class TestCrossCatalogConsistency:
                 ratio = raw_peaks[a] / raw_peaks[b]
                 assert abs(ratio - 1.0) < tol, (
                     f"({ell},{em}) raw amplitude ratio {a}/{b} = {ratio:.4f}, "
-                    f"expected 1.0 ± {tol}")
+                    f"expected 1.0 ± {tol}"
+                )
 
     @pytest.mark.parametrize("ell,em", ODD_M_MODES)
     def test_odd_m_modes_consistent_across_catalogs(self, all_waveforms, ell, em):
@@ -519,4 +543,5 @@ class TestCrossCatalogConsistency:
         for label, frac in fractions.items():
             assert frac < ODD_MODE_TOL, (
                 f"[{label}] ({ell},{em}) = {frac*100:.2f}% of (2,2) peak — "
-                f"should be near zero for q=1 non-spinning (< {ODD_MODE_TOL*100:.0f}%)")
+                f"should be near zero for q=1 non-spinning (< {ODD_MODE_TOL*100:.0f}%)"
+            )
