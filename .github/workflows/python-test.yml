@@ -89,7 +89,7 @@ jobs:
             # flake8 .
             # #################
             # Begin testing
-            pip install coverage pytest
+            conda install -y coverage pytest
             echo "Begin testing"
             cd $NRC_DIR
             # python -m unittest -v
