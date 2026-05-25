@@ -95,7 +95,7 @@ jobs:
             # python -m unittest -v
             coverage run --source=nrcatalogtools -m pytest -v --tb=short
             coverage html
-            python .generate_badge.py
+            python test/.generate_badge.py
       - name: Upload logs
         uses: actions/upload-artifact@v4
         with:
