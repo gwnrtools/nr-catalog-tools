@@ -5,10 +5,11 @@ catalogs generated via Numerical Relativity simulations
 
 from __future__ import absolute_import
 
-from . import lvc, maya, metadata, rit, sxs, utils, waveform
+from . import lvc, maya, metadata, registry, rit, sxs, utils, waveform
 from .maya import MayaCatalog
 from .rit import RITCatalog
 from .sxs import SXSCatalog
+from .registry import get_catalog, list_catalogs, register_catalog
 from .waveform import WaveformModes, apply_wigner_rotation_to_mode_dict
 from .metadata import (
     RIT_KEYS,
@@ -24,6 +25,10 @@ __all__ = [
     "MayaCatalog",
     "RITCatalog",
     "SXSCatalog",
+    # Registry
+    "register_catalog",
+    "get_catalog",
+    "list_catalogs",
     # Waveform
     "WaveformModes",
     "apply_wigner_rotation_to_mode_dict",

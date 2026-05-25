@@ -3,11 +3,13 @@ from pathlib import Path
 
 import sxs
 from nrcatalogtools import catalog, waveform
+from nrcatalogtools.registry import register_catalog
 
 # Module-level singleton — same stale-result fix as RITCatalog.
 _sxs_catalog_singleton = None
 
 
+@register_catalog("SXS")
 class SXSCatalog(catalog.CatalogBase):
     CATALOG_TYPE = "SXS"
 
