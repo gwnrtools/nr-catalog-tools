@@ -9,3 +9,5 @@ pandas
 sxs>=v2023.0.0
 waveformtools
 mayawaves
+numpy
+h5py

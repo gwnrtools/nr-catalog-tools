@@ -1,0 +1,25 @@
+name: nrcat
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - pandas
+  - h5py
+  - tqdm
+  - requests
+  - quaternionic
+  - spherical
+  - lalsuite
+  - ligo-common
+  - pytest
+  - coverage
+  - pip
+  - pip:
+    - pycbc
+    - sxs>=2025.0.0
+    - mayawaves
+    - waveformtools
+    - ".[dev]"
