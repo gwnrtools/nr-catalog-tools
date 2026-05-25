@@ -37,17 +37,9 @@ __all__ = [
 ]
 
 
-def get_version_information():
-    import os
+try:
+    from importlib.metadata import version as _pkg_version, PackageNotFoundError
 
-    version_file = os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "nr-catalog-tools/.version"
-    )
-    try:
-        with open(version_file, "r") as f:
-            return f.readline().rstrip()
-    except EnvironmentError:
-        print("No version information file '.version' found")
-
-
-__version__ = get_version_information()
+    __version__ = _pkg_version("nr-catalog-tools")
+except PackageNotFoundError:
+    __version__ = "unknown"
