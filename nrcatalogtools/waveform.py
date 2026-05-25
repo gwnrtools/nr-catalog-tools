@@ -471,24 +471,15 @@ class WaveformModes(sxs_WaveformModes):
         parameters = md.get_source_parameters_from_metadata(
             metadata, total_mass=total_mass
         )
-        if "relaxed_mass1" in metadata:
-            # RIT Catalog
+        catalog_type = metadata.get("catalog_type")
+        if catalog_type in ("RIT", "MAYA"):
             if parameters["f_lower"] == -1:
                 h = self.get_mode(
                     2, 2, total_mass, distance=1, delta_t_seconds=1.0 / 8192
                 )
                 fr = frequency_from_polarizations(h.real(), -h.imag())
                 parameters.update(f_lower=fr[0])
-        elif "GTID" in metadata:
-            # GT / MAYA CAtalog
-            if parameters["f_lower"] == -1:
-                h = self.get_mode(
-                    2, 2, total_mass, distance=1, delta_t_seconds=1.0 / 8192
-                )
-                fr = frequency_from_polarizations(h.real(), -h.imag())
-                parameters.update(f_lower=fr[0])
-        else:
-            # SXS Catalog
+        elif catalog_type == "SXS":
             if parameters["f_lower"] == -1:
                 delta_t_secs = 1.0 / 8192
                 h = self.get_mode(

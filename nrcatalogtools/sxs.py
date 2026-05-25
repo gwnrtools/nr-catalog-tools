@@ -7,6 +7,8 @@ from nrcatalogtools import catalog, waveform
 
 
 class SXSCatalog(catalog.CatalogBase):
+    CATALOG_TYPE = "SXS"
+
     def __init__(self, catalog=None, verbosity=0, **kwargs) -> None:
         if catalog is not None:
             super().__init__(catalog, **kwargs)
