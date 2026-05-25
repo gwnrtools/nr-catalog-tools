@@ -71,7 +71,7 @@ jobs:
             ls
             ## lal extras fetch method
             # git lfs pull
-            wget -q https://git.ligo.org/lscsoft/lalsuite-extra/-/raw/master/data/lalsimulation/SEOBNRv4ROM_v2.0.hdf5 -O SEOBNRv4ROM_v2.0.hdf5
+            wget -q https://git.ligo.org/lscsoft/lalsuite-extra/-/raw/master/data/lalsimulation/SEOBNRv4ROM_v3.0.hdf5 -O SEOBNRv4ROM_v3.0.hdf5
             cd $NRC_DIR
             pwd
             ls
@@ -89,11 +89,11 @@ jobs:
             # flake8 .
             # #################
             # Begin testing
-            pip install coverage
+            pip install coverage pytest
             echo "Begin testing"
             cd $NRC_DIR/test
             # python -m unittest -v
-            coverage run --source=../nrcatalogtools -m unittest discover -v
+            coverage run --source=../nrcatalogtools -m pytest -v --tb=short
             coverage html
             python .generate_badge.py
       - name: Upload logs
