@@ -29,6 +29,16 @@ from sxs.waveforms.format_handlers.nrar import (
 ELL_MIN, ELL_MAX = 2, 10
 
 
+def _modal_dt(time_array):
+    """Return the most common timestep in *time_array*.
+
+    Calls ``scipy.stats.mode`` with ``keepdims=False`` so the result is
+    correct on scipy 1.10 and the changed 1.11+ API alike (the default
+    for ``keepdims`` changed, and the ``[0][0]`` indexing broke).
+    """
+    return float(stat_mode(np.diff(time_array), keepdims=False).mode)
+
+
 class WaveformModes(sxs_WaveformModes):
     def __new__(
         cls,
@@ -151,8 +161,8 @@ class WaveformModes(sxs_WaveformModes):
                 t_max = min(t_max, amp_time[-1], phase_time[-1])
                 dt = min(
                     dt,
-                    stat_mode(np.diff(amp_time), keepdims=True)[0][0],
-                    stat_mode(np.diff(phase_time), keepdims=True)[0][0],
+                    _modal_dt(amp_time),
+                    _modal_dt(phase_time),
                 )
                 ell_min = min(ell_min, ell)
                 ell_max = max(ell_max, ell)
@@ -292,7 +302,7 @@ class WaveformModes(sxs_WaveformModes):
                 t_max = min(t_max, mode_data[(ell, em)][-1, 0])
                 dt = min(
                     dt,
-                    stat_mode(np.diff(mode_data[(ell, em)][:, 0]), keepdims=True)[0][0],
+                    _modal_dt(mode_data[(ell, em)][:, 0]),
                 )
                 ell_min = min(ell_min, ell)
                 ell_max = max(ell_max, ell)
@@ -555,7 +565,7 @@ class WaveformModes(sxs_WaveformModes):
             h_plus ≈ mode.real()
         """
         if delta_t is None:
-            delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
+            delta_t = _modal_dt(self.time)
 
         # Convert between physical seconds and dimensionless M units.
         # self.time is always in dimensionless M units; new_time must match.
@@ -819,7 +829,7 @@ class WaveformModes(sxs_WaveformModes):
             ``retval.real() = h₊``, ``retval.imag() = h×``.
         """
         if delta_t is None:
-            delta_t = stat_mode(np.diff(self.time), keepdims=True)[0][0]
+            delta_t = _modal_dt(self.time)
         m_secs = utils.time_to_physical(total_mass)
         # Values > 1/128 are treated as dimensionless M units; <= 1/128 as seconds.
         if delta_t > 1.0 / 128:
@@ -906,7 +916,7 @@ class WaveformModes(sxs_WaveformModes):
         if epoch is None:
             epoch = input_array.time[0]
         if delta_t is None:
-            delta_t = stat_mode(np.diff(input_array.time), keepdims=True)[0][0]
+            delta_t = _modal_dt(input_array.time)
         return TimeSeries(
             np.array(input_array),
             delta_t=delta_t,
