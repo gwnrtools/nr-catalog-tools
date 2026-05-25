@@ -272,15 +272,36 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
     quasicircular simulations are supported, orbital eccentricity is ignored
 
     Args:
+        metadata (dict): Simulation metadata dict.  Must contain a
+            ``"catalog_type"`` key with value ``"RIT"``, ``"SXS"``, or
+            ``"MAYA"``.  This key is injected automatically by
+            ``CatalogBase.get_metadata()``.
         total_mass (float, optional): Total Mass of Binary (solar masses).
             Defaults to 1.0.
 
     Returns:
         dict: Initial binary parameters with names compatible with PyCBC.
+
+    Raises:
+        ValueError: If ``catalog_type`` is absent or not one of the known
+            values.
     """
+    catalog_type = metadata.get("catalog_type")
+    if catalog_type is None:
+        raise ValueError(
+            "metadata dict is missing the 'catalog_type' key. "
+            "Load waveforms via a catalog object (RITCatalog, SXSCatalog, "
+            "MayaCatalog) so that 'catalog_type' is injected automatically, "
+            "or set metadata['catalog_type'] = 'RIT' | 'SXS' | 'MAYA' manually."
+        )
+    if catalog_type not in ("RIT", "SXS", "MAYA"):
+        raise ValueError(
+            f"Unknown catalog_type '{catalog_type}'. "
+            "Expected one of: 'RIT', 'SXS', 'MAYA'."
+        )
+
     parameters = dict()
-    if "relaxed_mass1" in metadata:
-        # RIT Catalog
+    if catalog_type == "RIT":
         q = metadata["relaxed_mass_ratio_1_over_2"]
         eta = min(q / (1 + q) ** 2, 0.25)
         m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, eta)
@@ -318,8 +339,8 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
             parameters.update(f_lower=float(freq22) / (total_mass * lal.MTSUN_SI))
         else:
             parameters.update(f_lower=-1)
-    elif "GTID" in metadata:
-        # GT / MAYA CAtalog
+    elif catalog_type == "MAYA":
+        # GT / MAYA Catalog
         q = metadata["q"]
         eta = min(q / (1 + q) ** 2, 0.25)
         m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, eta)
@@ -339,7 +360,7 @@ def get_source_parameters_from_metadata(metadata, total_mass=1.0):
             parameters.update(f_lower=float(metadata["f_lower_at_1MSUN"]) / total_mass)
         else:
             parameters.update(f_lower=-1)
-    else:
+    elif catalog_type == "SXS":
         # SXS Catalog — always use the reference_time epoch (canonical SXS epoch).
         # reference_time may differ from relaxation_time; when they differ,
         # the reference epoch is chosen by SXS to coincide with a given GW

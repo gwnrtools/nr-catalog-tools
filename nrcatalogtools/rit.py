@@ -12,6 +12,8 @@ from nrcatalogtools import catalog, utils
 
 
 class RITCatalog(catalog.CatalogBase):
+    CATALOG_TYPE = "RIT"
+
     def __init__(self, catalog=None, helper=None, verbosity=3, **kwargs) -> None:
         if catalog is not None:
             super().__init__(catalog)

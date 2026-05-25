@@ -52,6 +52,11 @@ class CatalogABC(ABC):
 
 
 class CatalogBase(CatalogABC, sxs_Catalog):
+    # Subclasses set this to "RIT", "SXS", or "MAYA".  It is injected into
+    # every metadata dict returned by get_metadata() so that downstream code
+    # can dispatch on catalog_type without fragile sentinel-key detection.
+    CATALOG_TYPE = None
+
     def __init__(self, *args, **kwargs) -> None:
         sxs_Catalog.__init__(self, *args, **kwargs)
 
@@ -127,7 +132,9 @@ class CatalogBase(CatalogABC, sxs_Catalog):
             IOError: If `sim_name` is not found in the catalog
 
         Returns:
-            `sxs.metadata.metadata.Metadata`: Metadata as dictionary
+            dict: Metadata dictionary.  Always contains a ``"catalog_type"``
+            key (value: ``"RIT"``, ``"SXS"``, or ``"MAYA"``) so that
+            downstream code can dispatch without fragile sentinel-key checks.
         """
         sim_dict = self.simulations
         if sim_name not in list(sim_dict.keys()):
@@ -135,7 +142,13 @@ class CatalogBase(CatalogABC, sxs_Catalog):
                 f"Simulation {sim_name} not found in catalog."
                 f"Please check that it exists"
             )
-        return sim_dict[sim_name]
+        metadata = sim_dict[sim_name]
+        # Inject catalog_type once; idempotent on repeated calls.
+        # sxs.Metadata is an OrderedDict subclass so __setitem__ works directly;
+        # RIT and MAYA use plain dicts — no conversion needed in either case.
+        if self.CATALOG_TYPE is not None:
+            metadata["catalog_type"] = self.CATALOG_TYPE
+        return metadata
 
     def set_attribute_in_waveform_data_file(self, sim_name, attr_name, attr_value):
         """Set attributes in the HDF5 file holding waveform data for a given

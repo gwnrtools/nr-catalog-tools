@@ -7,6 +7,8 @@ from nrcatalogtools import catalog, utils
 
 
 class MayaCatalog(catalog.CatalogBase):
+    CATALOG_TYPE = "MAYA"
+
     def __init__(self, catalog=None, use_cache=True, verbosity=0, **kwargs) -> None:
         """This class wraps the catalog infrastructure provided by the
         groups performing NR simulations using the MAYA code, and provides
