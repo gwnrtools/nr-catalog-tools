@@ -10,6 +10,7 @@ import requests
 from tqdm import tqdm
 
 from nrcatalogtools import catalog, utils
+from nrcatalogtools.registry import register_catalog
 
 # Module-level singleton — avoids the stale-result bug that lru_cache caused:
 # lru_cache keyed on all arguments, so load(download=True) after an earlier
@@ -17,6 +18,7 @@ from nrcatalogtools import catalog, utils
 _rit_catalog_singleton = None
 
 
+@register_catalog("RIT")
 class RITCatalog(catalog.CatalogBase):
     CATALOG_TYPE = "RIT"
 

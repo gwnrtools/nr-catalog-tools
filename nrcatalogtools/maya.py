@@ -4,11 +4,13 @@ import os
 import zipfile
 import pandas as pd
 from nrcatalogtools import catalog, utils
+from nrcatalogtools.registry import register_catalog
 
 # Module-level singleton — same stale-result fix as RITCatalog.
 _maya_catalog_singleton = None
 
 
+@register_catalog("MAYA")
 class MayaCatalog(catalog.CatalogBase):
     CATALOG_TYPE = "MAYA"
 
