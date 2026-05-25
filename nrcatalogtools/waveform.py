@@ -1,4 +1,5 @@
 import os
+import warnings
 
 import h5py
 import lal
@@ -307,9 +308,13 @@ class WaveformModes(sxs_WaveformModes):
                 ell_min = min(ell_min, ell)
                 ell_max = max(ell_max, ell)
 
+        # Capture the modes actually present in the file before zero-padding.
+        present_modes = set(mode_data.keys())
+
         # We populate LM here because it has to be ordered, as the WaveformModes
         # class expects an ordered data set.
         LM = []
+        zero_padded_modes = []
         for ell in range(ELL_MIN, ELL_MAX + 1):
             for em in range(-ell, ell + 1):
                 if (ell, em) in mode_data:
@@ -319,6 +324,15 @@ class WaveformModes(sxs_WaveformModes):
                     mode_data[(ell, em)] = np.zeros(np.shape(reference_mode))
                     mode_data[(ell, em)][:, 0] = reference_mode[:, 0]  # Time axis
                     LM.append([ell, em])
+                    zero_padded_modes.append((ell, em))
+
+        if zero_padded_modes:
+            warnings.warn(
+                f"{file_path}: {len(zero_padded_modes)} mode(s) not present in file"
+                f" and were zero-padded: {zero_padded_modes}",
+                UserWarning,
+                stacklevel=2,
+            )
 
         if len(LM) == 0:
             raise RuntimeError(
@@ -358,7 +372,7 @@ class WaveformModes(sxs_WaveformModes):
         w_attributes["m_is_scaled_out"] = True
         # w_attributes["ells"] = ell_min, ell_max
 
-        return cls(
+        wfm = cls(
             data,
             time=times,
             time_axis=0,
@@ -368,6 +382,8 @@ class WaveformModes(sxs_WaveformModes):
             verbosity=verbosity,
             **w_attributes,
         )
+        wfm._present_modes = present_modes
+        return wfm
 
     @property
     def filepath(self):
