@@ -474,20 +474,26 @@ class WaveformModes(sxs_WaveformModes):
         if "relaxed_mass1" in metadata:
             # RIT Catalog
             if parameters["f_lower"] == -1:
-                h = self.get_mode(2, 2, total_mass, distance=1, delta_t=1.0 / 8192)
+                h = self.get_mode(
+                    2, 2, total_mass, distance=1, delta_t_seconds=1.0 / 8192
+                )
                 fr = frequency_from_polarizations(h.real(), -h.imag())
                 parameters.update(f_lower=fr[0])
         elif "GTID" in metadata:
             # GT / MAYA CAtalog
             if parameters["f_lower"] == -1:
-                h = self.get_mode(2, 2, total_mass, distance=1, delta_t=1.0 / 8192)
+                h = self.get_mode(
+                    2, 2, total_mass, distance=1, delta_t_seconds=1.0 / 8192
+                )
                 fr = frequency_from_polarizations(h.real(), -h.imag())
                 parameters.update(f_lower=fr[0])
         else:
             # SXS Catalog
             if parameters["f_lower"] == -1:
                 delta_t_secs = 1.0 / 8192
-                h = self.get_mode(2, 2, total_mass, distance=1, delta_t=delta_t_secs)
+                h = self.get_mode(
+                    2, 2, total_mass, distance=1, delta_t_seconds=delta_t_secs
+                )
                 fr = frequency_from_polarizations(h.real(), -h.imag())
                 # Get the frequency at reference_time
                 reference_time_idx = int(
@@ -511,6 +517,8 @@ class WaveformModes(sxs_WaveformModes):
         distance=1.0,  # Megaparsecs
         delta_t=None,
         to_pycbc=True,
+        delta_t_seconds=None,
+        delta_t_Msun=None,
     ):
         """Return a single (ℓ, m) waveform mode, rescaled to physical units.
 
@@ -529,15 +537,18 @@ class WaveformModes(sxs_WaveformModes):
             Total mass of the binary in **solar masses** (M☉).  Default 1.
         distance : float, optional
             Luminosity distance in **megaparsecs** (Mpc).  Default 1.
+        delta_t_seconds : float, optional
+            Desired sample spacing in **physical seconds**
+            (e.g. ``1/4096`` for detector-band data).  Mutually exclusive
+            with ``delta_t_Msun``.
+        delta_t_Msun : float, optional
+            Desired sample spacing in **dimensionless M units**
+            (typical NR time steps are 0.1–1 M).  Mutually exclusive
+            with ``delta_t_seconds``.
         delta_t : float, optional
-            Desired sample spacing.  Two conventions are supported:
-
-            * **delta_t > 1/128** — interpreted as **dimensionless M units**
-              (typical NR time steps are 0.1–1 M).
-            * **delta_t ≤ 1/128** — interpreted as **physical seconds**
-              (e.g. ``1/4096`` s for detector-band data).
-
-            If *None*, the native NR time step is used (dimensionless M units).
+            *Deprecated.* Use ``delta_t_seconds`` or ``delta_t_Msun`` instead.
+            Values > 1/128 are treated as dimensionless M units; values
+            ≤ 1/128 are treated as physical seconds.
         to_pycbc : bool, optional
             If *True* (default) return a ``pycbc.types.TimeSeries``; otherwise
             return an ``sxs.TimeSeries``.
@@ -564,23 +575,40 @@ class WaveformModes(sxs_WaveformModes):
 
             h_plus ≈ mode.real()
         """
-        if delta_t is None:
-            delta_t = _modal_dt(self.time)
+        import warnings
 
-        # Convert between physical seconds and dimensionless M units.
-        # self.time is always in dimensionless M units; new_time must match.
-        # We assume delta_t > 1/128 means it is in dimensionless M units
-        # (typical NR step ~ 0.1-1 M), and delta_t <= 1/128 means it is in
-        # physical seconds (e.g. 1/4096 s for GW detector sampling).
+        if delta_t_seconds is not None and delta_t_Msun is not None:
+            raise ValueError(
+                "Provide only one of `delta_t_seconds` or `delta_t_Msun`, not both."
+            )
+
         m_secs = utils.time_to_physical(total_mass)
-        if delta_t > 1.0 / 128:
-            # delta_t is in dimensionless M units
-            dt_dimless = delta_t
-            dt_physical = delta_t * m_secs
+
+        if delta_t_seconds is not None:
+            dt_physical = delta_t_seconds
+            dt_dimless = delta_t_seconds / m_secs
+        elif delta_t_Msun is not None:
+            dt_dimless = delta_t_Msun
+            dt_physical = delta_t_Msun * m_secs
         else:
-            # delta_t is in physical seconds
-            dt_physical = delta_t
-            dt_dimless = delta_t / m_secs
+            # Legacy delta_t path — emit deprecation warning when explicitly passed.
+            if delta_t is not None:
+                warnings.warn(
+                    "The `delta_t` parameter of get_mode() is deprecated and will be "
+                    "removed in a future release. Use `delta_t_seconds` for physical "
+                    "seconds or `delta_t_Msun` for dimensionless M units instead.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            else:
+                delta_t = _modal_dt(self.time)
+            # Heuristic: values > 1/128 are dimensionless M; <= 1/128 are seconds.
+            if delta_t > 1.0 / 128:
+                dt_dimless = delta_t
+                dt_physical = delta_t * m_secs
+            else:
+                dt_physical = delta_t
+                dt_dimless = delta_t / m_secs
 
         new_time = np.arange(min(self.time), max(self.time), dt_dimless)
 
@@ -705,7 +733,9 @@ class WaveformModes(sxs_WaveformModes):
             Complex (2,2) mode starting at the relaxation time.
         """
         t_relax = self._get_relaxation_time_dimless()
-        mode = self.get_mode(2, 2, total_mass=total_mass, distance=1.0, delta_t=delta_t)
+        mode = self.get_mode(
+            2, 2, total_mass=total_mass, distance=1.0, delta_t_seconds=delta_t
+        )
         t_start = mode.start_time
         t_relax_phys = t_relax * utils.time_to_physical(total_mass)
         idx = 0
@@ -772,6 +802,8 @@ class WaveformModes(sxs_WaveformModes):
         kind=None,
         tol=1e-6,
         lal_convention=False,
+        delta_t_seconds=None,
+        delta_t_Msun=None,
     ):
         """Sum over modes and return GW polarizations rescaled to physical units.
 
@@ -802,9 +834,16 @@ class WaveformModes(sxs_WaveformModes):
             angular momentum (radians).
         coa_phase : float
             Coalescence orbital phase (radians).
+        delta_t_seconds : float, optional
+            Sample spacing in **physical seconds**.  Mutually exclusive with
+            ``delta_t_Msun``.
+        delta_t_Msun : float, optional
+            Sample spacing in **dimensionless M units**.  Mutually exclusive
+            with ``delta_t_seconds``.
         delta_t : float, optional
-            Sample spacing.  Values > 1/128 are interpreted as dimensionless
-            M units; values ≤ 1/128 are interpreted as physical seconds.
+            *Deprecated.* Use ``delta_t_seconds`` or ``delta_t_Msun`` instead.
+            Values > 1/128 are interpreted as dimensionless M units; values
+            ≤ 1/128 are interpreted as physical seconds.
             Defaults to the native NR time step.
         f_ref : float, optional
             Reference gravitational-wave frequency (Hz).
@@ -828,14 +867,35 @@ class WaveformModes(sxs_WaveformModes):
             Complex waveform.  With default ``lal_convention=False``:
             ``retval.real() = h₊``, ``retval.imag() = h×``.
         """
-        if delta_t is None:
-            delta_t = _modal_dt(self.time)
+        import warnings
+
+        if delta_t_seconds is not None and delta_t_Msun is not None:
+            raise ValueError(
+                "Provide only one of `delta_t_seconds` or `delta_t_Msun`, not both."
+            )
+
         m_secs = utils.time_to_physical(total_mass)
-        # Values > 1/128 are treated as dimensionless M units; <= 1/128 as seconds.
-        if delta_t > 1.0 / 128:
-            dt_dimless = delta_t
+
+        if delta_t_seconds is not None:
+            dt_dimless = delta_t_seconds / m_secs
+        elif delta_t_Msun is not None:
+            dt_dimless = delta_t_Msun
         else:
-            dt_dimless = delta_t / m_secs
+            if delta_t is not None:
+                warnings.warn(
+                    "The `delta_t` parameter of get_td_waveform() is deprecated and "
+                    "will be removed in a future release. Use `delta_t_seconds` for "
+                    "physical seconds or `delta_t_Msun` for dimensionless M units.",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+            else:
+                delta_t = _modal_dt(self.time)
+            # Heuristic: values > 1/128 are dimensionless M; <= 1/128 are seconds.
+            if delta_t > 1.0 / 128:
+                dt_dimless = delta_t
+            else:
+                dt_dimless = delta_t / m_secs
         new_time = np.arange(min(self.time), max(self.time), dt_dimless)
 
         # Get angles
@@ -1167,7 +1227,7 @@ class WaveformModes(sxs_WaveformModes):
         """
         from pycbc.filter import match as pycbc_match
 
-        h1 = self.get_mode(ell, em, to_pycbc=True, delta_t=delta_t).real()
+        h1 = self.get_mode(ell, em, to_pycbc=True, delta_t_seconds=delta_t).real()
 
         if isinstance(other, dict):
             # dict from pycbc.waveform.get_td_waveform_modes: values are (re, im)
@@ -1176,7 +1236,7 @@ class WaveformModes(sxs_WaveformModes):
             val = other[(ell, em)]
             h2 = val[0] if isinstance(val, (tuple, list)) else val.real()
         else:
-            h2 = other.get_mode(ell, em, to_pycbc=True, delta_t=delta_t).real()
+            h2 = other.get_mode(ell, em, to_pycbc=True, delta_t_seconds=delta_t).real()
 
         # Pad to same length
         target_len = max(len(h1), len(h2))
@@ -1256,8 +1316,12 @@ class WaveformModes(sxs_WaveformModes):
             common_modes = set(map(tuple, self.LM)) & set(map(tuple, other_rot.LM))
 
             for ell, m in common_modes:
-                h1_mode_ts = self.get_mode(ell, m, to_pycbc=True, delta_t=delta_t)
-                h2_mode_ts = other_rot.get_mode(ell, m, to_pycbc=True, delta_t=delta_t)
+                h1_mode_ts = self.get_mode(
+                    ell, m, to_pycbc=True, delta_t_seconds=delta_t
+                )
+                h2_mode_ts = other_rot.get_mode(
+                    ell, m, to_pycbc=True, delta_t_seconds=delta_t
+                )
 
                 # Align lengths
                 if len(h1_mode_ts) > len(h2_mode_ts):
@@ -1386,11 +1450,12 @@ class WaveformModes(sxs_WaveformModes):
         max_len = 0
         for ell, m in self.LM:
             max_len = max(
-                max_len, len(self.get_mode(ell, m, to_pycbc=True, delta_t=1 / 4096))
+                max_len,
+                len(self.get_mode(ell, m, to_pycbc=True, delta_t_seconds=1 / 4096)),
             )
 
         # Use a reference mode to define the frequency grid
-        ref_mode_ts = self.get_mode(2, 2, to_pycbc=True, delta_t=1 / 4096)
+        ref_mode_ts = self.get_mode(2, 2, to_pycbc=True, delta_t_seconds=1 / 4096)
         ref_mode_ts.resize(max_len)
         ref_fs = ref_mode_ts.to_frequencyseries()
         freqs = ref_fs.sample_frequencies
@@ -1399,7 +1464,7 @@ class WaveformModes(sxs_WaveformModes):
         self_modes_tilde = {}
         self_modes_dot_tilde = {}
         for ell, m in self.LM:
-            h_ts = self.get_mode(ell, m, to_pycbc=True, delta_t=1 / 4096)
+            h_ts = self.get_mode(ell, m, to_pycbc=True, delta_t_seconds=1 / 4096)
             h_ts.resize(max_len)
             h_tilde = h_ts.to_frequencyseries(delta_f=delta_f)
             self_modes_tilde[(ell, m)] = h_tilde
@@ -1454,7 +1519,9 @@ class WaveformModes(sxs_WaveformModes):
 
             for ell, m in common_modes:
                 h1_tilde = self_modes_tilde_st[(ell, m)]
-                h2_mode_ts = other_rot.get_mode(ell, m, to_pycbc=True, delta_t=1 / 4096)
+                h2_mode_ts = other_rot.get_mode(
+                    ell, m, to_pycbc=True, delta_t_seconds=1 / 4096
+                )
 
                 # Align lengths
                 h2_mode_ts.resize(max_len)
