@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A unified Python interface to NR binary black-hole waveform catalogs">
+        <meta name="description" content="A stable, unified Python interface to NR binary black-hole waveform catalogs for LVK analyses, waveform modeling, and cross-catalog comparison">
       
       
       
@@ -555,10 +555,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-scientific-purpose" class="md-nav__link">
+  <a href="#1-purpose-and-scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Scientific Purpose
+        1. Purpose and Scope
       
     </span>
   </a>
@@ -1075,10 +1075,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-scientific-purpose" class="md-nav__link">
+  <a href="#1-purpose-and-scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. Scientific Purpose
+        1. Purpose and Scope
       
     </span>
   </a>
@@ -1554,8 +1554,10 @@
 
 
 <h1 id="nr-catalog-tools-package-overview">nr-catalog-tools: Package Overview<a class="headerlink" href="#nr-catalog-tools-package-overview" title="Permanent link">&para;</a></h1>
-<h2 id="1-scientific-purpose">1. Scientific Purpose<a class="headerlink" href="#1-scientific-purpose" title="Permanent link">&para;</a></h2>
-<p><code>nr-catalog-tools</code> provides a <strong>unified Python interface</strong> to three publicly available numerical-relativity (NR) binary black-hole (BBH) waveform catalogs:</p>
+<h2 id="1-purpose-and-scope">1. Purpose and Scope<a class="headerlink" href="#1-purpose-and-scope" title="Permanent link">&para;</a></h2>
+<p><code>nr-catalog-tools</code> provides a <strong>stable, unified Python interface</strong> to three publicly available
+NR binary black-hole (BBH) waveform catalogs, designed to serve a broad range of
+gravitational-wave research:</p>
 <table>
 <thead>
 <tr>
@@ -1582,7 +1584,19 @@
 </tr>
 </tbody>
 </table>
-<p>The scientific goal (documented in <a href="../goal/">goal.md</a>) is to enable large-scale cross-catalog comparison of BBH waveforms via noise-weighted inner products (matches), maximized over source-frame ambiguities — rotations <span class="arithmatex">\(R \in SO(3)\)</span>, time translations <span class="arithmatex">\(t_c\)</span>, phase offsets <span class="arithmatex">\(\phi_c\)</span>, and BMS supertranslations. The package is the data-loading and preprocessing layer for this analysis pipeline.</p>
+<p>The package is designed to serve three overlapping communities:</p>
+<p><strong>LIGO-Virgo-KAGRA data analysis.</strong> Provides PyCBC-compatible waveform time series, physical
+parameter dicts (<code>get_parameters()</code>), and consistent unit/epoch conventions across all backends,
+so that injection studies, template banks, and parameter estimation workflows are not sensitive
+to which NR catalog is used as the source.</p>
+<p><strong>Waveform modeling.</strong> Provides the data-loading, physical scaling, and frame-alignment
+infrastructure needed for calibrating and validating EOB, phenomenological, and surrogate
+models against NR. This includes Wigner D-matrix rotation, <code>f_lower</code> extraction at any epoch,
+and <code>apply_wigner_rotation_to_mode_dict()</code> for rotating surrogate output into the NR frame.</p>
+<p><strong>Cross-catalog accuracy studies.</strong> Enables rigorous comparison of waveforms from independent
+NR codes via noise-weighted mismatch minimization over source-frame ambiguities — rotations
+<span class="arithmatex">\(R \in SO(3)\)</span>, time translations <span class="arithmatex">\(t_c\)</span>, phase offsets <span class="arithmatex">\(\phi_c\)</span>, and BMS supertranslations.
+See <a href="../goal/">goal.md</a> for the full scientific formalism.</p>
 <hr />
 <h2 id="2-module-structure">2. Module Structure<a class="headerlink" href="#2-module-structure" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>nrcatalogtools/

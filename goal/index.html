@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A unified Python interface to NR binary black-hole waveform catalogs">
+        <meta name="description" content="A stable, unified Python interface to NR binary black-hole waveform catalogs for LVK analyses, waveform modeling, and cross-catalog comparison">
       
       
       
@@ -76,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#comparison-of-promiment-bbh-waveform-catalogs" class="md-skip">
+        <a href="#package-goals-and-scope" class="md-skip">
           Skip to content
         </a>
       
@@ -576,15 +576,65 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#comparison-of-promiment-bbh-waveform-catalogs" class="md-nav__link">
+  <a href="#package-goals-and-scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Comparison of promiment BBH waveform catalogs
+        Package Goals and Scope
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Comparison of promiment BBH waveform catalogs">
+    <nav class="md-nav" aria-label="Package Goals and Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-ligo-virgo-kagra-data-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. LIGO-Virgo-KAGRA data analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-waveform-modeling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Waveform modeling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-cross-catalog-accuracy-studies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Cross-catalog accuracy studies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-catalog-comparison-of-bbh-waveform-catalogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-catalog comparison of BBH waveform catalogs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cross-catalog comparison of BBH waveform catalogs">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -686,15 +736,65 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#comparison-of-promiment-bbh-waveform-catalogs" class="md-nav__link">
+  <a href="#package-goals-and-scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Comparison of promiment BBH waveform catalogs
+        Package Goals and Scope
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Comparison of promiment BBH waveform catalogs">
+    <nav class="md-nav" aria-label="Package Goals and Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-ligo-virgo-kagra-data-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. LIGO-Virgo-KAGRA data analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-waveform-modeling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Waveform modeling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-cross-catalog-accuracy-studies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Cross-catalog accuracy studies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cross-catalog-comparison-of-bbh-waveform-catalogs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-catalog comparison of BBH waveform catalogs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Cross-catalog comparison of BBH waveform catalogs">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -785,7 +885,47 @@
 
   <h1>Scientific Goal</h1>
 
-<h2 id="comparison-of-promiment-bbh-waveform-catalogs">Comparison of promiment BBH waveform catalogs<a class="headerlink" href="#comparison-of-promiment-bbh-waveform-catalogs" title="Permanent link">&para;</a></h2>
+<h2 id="package-goals-and-scope">Package Goals and Scope<a class="headerlink" href="#package-goals-and-scope" title="Permanent link">&para;</a></h2>
+<p><code>nr-catalog-tools</code> is designed to be a <strong>stable, cohesive interface</strong> to all publicly available
+NR binary black-hole waveform catalogs. The scope is intentionally broad, serving three
+overlapping communities:</p>
+<h3 id="1-ligo-virgo-kagra-data-analysis">1. LIGO-Virgo-KAGRA data analysis<a class="headerlink" href="#1-ligo-virgo-kagra-data-analysis" title="Permanent link">&para;</a></h3>
+<p>Gravitational-wave detection and parameter estimation pipelines (PyCBC, LALInference, Bilby)
+require NR waveforms as injection signals, as validation targets, and as calibration references.
+<code>nr-catalog-tools</code> provides:</p>
+<ul>
+<li>A single <code>catalog.get(sim_name)</code> call that returns a PyCBC-compatible <code>TimeSeries</code> regardless
+  of which NR code produced the simulation</li>
+<li><code>get_parameters()</code> returning mass, spin, and initial frequency in PyCBC-native conventions,
+  ready for direct use in <code>pycbc.waveform.get_td_waveform_modes()</code></li>
+<li>Consistent epoch definition (t = 0 at (2,2) peak), amplitude scaling, and sampling
+  conventions across all three backends so injection sets are internally consistent</li>
+</ul>
+<h3 id="2-waveform-modeling">2. Waveform modeling<a class="headerlink" href="#2-waveform-modeling" title="Permanent link">&para;</a></h3>
+<p>Calibrating and validating analytical waveform models (EOB, phenomenological, surrogate, EOBNR,
+IMRPhenom, etc.) against NR requires reliable, correctly-framed NR data. The package provides:</p>
+<ul>
+<li>Frame alignment: Wigner D-matrix rotation of NR modes into any reference frame, and
+  <code>apply_wigner_rotation_to_mode_dict()</code> for rotating surrogate mode output into the NR frame</li>
+<li><code>f_lower_at_1Msun()</code> and <code>f_lower_at_relaxation()</code> for determining the starting frequency
+  of any NR simulation at any total mass, a key input for model calibration workflows</li>
+<li>A uniform metadata interface so model calibration scripts can sweep across all three catalogs
+  without catalog-specific code paths</li>
+</ul>
+<h3 id="3-cross-catalog-accuracy-studies">3. Cross-catalog accuracy studies<a class="headerlink" href="#3-cross-catalog-accuracy-studies" title="Permanent link">&para;</a></h3>
+<p>Understanding the intrinsic accuracy of NR catalogs requires comparing waveforms produced by
+independent codes for nominally identical binary configurations. The package provides:</p>
+<ul>
+<li>Noise-weighted mismatch computation maximized over source-frame ambiguities
+  (rotations, time/phase shifts, BMS supertranslations)</li>
+<li>Support for surrogate-model-mediated comparison, eliminating the need for exact
+  parameter-space matches between catalog entries</li>
+</ul>
+<p>The remainder of this document focuses on the scientific formalism underlying the
+cross-catalog comparison capability, as this represents the most technically involved
+aspect of the package.</p>
+<hr />
+<h2 id="cross-catalog-comparison-of-bbh-waveform-catalogs">Cross-catalog comparison of BBH waveform catalogs<a class="headerlink" href="#cross-catalog-comparison-of-bbh-waveform-catalogs" title="Permanent link">&para;</a></h2>
 <h3 id="motivation">Motivation<a class="headerlink" href="#motivation" title="Permanent link">&para;</a></h3>
 <p>There are now many
 families of waveform models that groups around the world have been developing

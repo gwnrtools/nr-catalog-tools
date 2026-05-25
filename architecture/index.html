@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A unified Python interface to NR binary black-hole waveform catalogs">
+        <meta name="description" content="A stable, unified Python interface to NR binary black-hole waveform catalogs for LVK analyses, waveform modeling, and cross-catalog comparison">
       
       
       
@@ -847,11 +847,20 @@
 
 <h1 id="nr-catalog-tools-architectural-overview"><code>nr-catalog-tools</code> — Architectural Overview<a class="headerlink" href="#nr-catalog-tools-architectural-overview" title="Permanent link">&para;</a></h1>
 <h2 id="what-it-does">What it Does<a class="headerlink" href="#what-it-does" title="Permanent link">&para;</a></h2>
-<p>This package provides a unified Python interface to three public NR binary-black-hole waveform
-catalogs — SXS (SpEC), RIT (LazEv), and MAYA/GT (MayaKranc) — for the purpose of cross-catalog
-waveform comparison. The scientific goal is to quantify NR catalog accuracy by computing
-noise-weighted mismatches between waveforms, maximized over frame ambiguities: SO(3) rotations,
-time/phase shifts, and BMS supertranslations.</p>
+<p>This package provides a <strong>stable, unified Python interface</strong> to three public NR binary-black-hole
+waveform catalogs — SXS (SpEC), RIT (LazEv), and MAYA/GT (MayaKranc) — serving three
+overlapping communities:</p>
+<ul>
+<li><strong>LIGO-Virgo-KAGRA analyses</strong>: PyCBC-compatible waveform time series and parameter dicts with
+  consistent physical units and epoch conventions across all catalogs, for use in injection
+  studies, template banks, and parameter estimation</li>
+<li><strong>Waveform modeling</strong>: frame-alignment tools (Wigner D-matrix rotation, <code>f_lower</code> extraction,
+  surrogate mode rotation) for calibrating and validating EOB, phenomenological, and surrogate
+  models against any NR catalog</li>
+<li><strong>Cross-catalog accuracy studies</strong>: noise-weighted mismatch minimization over SO(3) rotations,
+  time/phase shifts, and BMS supertranslations to quantify intrinsic NR catalog errors</li>
+</ul>
+<p>All three backends implement an identical interface so analysis code is catalog-agnostic.</p>
 <hr />
 <h2 id="class-hierarchy">Class Hierarchy<a class="headerlink" href="#class-hierarchy" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sxs.Catalog

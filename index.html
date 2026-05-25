@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A unified Python interface to NR binary black-hole waveform catalogs">
+        <meta name="description" content="A stable, unified Python interface to NR binary black-hole waveform catalogs for LVK analyses, waveform modeling, and cross-catalog comparison">
       
       
       
@@ -456,13 +456,52 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#scientific-purpose" class="md-nav__link">
+  <a href="#purpose-and-scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scientific Purpose
+        Purpose and Scope
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Purpose and Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ligo-virgo-kagra-data-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LIGO-Virgo-KAGRA data analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#waveform-modeling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Waveform modeling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cross-catalog-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-catalog comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -708,13 +747,52 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#scientific-purpose" class="md-nav__link">
+  <a href="#purpose-and-scope" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scientific Purpose
+        Purpose and Scope
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Purpose and Scope">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ligo-virgo-kagra-data-analysis" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LIGO-Virgo-KAGRA data analysis
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#waveform-modeling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Waveform modeling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cross-catalog-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cross-catalog comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -832,17 +910,38 @@
 </tbody>
 </table>
 <hr />
-<h2 id="scientific-purpose">Scientific Purpose<a class="headerlink" href="#scientific-purpose" title="Permanent link">&para;</a></h2>
-<p><code>nr-catalog-tools</code> provides a <strong>unified Python interface</strong> to three publicly available NR BBH
-waveform catalogs for cross-catalog comparison. The scientific goal is to quantify NR catalog
-accuracy by computing noise-weighted mismatches between waveforms from different codes,
-maximized over source-frame ambiguities:</p>
+<h2 id="purpose-and-scope">Purpose and Scope<a class="headerlink" href="#purpose-and-scope" title="Permanent link">&para;</a></h2>
+<p><code>nr-catalog-tools</code> provides a <strong>stable, unified Python interface</strong> to three publicly available
+NR BBH waveform catalogs, designed to serve a broad community of gravitational-wave researchers.</p>
+<h3 id="ligo-virgo-kagra-data-analysis">LIGO-Virgo-KAGRA data analysis<a class="headerlink" href="#ligo-virgo-kagra-data-analysis" title="Permanent link">&para;</a></h3>
+<p>The package is designed to be a reliable upstream dependency for LVK analysis pipelines.
+It provides:</p>
 <ul>
-<li>Spatial rotations <span class="arithmatex">\(R \in SO(3)\)</span> (Wigner D-matrix mode mixing)</li>
-<li>Time translations <span class="arithmatex">\(t_c\)</span> and coalescence phase offsets <span class="arithmatex">\(\phi_c\)</span></li>
-<li>BMS supertranslations <span class="arithmatex">\(\alpha(\theta, \phi)\)</span> (direction-dependent retarded-time shifts)</li>
+<li>PyCBC-compatible waveform time series and source parameter dicts directly from any catalog</li>
+<li>Consistent physical unit conventions (masses in M☉, distances in Mpc, strain amplitude
+  scaling, time epoch at (2,2) peak) across all three backends</li>
+<li>A stable API that abstracts away catalog-specific file formats, metadata schemas, and
+  download mechanisms, so injection studies, template bank construction, and parameter
+  estimation workflows are not sensitive to which NR catalog is used</li>
 </ul>
-<p>See <a href="goal/">goal.md</a> for the full derivation.</p>
+<h3 id="waveform-modeling">Waveform modeling<a class="headerlink" href="#waveform-modeling" title="Permanent link">&para;</a></h3>
+<p>The package provides the data-loading and preprocessing layer needed when calibrating or
+validating analytical waveform models (EOB, phenomenological, surrogate) against NR:</p>
+<ul>
+<li>Frame alignment tools: SO(3) rotation via Wigner D-matrices, time/phase alignment</li>
+<li><code>get_parameters()</code> returns PyCBC-compatible intrinsic parameter dicts ready to pass
+  directly to <code>pycbc.waveform.get_td_waveform_modes()</code> or surrogate model evaluators</li>
+<li><code>apply_wigner_rotation_to_mode_dict()</code> rotates surrogate mode dicts into the NR catalog
+  frame for direct mode-by-mode comparison</li>
+</ul>
+<h3 id="cross-catalog-comparison">Cross-catalog comparison<a class="headerlink" href="#cross-catalog-comparison" title="Permanent link">&para;</a></h3>
+<p>The package additionally supports rigorous NR accuracy studies:</p>
+<ul>
+<li>Noise-weighted mismatch minimized over <span class="arithmatex">\(t_c\)</span>, <span class="arithmatex">\(\phi_c\)</span>, and <span class="arithmatex">\(R \in SO(3)\)</span></li>
+<li>Extended mismatch optimization over BMS supertranslations <span class="arithmatex">\(\alpha(\theta,\phi)\)</span>
+  (direction-dependent retarded-time shifts at null infinity)</li>
+</ul>
+<p>See <a href="goal/">goal.md</a> for the full scientific derivation.</p>
 <hr />
 <h2 id="module-structure">Module Structure<a class="headerlink" href="#module-structure" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>nrcatalogtools/
