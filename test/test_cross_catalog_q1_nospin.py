@@ -223,7 +223,7 @@ class TestEpochAlignment:
         # Peak should be within 2 samples of t=0
         assert abs(t_peak) < 2 * DELTA_T, (
             f"[{label}] (2,2) peak is at t={t_peak:.6f} s, expected within "
-            f"2 samples of t=0 (tolerance {2*DELTA_T:.6f} s)"
+            f"2 samples of t=0 (tolerance {2 * DELTA_T:.6f} s)"
         )
 
     def test_rit(self, wfm_rit):
@@ -321,7 +321,7 @@ class TestParameterExtraction:
         ), f"[{label}] Non-positive masses: m1={params['mass1']}, m2={params['mass2']}"
         assert (
             abs(params["mass1"] + params["mass2"] - TOTAL_MASS) < 1e-6
-        ), f"[{label}] m1+m2={params['mass1']+params['mass2']:.4f} ≠ {TOTAL_MASS}"
+        ), f"[{label}] m1+m2={params['mass1'] + params['mass2']:.4f} ≠ {TOTAL_MASS}"
 
         # f_lower must be positive and physically reasonable (5–300 Hz at 60 M_sun)
         f_lower = params["f_lower"]
@@ -333,7 +333,7 @@ class TestParameterExtraction:
 
         # For q=1 non-spinning: mass ratio must be ≈ 1, spins ≈ 0
         assert abs(params["mass1"] / params["mass2"] - 1.0) < 0.05, (
-            f"[{label}] mass ratio {params['mass1']/params['mass2']:.3f} ≠ 1 "
+            f"[{label}] mass ratio {params['mass1'] / params['mass2']:.3f} ≠ 1 "
             f"for q=1 simulation"
         )
         for key in self.SPIN_KEYS:
@@ -387,8 +387,8 @@ class TestOddMModesNearZero:
             pk = _raw_peak(wfm, ell, em)
             fraction = pk / ref_peak
             assert fraction < ODD_MODE_TOL, (
-                f"[{label}] ({ell},{em}) peak = {pk:.4e} = {fraction*100:.2f}% of (2,2) peak "
-                f"({ref_peak:.4e}), expected < {ODD_MODE_TOL*100:.0f}% for q=1 non-spinning"
+                f"[{label}] ({ell},{em}) peak = {pk:.4e} = {fraction * 100:.2f}% of (2,2) peak "
+                f"({ref_peak:.4e}), expected < {ODD_MODE_TOL * 100:.0f}% for q=1 non-spinning"
             )
 
     def test_rit(self, wfm_rit):
@@ -476,7 +476,7 @@ class TestCrossCatalogConsistency:
                 ratio = peaks[a] / peaks[b]
                 assert abs(ratio - 1.0) < tol, (
                     f"({ell},{em}) amplitude ratio {a}/{b} = {ratio:.4f}, "
-                    f"expected 1.0 ± {tol} ({tol*100:.0f}%)"
+                    f"expected 1.0 ± {tol} ({tol * 100:.0f}%)"
                 )
 
     @pytest.mark.parametrize("ell,em", EVEN_M_MODES)
@@ -542,6 +542,6 @@ class TestCrossCatalogConsistency:
 
         for label, frac in fractions.items():
             assert frac < ODD_MODE_TOL, (
-                f"[{label}] ({ell},{em}) = {frac*100:.2f}% of (2,2) peak — "
-                f"should be near zero for q=1 non-spinning (< {ODD_MODE_TOL*100:.0f}%)"
+                f"[{label}] ({ell},{em}) = {frac * 100:.2f}% of (2,2) peak — "
+                f"should be near zero for q=1 non-spinning (< {ODD_MODE_TOL * 100:.0f}%)"
             )

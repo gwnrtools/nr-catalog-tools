@@ -97,7 +97,7 @@ jobs:
             coverage html
             python .generate_badge.py
       - name: Upload logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: logs_n_coverage
           path: |
@@ -116,7 +116,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Download artefacts from build
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: logs_n_coverage
       - name: Diagnostics
@@ -133,7 +133,7 @@ jobs:
         uses: actions/upload-pages-artifact@v1
         with:
           # Upload entire repository
-          path: '/home/runner/work/nr-catalog-tools/nr-catalog-tools/htmlcov'
+          path: htmlcov
         
       - name: Deploy to GitHub Pages
         id: deployment
