@@ -12,8 +12,6 @@ cross_catalog
     Skipped automatically (via fixture) when any one catalog is unavailable.
 """
 
-import pytest
-
 
 def pytest_configure(config):
     config.addinivalue_line(

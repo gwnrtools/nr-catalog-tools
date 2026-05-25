@@ -64,13 +64,25 @@ jobs:
           key: nr-data-v1-RIT-BBH-0001-SXS-BBH-0001-GT0905
 
       # ── 6. Download NR data (skipped when cache hits) ─────────────────────
-      - name: Download RIT simulation
+      # Seed the RIT metadata cache from the pre-built CSV committed to the
+      # repo.  This avoids scraping ~2000 individual metadata files from the
+      # RIT server (~13 hrs), which would happen if RITCatalog.load() were
+      # called with download=True on a cold runner.  The CSV is updated
+      # manually and committed to test/validation_data/ when the catalog grows.
+      - name: Seed RIT metadata cache
+        if: steps.nr-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p $NR_CATALOG_CACHE/RIT/metadata
+          cp test/validation_data/RIT_metadata.csv \
+             $NR_CATALOG_CACHE/RIT/metadata/metadata.csv
+
+      - name: Download RIT waveform
         if: steps.nr-cache.outputs.cache-hit != 'true'
         run: |
           python - <<'EOF'
           import warnings; warnings.filterwarnings("ignore")
           import nrcatalogtools as nrcat
-          cat = nrcat.RITCatalog.load(download=True, verbosity=0)
+          cat = nrcat.RITCatalog.load(download=False, verbosity=0)
           cat.download_waveform_data("RIT:BBH:0001-n100-id3")
           print("RIT download done.")
           EOF

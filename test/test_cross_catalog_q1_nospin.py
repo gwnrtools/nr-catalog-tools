@@ -81,7 +81,7 @@ def _load_rit():
     if nrcat is None:
         return None
     try:
-        cat = nrcat.RITCatalog.load(verbosity=0)
+        cat = nrcat.RITCatalog.load(download=False, verbosity=0)
         return cat.get(RIT_SIM, quantity="waveform")
     except Exception:
         return None
@@ -103,7 +103,7 @@ def _load_maya():
     if nrcat is None:
         return None
     try:
-        cat = nrcat.MayaCatalog.load(verbosity=0)
+        cat = nrcat.MayaCatalog.load(download=False, verbosity=0)
         return cat.get(MAYA_SIM, quantity="waveform")
     except Exception:
         return None
@@ -346,9 +346,9 @@ class TestParameterExtraction:
         if nrcat is None:
             pytest.skip("nrcatalogtools not importable")
         try:
-            cat = nrcat.RITCatalog.load(verbosity=0)
+            cat = nrcat.RITCatalog.load(download=False, verbosity=0)
         except Exception:
-            pytest.skip(f"RIT catalog not cached")
+            pytest.skip("RIT catalog not cached")
         self._check(lambda: cat, RIT_SIM, "RIT")
 
     def test_sxs(self):
@@ -358,7 +358,7 @@ class TestParameterExtraction:
         try:
             cat = nrcat.SXSCatalog.load(download=False, verbosity=0)
         except Exception:
-            pytest.skip(f"SXS catalog not cached")
+            pytest.skip("SXS catalog not cached")
         self._check(lambda: cat, SXS_SIM, "SXS")
 
     def test_maya(self):
@@ -368,7 +368,7 @@ class TestParameterExtraction:
         try:
             cat = nrcat.MayaCatalog.load(verbosity=0)
         except Exception:
-            pytest.skip(f"MAYA catalog not cached")
+            pytest.skip("MAYA catalog not cached")
         self._check(lambda: cat, MAYA_SIM, "MAYA")
 
 

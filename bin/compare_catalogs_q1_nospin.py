@@ -265,7 +265,7 @@ for ell, em in MODES:
                 print(f"    ratio {a}/{b} = {ratio:.4f}  ({pct:+.2f}%){flag}")
 
     # ── Phase comparison ──────────────────────────────────────────────────────
-    print(f"  Phase accumulated in last 0.1 s before merger:")
+    print("  Phase accumulated in last 0.1 s before merger:")
     phase_infos = {}  # label -> (t, amp, phase)
     for label, mode in phys_modes.items():
         t = np.array(mode.sample_times)
@@ -389,7 +389,7 @@ print("\n=== Generating amplitude-ratio summary figure ===")
 
 # Pairs of catalogs to compare
 pairs = [("RIT", "SXS"), ("RIT", "MAYA"), ("SXS", "MAYA")]
-mode_labels = [f"({l},{m})" for l, m in MODES]
+mode_labels = [f"({ell},{m})" for ell, m in MODES]
 
 fig, ax = plt.subplots(figsize=(10, 5))
 x = np.arange(len(MODES))
