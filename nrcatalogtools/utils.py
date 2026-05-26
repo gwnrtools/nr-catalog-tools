@@ -226,8 +226,8 @@ def download_file(
 
 
 def call_with_timeout(
-    myfunc: object, args: tuple = (), kwargs: dict = {}, timeout: float = 5
-):
+    myfunc: object, args: tuple = (), _kwargs: dict = {}, timeout: float = 5
+) -> object:
     """
     Call a function with a time limit in a separate process.
 
@@ -239,7 +239,8 @@ def call_with_timeout(
     Args:
         myfunc (callable): The function to execute.
         args (tuple, optional): Positional arguments to pass to `myfunc`. Defaults to ().
-        kwargs (dict, optional): Keyword arguments to pass to `myfunc`. Defaults to {}.
+        _kwargs (dict, optional): Reserved; keyword arguments are not currently
+                                  forwarded to the subprocess. Defaults to {}.
         timeout (int or float, optional): Maximum allowed execution time in seconds. Defaults to 5.
 
     Returns:
@@ -251,7 +252,7 @@ def call_with_timeout(
 
     from multiprocessing import Process, Queue
 
-    def funcwrapper(p, *args, **kwargs):
+    def funcwrapper(p, *args, **kwargs) -> None:
         """
         This thin wrapper calls the user-provided function, and puts
         its result into the multiprocessing `Queue`  so that it can be
@@ -306,7 +307,7 @@ def amp_to_physical(M: float, D: float) -> float:
     return lal.G_SI * M * lal.MSUN_SI / (lal.C_SI**2 * D * 1e6 * lal.PC_SI)
 
 
-def amplitude_phase_frequency_from_complex_mode(hlm):
+def amplitude_phase_frequency_from_complex_mode(hlm: object) -> tuple:
     """
     Compute amplitude, phase, and instantaneous frequency from a complex mode time series.
 

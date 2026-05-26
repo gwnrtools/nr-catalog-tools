@@ -58,9 +58,43 @@ _rit_catalog_singleton = None
 
 @register_catalog("RIT")
 class RITCatalog(catalog.CatalogBase):
+    """Catalog interface for the RIT (LazEv) NR waveform collection.
+
+    Delegates all file-naming, URL-construction, caching, and web-crawling
+    logic to ``RITCatalogHelper``.  ``RITCatalog`` itself provides the
+    ``CatalogBase``-compatible public API (``load()``, ``get()``,
+    ``get_metadata()``, ``get_parameters()``, etc.).
+
+    Key design points:
+
+    - Metadata is scraped from ``https://ccrgpages.rit.edu/~RITCatalog/``
+      on first load and aggregated into ``~/.cache/RIT/metadata/metadata.csv``.
+    - Waveform HDF5 files (``ExtrapStrain_RIT-BBH-*.h5``) are downloaded
+      to ``~/.cache/RIT/data/`` on demand.
+    - Psi4 data is available as ``.tar.gz`` archives via
+      ``download_psi4_data()`` / ``psi4_filepath_from_simname()``.
+    - A module-level singleton prevents redundant catalog loads when
+      ``load()`` is called multiple times in the same process.
+
+    Example:
+        >>> import nrcatalogtools as nrcat
+        >>> cat = nrcat.RITCatalog.load(verbosity=0)
+        >>> wfm = cat.get("RIT:BBH:0001-n100-id3")
+    """
+
     CATALOG_TYPE = "RIT"
 
-    def __init__(self, catalog=None, helper=None, verbosity=3, **kwargs) -> None:
+    def __init__(self, catalog=None, helper=None, verbosity: int = 3, **kwargs) -> None:
+        """Initialise RITCatalog, loading metadata if *catalog* is None.
+
+        Args:
+            catalog: Pre-built catalog dict.  Pass ``None`` (default) to call
+                :meth:`load` automatically.
+            helper: ``RITCatalogHelper`` instance.  Populated automatically
+                when *catalog* is None.
+            verbosity (int): Logging verbosity level. Defaults to 3.
+            **kwargs: Forwarded to :meth:`load`.
+        """
         if catalog is not None:
             super().__init__(catalog)
         else:
@@ -179,7 +213,7 @@ class RITCatalog(catalog.CatalogBase):
 
     @property
     @functools.lru_cache()
-    def simulations_dataframe(self):
+    def simulations_dataframe(self) -> object:
         """All simulations as a Pandas DataFrame indexed by simulation name.
 
         Removes any unnamed index columns left over from CSV round-trips and
@@ -202,7 +236,7 @@ class RITCatalog(catalog.CatalogBase):
 
     @property
     @functools.lru_cache()
-    def files(self):
+    def files(self) -> dict:
         """Map of waveform and psi4 filenames to file-info dicts.
 
         Each value is a dict with keys: ``checksum`` (None), ``filename``,
@@ -253,10 +287,30 @@ class RITCatalog(catalog.CatalogBase):
 
         return file_infos
 
-    def metadata_filename_from_simname(self, sim_name):
+    def metadata_filename_from_simname(self, sim_name: str) -> str:
+        """Return the bare filename of the RIT metadata text file for *sim_name*.
+
+        Args:
+            sim_name: RIT simulation name tag, e.g. ``"RIT:BBH:0001-n100-id3"``.
+
+        Returns:
+            Filename string, e.g. ``"RIT:BBH:0001-n100-id3_Metadata.txt"``.
+        """
         return self._helper.metadata_filename_from_simname(sim_name)
 
-    def metadata_filepath_from_simname(self, sim_name):
+    def metadata_filepath_from_simname(self, sim_name: str) -> str:
+        """Return the absolute local path to the metadata file for *sim_name*.
+
+        Args:
+            sim_name: RIT simulation name tag, e.g. ``"RIT:BBH:0001-n100-id3"``.
+
+        Returns:
+            Absolute path string to the cached ``.txt`` metadata file.
+
+        Raises:
+            RuntimeError: If the path stored in the metadata dict does not exist
+                on disk.
+        """
         file_path = self.get_metadata(sim_name)["metadata_location"]
         if not os.path.exists(file_path):
             raise RuntimeError(
@@ -265,17 +319,45 @@ class RITCatalog(catalog.CatalogBase):
             )
         return str(file_path)
 
-    def metadata_url_from_simname(self, sim_name):
+    def metadata_url_from_simname(self, sim_name: str) -> str:
+        """Return the remote URL for the metadata text file for *sim_name*.
+
+        Args:
+            sim_name: RIT simulation name tag.
+
+        Returns:
+            Full URL string on the RIT web server.
+        """
         return (
             self._helper.metadata_url
             + "/"
             + self.metadata_filename_from_simname(sim_name)
         )
 
-    def waveform_filename_from_simname(self, sim_name):
+    def waveform_filename_from_simname(self, sim_name: str) -> str:
+        """Return the bare filename of the RIT waveform HDF5 file for *sim_name*.
+
+        Args:
+            sim_name: RIT simulation name tag.
+
+        Returns:
+            Filename string, e.g. ``"ExtrapStrain_RIT-BBH-0001-n100.h5"``.
+        """
         return self._helper.waveform_filename_from_simname(sim_name)
 
-    def waveform_filepath_from_simname(self, sim_name):
+    def waveform_filepath_from_simname(self, sim_name: str) -> str:
+        """Return the absolute local cache path to the waveform HDF5 for *sim_name*.
+
+        Falls back to re-anchoring the filename under the current cache directory
+        when the stored path (from a shared CSV) belongs to a different machine.
+
+        Args:
+            sim_name: RIT simulation name tag.
+
+        Returns:
+            Absolute path string to the local ``.h5`` waveform file.  Returns the
+            stored (possibly stale) path if the file is not yet downloaded.
+        """
         file_path = self.get_metadata(sim_name)["waveform_data_location"]
         if not os.path.exists(file_path):
             # The stored path may be an absolute path from a different machine
@@ -291,14 +373,22 @@ class RITCatalog(catalog.CatalogBase):
                 )
         return str(file_path)
 
-    def waveform_url_from_simname(self, sim_name):
+    def waveform_url_from_simname(self, sim_name: str) -> str:
+        """Return the remote URL of the waveform HDF5 file for *sim_name*.
+
+        Args:
+            sim_name: RIT simulation name tag.
+
+        Returns:
+            Full URL string on the RIT web server.
+        """
         return (
             self._helper.waveform_data_url
             + "/"
             + self.waveform_filename_from_simname(sim_name)
         )
 
-    def refresh_metadata_df_on_disk(self, num_sims_to_crawl=2000):
+    def refresh_metadata_df_on_disk(self, num_sims_to_crawl: int = 2000) -> object:
         """Delegate to ``RITCatalogHelper.refresh_metadata_df_on_disk()``.
 
         Args:
@@ -314,12 +404,12 @@ class RITCatalog(catalog.CatalogBase):
 
     def download_data_for_catalog(
         self,
-        num_sims_to_crawl=2000,
-        which_data="waveform",
-        possible_res=None,
-        max_id_in_name=-1,
-        use_cache=True,
-    ):
+        num_sims_to_crawl: int = 2000,
+        which_data: str = "waveform",
+        possible_res: list | None = None,
+        max_id_in_name: int = -1,
+        use_cache: bool = True,
+    ) -> dict:
         """Download waveform or psi4 data for all simulations in the catalog.
 
         Args:
@@ -346,14 +436,16 @@ class RITCatalog(catalog.CatalogBase):
             use_cache=use_cache,
         )
 
-    def write_metadata_df_to_disk(self):
+    def write_metadata_df_to_disk(self) -> None:
         """Write the current aggregated metadata DataFrame to ``metadata.csv``.
 
         Delegates to ``RITCatalogHelper.write_metadata_df_to_disk()``.
         """
         return self._helper.write_metadata_df_to_disk()
 
-    def download_waveform_data(self, sim_name, use_cache=None):
+    def download_waveform_data(
+        self, sim_name: str, use_cache: bool | None = None
+    ) -> bool:
         """Download the waveform HDF5 file for *sim_name*.
 
         Args:
@@ -367,10 +459,28 @@ class RITCatalog(catalog.CatalogBase):
         """
         return self._helper.download_waveform_data(sim_name, use_cache=use_cache)
 
-    def psi4_filename_from_simname(self, sim_name):
+    def psi4_filename_from_simname(self, sim_name: str) -> str:
+        """Return the bare filename of the RIT psi4 tar.gz archive for *sim_name*.
+
+        Args:
+            sim_name: RIT simulation name tag.
+
+        Returns:
+            Filename string, e.g.
+            ``"ExtrapPsi4_RIT-BBH-0001-n100-id3.tar.gz"``.
+        """
         return self._helper.psi4_filename_from_simname(sim_name)
 
-    def psi4_filepath_from_simname(self, sim_name):
+    def psi4_filepath_from_simname(self, sim_name: str) -> str:
+        """Return the absolute local path to the psi4 archive for *sim_name*.
+
+        Args:
+            sim_name: RIT simulation name tag.
+
+        Returns:
+            Absolute path string, or an empty string if the file is not yet
+            downloaded.
+        """
         file_path = self.get_metadata(sim_name)["psi4_data_location"]
         if not os.path.exists(file_path):
             if self._verbosity > 2:
@@ -381,12 +491,30 @@ class RITCatalog(catalog.CatalogBase):
             return ""
         return str(file_path)
 
-    def psi4_url_from_simname(self, sim_name):
+    def psi4_url_from_simname(self, sim_name: str) -> str:
+        """Return the remote URL of the psi4 archive for *sim_name*.
+
+        Args:
+            sim_name: RIT simulation name tag.
+
+        Returns:
+            Full URL string on the RIT web server.
+        """
         return (
             self._helper.psi4_data_url + "/" + self.psi4_filename_from_simname(sim_name)
         )
 
-    def download_psi4_data(self, sim_name, use_cache=None):
+    def download_psi4_data(self, sim_name: str, use_cache: bool | None = None) -> bool:
+        """Download the psi4 tar.gz archive for *sim_name*.
+
+        Args:
+            sim_name: RIT simulation name tag.
+            use_cache: Skip download if a non-empty file exists locally.
+                Defaults to None (uses helper's default).
+
+        Returns:
+            True if the file is available locally after the call.
+        """
         return self._helper.download_psi4_data(sim_name, use_cache=use_cache)
 
 
@@ -410,7 +538,17 @@ class RITCatalogHelper(object):
     This class is not part of the public API; use ``RITCatalog`` instead.
     """
 
-    def __init__(self, catalog=None, use_cache=True, verbosity=0) -> None:
+    def __init__(
+        self, _catalog=None, use_cache: bool = True, verbosity: int = 0
+    ) -> None:
+        """Initialise cache paths, URLs, and format strings for the RIT catalog.
+
+        Args:
+            _catalog: Unused; present for interface compatibility.
+            use_cache (bool): Read from local cache when available.
+                Defaults to True.
+            verbosity (int): Logging verbosity level. Defaults to 0.
+        """
         self.verbosity = verbosity
         self.catalog_url = utils.rit_catalog_info["url"]
         self.use_cache = use_cache
@@ -447,7 +585,7 @@ class RITCatalogHelper(object):
         for d in internal_dirs:
             d.mkdir(parents=True, exist_ok=True)
 
-    def metadata_filenames(self, idx, res, id_val):
+    def metadata_filenames(self, idx: int, res: int, id_val: int) -> list:
         """Return all candidate metadata filenames for simulation *idx*.
 
         Returns one name for the quasicircular BBH format and one for the
@@ -468,7 +606,7 @@ class RITCatalogHelper(object):
             self.metadata_file_fmts[1].format(idx, res),
         ]
 
-    def sim_info_from_metadata_filename(self, file_name):
+    def sim_info_from_metadata_filename(self, file_name: str) -> tuple:
         """
         Input:
         ------
@@ -488,7 +626,7 @@ class RITCatalogHelper(object):
             id_val = -1
         return (sim_number, res_number, id_val)
 
-    def simname_from_metadata_filename(self, filename):
+    def simname_from_metadata_filename(self, filename: str) -> str:
         """
         Input:
         ------
@@ -500,7 +638,7 @@ class RITCatalogHelper(object):
         """
         return filename.split("_Meta")[0]
 
-    def metadata_filename_from_simname(self, sim_name):
+    def metadata_filename_from_simname(self, sim_name: str) -> str:
         """
         We assume the sim names are either of the format:
         (1) RIT:eBBH:1109-n100-ecc
@@ -516,7 +654,7 @@ class RITCatalogHelper(object):
         else:
             return self.metadata_file_fmts[1].format(idx, res)
 
-    def metadata_filename_from_cache(self, idx):
+    def metadata_filename_from_cache(self, idx: int) -> str:
         """Return the path of the cached metadata file for simulation *idx*.
 
         Searches the local metadata cache directory for any file whose name
@@ -541,7 +679,7 @@ class RITCatalogHelper(object):
             file_name = poss_files[0]
         return file_name
 
-    def psi4_filename_from_simname(self, sim_name):
+    def psi4_filename_from_simname(self, sim_name: str) -> str:
         """
         We assume the sim names are either of the format:
         (1) RIT:eBBH:1109-n100-ecc
@@ -557,7 +695,7 @@ class RITCatalogHelper(object):
         else:
             return self.psi4_file_fmts[1].format(idx, res)
 
-    def psi4_filename_from_cache(self, idx):
+    def psi4_filename_from_cache(self, idx: int) -> str:
         """Return the psi4 filename for simulation *idx* via the cache.
 
         Looks up the cached metadata filename for *idx*, derives the
@@ -574,7 +712,7 @@ class RITCatalogHelper(object):
             self.simname_from_metadata_filename(self.metadata_filename_from_cache(idx))
         )
 
-    def waveform_filename_from_simname(self, sim_name):
+    def waveform_filename_from_simname(self, sim_name: str) -> str:
         """
         ExtrapStrain_RIT-BBH-0005-n100.h5 -->
         ExtrapStrain_RIT-eBBH-1843-n100.h5
@@ -602,7 +740,7 @@ class RITCatalogHelper(object):
             + ".h5"
         )
 
-    def waveform_filename_from_cache(self, idx):
+    def waveform_filename_from_cache(self, idx: int) -> str:
         """Return the waveform HDF5 filename for simulation *idx* via the cache.
 
         Looks up the cached metadata filename for *idx*, derives the
@@ -619,7 +757,7 @@ class RITCatalogHelper(object):
             self.simname_from_metadata_filename(self.metadata_filename_from_cache(idx))
         )
 
-    def simname_from_cache(self, idx):
+    def simname_from_cache(self, idx: int) -> str:
         """Return the simulation name tag for *idx* by inspecting the cache.
 
         Searches the metadata cache directory for a file matching either the
@@ -646,7 +784,7 @@ class RITCatalogHelper(object):
             return self.simname_from_metadata_filename(file_name)
         return ""
 
-    def simnames(self, idx, res, id_val):
+    def simnames(self, idx: int, res: int, id_val: int) -> list:
         """Return candidate simulation name tags for *idx* at *res* and *id_val*.
 
         Args:
@@ -662,7 +800,7 @@ class RITCatalogHelper(object):
             for mf in self.metadata_filenames(idx, res, id_val)
         ]
 
-    def simtags(self, idx):
+    def simtags(self, idx: int) -> list:
         """Return the filename-prefix tags used to glob-search for *idx*.
 
         Returns one prefix for the BBH format and one for the eBBH format,
@@ -681,7 +819,7 @@ class RITCatalogHelper(object):
             self.metadata_file_fmts[1].split("-")[0].format(idx),
         ]
 
-    def parse_metadata_txt(self, raw):
+    def parse_metadata_txt(self, raw: list) -> tuple:
         """Parses raw RIT metadata
 
         Args:
@@ -771,7 +909,9 @@ class RITCatalogHelper(object):
 
         return nxt, opts
 
-    def metadata_from_link(self, link, save_to=None, num_retries=5):
+    def metadata_from_link(
+        self, link: str, save_to: object = None, num_retries: int = 5
+    ) -> tuple:
         """Fetch and parse a single RIT metadata file from a URL.
 
         If *save_to* is given, downloads the file to disk and then parses it
@@ -819,7 +959,7 @@ class RITCatalogHelper(object):
                 ) from last_exc
             return self.parse_metadata_txt(response.content.decode().split("\n"))
 
-    def metadata_from_file(self, file_path):
+    def metadata_from_file(self, file_path: object) -> tuple:
         """Parse a locally cached RIT metadata text file.
 
         Args:
@@ -834,7 +974,7 @@ class RITCatalogHelper(object):
             lines = f.readlines()
         return self.parse_metadata_txt(lines)
 
-    def metadata_from_cache(self, idx):
+    def metadata_from_cache(self, idx: int) -> object:
         """Build a single-row DataFrame from a cached metadata file for *idx*.
 
         Searches the local metadata cache for any file matching the BBH or
@@ -895,7 +1035,7 @@ class RITCatalogHelper(object):
                 return pd.DataFrame.from_dict(metadata_dict)
         return pd.DataFrame({})
 
-    def download_metadata(self, idx, res, id_val=-1):
+    def download_metadata(self, idx: int, res: int, id_val: int = -1) -> object:
         """Download (or read from cache) metadata for one simulation.
 
         Tries the BBH filename format first, then the eBBH format.  For each
@@ -981,8 +1121,11 @@ class RITCatalogHelper(object):
         return pd.DataFrame.from_dict(metadata_dict)
 
     def download_metadata_for_catalog(
-        self, num_sims_to_crawl=2000, possible_res=[], max_id_in_name=-1
-    ):
+        self,
+        num_sims_to_crawl: int = 2000,
+        possible_res: list = [],
+        max_id_in_name: int = -1,
+    ) -> object:
         """
         We crawl the webdirectory where RIT metadata usually lives,
         and try to read metadata for as many simulations as we can
@@ -1094,7 +1237,7 @@ class RITCatalogHelper(object):
         self.num_of_sims = len(sims)
         return self.metadata
 
-    def write_metadata_df_to_disk(self):
+    def write_metadata_df_to_disk(self) -> None:
         """Write the current ``self.metadata`` DataFrame to ``metadata.csv``.
 
         Saves to ``~/.cache/RIT/metadata/metadata.csv`` (or the path
@@ -1109,7 +1252,7 @@ class RITCatalogHelper(object):
                 self.metadata.reset_index(drop=True, inplace=True)
                 self.metadata.to_csv(f)
 
-    def refresh_metadata_df_on_disk(self, num_sims_to_crawl=2000):
+    def refresh_metadata_df_on_disk(self, num_sims_to_crawl: int = 2000) -> object:
         """Rebuild the metadata CSV from cached ``*_Metadata.txt`` files.
 
         Iterates over simulation indices 1 … *num_sims_to_crawl*, reads each
@@ -1138,7 +1281,7 @@ class RITCatalogHelper(object):
         self.metadata = sims  # set this member
         return self.metadata
 
-    def read_metadata_df_from_disk(self):
+    def read_metadata_df_from_disk(self) -> object:
         """Load the aggregated metadata DataFrame from ``metadata.csv``.
 
         If the CSV file does not exist or is empty, sets ``self.metadata`` to
@@ -1155,7 +1298,7 @@ class RITCatalogHelper(object):
             self.metadata = pd.DataFrame([])
         return self.metadata
 
-    def download_psi4_data(self, sim_name, use_cache=True):
+    def download_psi4_data(self, sim_name: str, use_cache: bool | None = True) -> bool:
         """Download the psi4 tar.gz file for *sim_name* via ``wget``.
 
         Skips the download if ``use_cache`` is True and a non-empty local
@@ -1208,11 +1351,29 @@ class RITCatalogHelper(object):
                     )
                 return False
 
-    def download_waveform_data(self, sim_name, use_cache=True):
-        """
+    def download_waveform_data(
+        self, sim_name: str, use_cache: bool | None = True
+    ) -> bool:
+        """Download the waveform HDF5 file for *sim_name* via ``wget``.
+
+        Skips the download if ``use_cache`` is True and a non-empty local
+        file already exists.
+
         Possible file formats:
-        (1) https://ccrgpages.rit.edu/~RITCatalog/Data/ExtrapStrain_RIT-BBH-0193-n100.h5
-        (2) https://ccrgpages.rit.edu/~RITCatalog/Data/ExtrapStrain_RIT-eBBH-1911-n100.h5
+
+        - ``https://ccrgpages.rit.edu/~RITCatalog/Data/ExtrapStrain_RIT-BBH-0193-n100.h5``
+        - ``https://ccrgpages.rit.edu/~RITCatalog/Data/ExtrapStrain_RIT-eBBH-1911-n100.h5``
+
+        Args:
+            sim_name (str): RIT simulation name tag, e.g.
+                ``"RIT:BBH:0001-n100-id3"``.
+            use_cache (bool or None): Use cached file if present.  If
+                ``None``, falls back to the instance-level ``self.use_cache``.
+                Defaults to True.
+
+        Returns:
+            bool: True if the file is available locally (either from cache or
+            after a successful download), False if the URL was not found.
         """
         if use_cache is None:
             use_cache = self.use_cache
@@ -1250,7 +1411,7 @@ class RITCatalogHelper(object):
                     )
                 return False
 
-    def fetch_waveform_data_from_cache(self, idx):
+    def fetch_waveform_data_from_cache(self, idx: int) -> object:
         """Not yet implemented.
 
         Args:
@@ -1263,15 +1424,33 @@ class RITCatalogHelper(object):
 
     def download_data_for_catalog(
         self,
-        num_sims_to_crawl=2000,
-        which_data="waveform",
-        possible_res=[],
-        max_id_in_name=-1,
-        use_cache=True,
-    ):
-        """
-        We crawl the webdirectory where RIT waveform data usually lives,
-        and try to read waveform data for as many simulations as we can
+        num_sims_to_crawl: int = 2000,
+        which_data: str = "waveform",
+        possible_res: list = [],
+        max_id_in_name: int = -1,
+        use_cache: bool = True,
+    ) -> dict:
+        """Download waveform or psi4 data for all simulations in the catalog.
+
+        Crawls the RIT web directory for waveform or psi4 data files and
+        downloads each one.  Refreshes the on-disk metadata DataFrame first
+        if it is out of date.
+
+        Args:
+            num_sims_to_crawl (int): Maximum number of simulations to process.
+                Defaults to 2000.
+            which_data (str): ``"waveform"`` or ``"psi4"``. Defaults to
+                ``"waveform"``.
+            possible_res (list): Resolution values to try. Defaults to the
+                list in ``utils.rit_catalog_info``.
+            max_id_in_name (int): Maximum ID suffix to search. Defaults to
+                ``-1`` (uses the value in ``utils.rit_catalog_info``).
+            use_cache (bool): Skip download if a non-empty file exists locally.
+                Defaults to True.
+
+        Returns:
+            dict[str, pathlib.Path]: Mapping from simulation name to the
+            local file path for each successfully downloaded file.
         """
         if len(possible_res) == 0:
             possible_res = self.possible_res

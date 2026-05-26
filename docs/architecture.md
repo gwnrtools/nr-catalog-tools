@@ -36,15 +36,15 @@ sxs.WaveformModes (ndarray subclass)
 
 ## Key Design Decisions
 
-1. **`CatalogBase.get()` is the central dispatch** ([catalog.py:62](../nrcatalogtools/catalog.py#L62)). It handles download-on-demand for RIT/MAYA, then calls `WaveformModes.load_from_h5()`. `SXSCatalog` overrides `get()` entirely because SXS data goes through `sxs.load()` / Zenodo, not local HDF5.
+1. **`CatalogBase.get()` is the central dispatch** ([catalog.md](api/catalog.md)). It handles download-on-demand for RIT/MAYA, then calls `WaveformModes.load_from_h5()`. `SXSCatalog` overrides `get()` entirely because SXS data goes through `sxs.load()` / Zenodo, not local HDF5.
 
-2. **Lazy path resolution for SXS** ([sxs.py](../nrcatalogtools/sxs.py)). All path columns are stub empty strings at catalog-load time. Resolving real paths for all ~2000 SXS simulations would require ~2000 `sxs.load()` calls. Actual file access is deferred to `get()`.
+2. **Lazy path resolution for SXS** ([sxs.md](api/sxs.md)). All path columns are stub empty strings at catalog-load time. Resolving real paths for all ~2000 SXS simulations would require ~2000 `sxs.load()` calls. Actual file access is deferred to `get()`.
 
-3. **`_filepath` as per-instance attribute** ([waveform.py](../nrcatalogtools/waveform.py)). Extracted from `w_attributes` before passing to the `sxs.WaveformModes` parent `__new__`, preventing class-level sharing where loading a second simulation would silently overwrite the first object's path.
+3. **`_filepath` as per-instance attribute** ([waveform.md](api/waveform.md)). Extracted from `w_attributes` before passing to the `sxs.WaveformModes` parent `__new__`, preventing class-level sharing where loading a second simulation would silently overwrite the first object's path.
 
-4. **`sxs` memoryview → numpy wrapping** ([waveform.py](../nrcatalogtools/waveform.py)). `sxs.WaveformModes.data` may return a memoryview (not a writable numpy array). All arithmetic wraps it with `np.array(..., dtype=complex)`.
+4. **`sxs` memoryview → numpy wrapping** ([waveform.md](api/waveform.md)). `sxs.WaveformModes.data` may return a memoryview (not a writable numpy array). All arithmetic wraps it with `np.array(..., dtype=complex)`.
 
-5. **`delta_t` dual convention** ([waveform.py](../nrcatalogtools/waveform.py)). Values `> 1/128` are dimensionless M units (NR native); `≤ 1/128` are physical seconds. The returned `TimeSeries.delta_t` is always in seconds.
+5. **`delta_t` dual convention** ([waveform.md](api/waveform.md)). Values `> 1/128` are dimensionless M units (NR native); `≤ 1/128` are physical seconds. The returned `TimeSeries.delta_t` is always in seconds.
 
 ---
 
@@ -104,7 +104,7 @@ MayaCatalog.load()
 
 ---
 
-## Metadata Normalization ([metadata.py](../nrcatalogtools/metadata.py))
+## Metadata Normalization ([metadata.md](api/metadata.md))
 
 Catalog-specific keys are normalized to PyCBC-compatible output in `get_source_parameters_from_metadata()`:
 

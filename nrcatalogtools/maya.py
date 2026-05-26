@@ -42,6 +42,27 @@ _maya_catalog_singleton = None
 
 @register_catalog("MAYA")
 class MayaCatalog(catalog.CatalogBase):
+    """Catalog interface for the MAYA / Georgia-Tech NR waveform collection.
+
+    Downloads a pickle-format metadata file (``MAYAmetadata.pkl``) from
+    the UT Austin CGP storage and uses the ``mayawaves`` package to load
+    individual waveform HDF5 files.  Key design points:
+
+    - Metadata is cached as ``~/.cache/MAYA/data/catalog.zip`` on first
+      load.  Subsequent calls read from cache unless ``download=True``.
+    - Waveform files are loaded via ``mayawaves.Coalescence`` and then
+      wrapped in a ``WaveformModes`` object.
+    - Psi4 is not available for this catalog; the corresponding methods
+      raise ``NotImplementedError``.
+    - A module-level singleton prevents redundant catalog loads when
+      ``load()`` is called multiple times in the same process.
+
+    Example:
+        >>> import nrcatalogtools as nrcat
+        >>> cat = nrcat.MayaCatalog.load()
+        >>> wfm = cat.get("GT0001")
+    """
+
     CATALOG_TYPE = "MAYA"
 
     def __init__(
@@ -93,7 +114,7 @@ class MayaCatalog(catalog.CatalogBase):
         for d in internal_dirs:
             d.mkdir(parents=True, exist_ok=True)
 
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         """Remove the cached catalog ZIP file so the next ``load()`` re-downloads it.
 
         The file removed is ``~/.cache/MAYA/catalog.zip`` (or the path
@@ -301,7 +322,7 @@ class MayaCatalog(catalog.CatalogBase):
 
     @property
     @functools.lru_cache()
-    def simulations_dataframe(self):
+    def simulations_dataframe(self) -> object:
         """All simulations as a Pandas DataFrame indexed by simulation name.
 
         Columns correspond to the MAYA metadata fields (mass ratio, spins,
@@ -317,7 +338,7 @@ class MayaCatalog(catalog.CatalogBase):
 
     @property
     @functools.lru_cache()
-    def files(self):
+    def files(self) -> dict:
         """Map of waveform filenames to file-info dicts.
 
         Each value is a dict with keys:
@@ -355,7 +376,7 @@ class MayaCatalog(catalog.CatalogBase):
 
         return file_infos
 
-    def metadata_filename_from_simname(self, sim_name):
+    def metadata_filename_from_simname(self, sim_name: str) -> str:
         """Return the bare filename for the per-simulation metadata file.
 
         Args:
@@ -366,7 +387,7 @@ class MayaCatalog(catalog.CatalogBase):
         """
         return os.path.basename(self.metadata_filepath_from_simname(sim_name))
 
-    def metadata_filepath_from_simname(self, sim_name, ext="txt"):
+    def metadata_filepath_from_simname(self, sim_name: str, ext: str = "txt") -> str:
         """Return the absolute local path for the per-simulation metadata file.
 
         Args:
@@ -378,18 +399,18 @@ class MayaCatalog(catalog.CatalogBase):
         """
         return str(self.metadata_dir / f"{sim_name}.{ext}")
 
-    def metadata_url_from_simname(self, sim_name):
+    def metadata_url_from_simname(self, _sim_name: str) -> None:
         """MAYA does not expose per-simulation metadata URLs; returns None.
 
-        Args:
-            sim_name (str): MAYA simulation name.
+        The parameter is accepted for interface compatibility with
+        ``CatalogABC`` but is not used.
 
         Returns:
             None
         """
         return
 
-    def waveform_filename_from_simname(self, sim_name):
+    def waveform_filename_from_simname(self, sim_name: str) -> str:
         """Return the bare HDF5 filename for *sim_name*.
 
         Args:
@@ -400,7 +421,7 @@ class MayaCatalog(catalog.CatalogBase):
         """
         return sim_name + ".h5"
 
-    def waveform_filepath_from_simname(self, sim_name):
+    def waveform_filepath_from_simname(self, sim_name: str) -> str:
         """Return the absolute local path for the waveform HDF5 file.
 
         Args:
@@ -420,7 +441,9 @@ class MayaCatalog(catalog.CatalogBase):
                 )
         return file_path.as_posix()
 
-    def waveform_url_from_simname(self, sim_name, maya_format=False):
+    def waveform_url_from_simname(
+        self, sim_name: str, maya_format: bool = False
+    ) -> str:
         """Return the remote URL for the waveform HDF5 file.
 
         Args:
@@ -437,7 +460,9 @@ class MayaCatalog(catalog.CatalogBase):
             format = "lvcnr_format"
         return f"{self.waveform_data_url}/{format}/{self.waveform_filename_from_simname(sim_name)}"
 
-    def download_waveform_data(self, sim_name, maya_format=False, use_cache=None):
+    def download_waveform_data(
+        self, sim_name: str, maya_format: bool = False, use_cache: bool | None = None
+    ) -> None:
         """Download the waveform HDF5 file for *sim_name* into the local cache.
 
         By default downloads the LVCNR-format file.  If ``maya_format=True``
@@ -516,11 +541,8 @@ class MayaCatalog(catalog.CatalogBase):
                         "... ... but couldnt find link: {}".format(str(file_path_web))
                     )
 
-    def psi4_filename_from_simname(self, sim_name):
+    def psi4_filename_from_simname(self, _sim_name: str) -> str:
         """Not implemented; MAYA distributes strain waveforms only.
-
-        Args:
-            sim_name (str): MAYA simulation name.
 
         Raises:
             NotImplementedError: Always. Use ``get(sim_name)`` for strain data.
@@ -530,11 +552,8 @@ class MayaCatalog(catalog.CatalogBase):
             "Use the strain waveform data instead."
         )
 
-    def psi4_filepath_from_simname(self, sim_name):
+    def psi4_filepath_from_simname(self, _sim_name: str) -> str:
         """Not implemented; MAYA distributes strain waveforms only.
-
-        Args:
-            sim_name (str): MAYA simulation name.
 
         Raises:
             NotImplementedError: Always. Use ``get(sim_name)`` for strain data.
@@ -544,11 +563,8 @@ class MayaCatalog(catalog.CatalogBase):
             "Use the strain waveform data instead."
         )
 
-    def psi4_url_from_simname(self, sim_name):
+    def psi4_url_from_simname(self, _sim_name: str) -> str:
         """Not implemented; MAYA distributes strain waveforms only.
-
-        Args:
-            sim_name (str): MAYA simulation name.
 
         Raises:
             NotImplementedError: Always. Use ``get(sim_name)`` for strain data.
@@ -558,11 +574,8 @@ class MayaCatalog(catalog.CatalogBase):
             "Use the strain waveform data instead."
         )
 
-    def download_psi4_data(self, sim_name):
+    def download_psi4_data(self, _sim_name: str) -> None:
         """Not implemented; MAYA distributes strain waveforms only.
-
-        Args:
-            sim_name (str): MAYA simulation name.
 
         Raises:
             NotImplementedError: Always. Use ``download_waveform_data()`` instead.

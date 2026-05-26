@@ -178,7 +178,7 @@ class WaveformModes(sxs_WaveformModes):
             f"--sB{s2x:0.3f}-{s2y:0.3f}-{s2z:0.3f}"
         )
 
-    def get_parameters(self, total_mass=1.0):
+    def get_parameters(self, total_mass: float = 1.0) -> dict:
         """Return the initial physical parameters for the simulation.
 
         Args:
