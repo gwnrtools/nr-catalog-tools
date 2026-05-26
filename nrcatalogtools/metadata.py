@@ -1,3 +1,36 @@
+"""Cross-catalog metadata key mappings and source-parameter extraction.
+
+This module bridges the three catalog-specific metadata schemas (RIT, SXS,
+MAYA) and the PyCBC parameter convention used downstream by LVK analysis
+pipelines.
+
+Module-level constants
+----------------------
+RIT_KEYS : dict
+    Canonical quantity name → RIT metadata key (hyphenated).
+SXS_KEYS : dict
+    Canonical quantity name → SXS metadata key (snake_case).  Spin
+    components are stored as 3-element list vectors; per-component keys map
+    to ``None`` to indicate vector access.
+MAYA_KEYS : dict
+    Canonical quantity name → MAYA/GT metadata key.
+CANONICAL_TO_CATALOG : dict
+    Unified lookup: ``canonical_name → {"RIT": key, "SXS": key, "MAYA": key}``.
+CANONICAL_TO_PYCBC : dict
+    Maps canonical names to their PyCBC output parameter names.
+PYCBC_KEYS : dict
+    Identity mapping of PyCBC parameter names; documents which keys are
+    output by ``get_source_parameters_from_metadata()``.
+
+Public functions
+----------------
+get_source_parameters_from_metadata(metadata, total_mass)
+    Convert a raw catalog metadata dict (with injected ``catalog_type`` key)
+    into a PyCBC-compatible binary parameter dict.
+"""
+
+from __future__ import annotations
+
 import pathlib
 
 import numpy as np
@@ -32,7 +65,7 @@ from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 _SCHEMAS_DIR = pathlib.Path(__file__).parent / "schemas"
 
 
-def _load_schema(filename):
+def _load_schema(filename: str) -> dict:
     """Load a catalog key-mapping schema from the schemas/ directory.
 
     Parameters
@@ -145,7 +178,9 @@ Quantities absent from this dict are not directly exposed as PyCBC parameters
 """
 
 
-def get_source_parameters_from_metadata(metadata, total_mass=1.0):
+def get_source_parameters_from_metadata(
+    metadata: dict, total_mass: float = 1.0
+) -> dict:
     """Return the initial physical parameters for the simulation. Only for
     quasicircular simulations are supported, orbital eccentricity is ignored
 

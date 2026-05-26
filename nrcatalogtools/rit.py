@@ -1,3 +1,41 @@
+"""RIT catalog interface.
+
+Provides access to the Rochester Institute of Technology (RIT) catalog of
+numerical-relativity BBH waveforms generated with the LazEv code.
+
+Metadata is scraped from the RIT web server
+(``https://ccrgpages.rit.edu/~RITCatalog/Metadata/``) as individual
+``*_Metadata.txt`` files, aggregated into a Pandas DataFrame, and cached
+at ``~/.cache/RIT/metadata/metadata.csv``.  Waveform (HDF5) and psi4
+(tar.gz) data are downloaded on demand.
+
+Both quasicircular BBH (``RIT:BBH:NNNN-nRRR-idI``) and eccentric BBH
+(``RIT:eBBH:NNNN-nRRR-ecc``) simulation names are supported.
+
+Key design decisions
+--------------------
+* **Singleton pattern** – ``RITCatalog.load()`` stores its result in a
+  module-level singleton to avoid the ``lru_cache`` stale-result bug
+  (keyed on all arguments, a ``load(download=True)`` call after an earlier
+  ``load(download=False)`` would have returned the stale cached result).
+
+* **Two-class design** – ``RITCatalog`` exposes the public
+  ``CatalogBase`` interface and delegates all scraping/caching/file-naming
+  logic to ``RITCatalogHelper``, which can be instantiated and tested
+  independently.
+
+Public classes
+--------------
+RITCatalog
+    Registered under the tag ``"RIT"`` in the catalog plugin registry.
+RITCatalogHelper
+    Internal helper; handles metadata scraping, caching, and filename
+    conventions.  Not part of the public API but documented here because
+    it is the main complexity in this module.
+"""
+
+from __future__ import annotations
+
 import collections
 import functools
 import glob
@@ -38,11 +76,11 @@ class RITCatalog(catalog.CatalogBase):
     @classmethod
     def load(
         cls,
-        download=None,
-        num_sims_to_crawl=2000,
-        acceptable_scraping_fraction=0.7,
-        verbosity=0,
-    ):
+        download: bool | None = None,
+        num_sims_to_crawl: int = 2000,
+        acceptable_scraping_fraction: float = 0.7,
+        verbosity: int = 0,
+    ) -> RITCatalog:
         """Load the RIT catalog.
 
         The result is cached in a module-level singleton after the first
@@ -130,7 +168,7 @@ class RITCatalog(catalog.CatalogBase):
         return _rit_catalog_singleton
 
     @classmethod
-    def reload(cls, **kwargs):
+    def reload(cls, **kwargs) -> RITCatalog:
         """Force a fresh download and replace the cached singleton.
 
         Equivalent to ``RITCatalog.load(download=True, **kwargs)``.
@@ -142,6 +180,15 @@ class RITCatalog(catalog.CatalogBase):
     @property
     @functools.lru_cache()
     def simulations_dataframe(self):
+        """All simulations as a Pandas DataFrame indexed by simulation name.
+
+        Removes any unnamed index columns left over from CSV round-trips and
+        sets ``simulation_name`` as both the index and an explicit column.
+
+        Returns:
+            pandas.DataFrame: DataFrame with one row per simulation and
+            metadata fields as columns.
+        """
         df = self._helper.metadata
         for col_name in list(df.columns):
             if "Unnamed" in col_name:
@@ -156,7 +203,15 @@ class RITCatalog(catalog.CatalogBase):
     @property
     @functools.lru_cache()
     def files(self):
-        """Map of all file names to the corresponding file info"""
+        """Map of waveform and psi4 filenames to file-info dicts.
+
+        Each value is a dict with keys: ``checksum`` (None), ``filename``,
+        ``filesize`` (bytes; 0 if not cached), ``download`` (remote URL), and
+        ``truepath`` (canonical local filename after deduplication).
+
+        Returns:
+            dict[str, dict]: Mapping from bare filename to file-info dict.
+        """
         file_infos = {}
         for _, row in self.simulations_dataframe.iterrows():
             psi4_data_location = row["psi4_data_location"]
@@ -244,6 +299,15 @@ class RITCatalog(catalog.CatalogBase):
         )
 
     def refresh_metadata_df_on_disk(self, num_sims_to_crawl=2000):
+        """Delegate to ``RITCatalogHelper.refresh_metadata_df_on_disk()``.
+
+        Args:
+            num_sims_to_crawl (int): Upper bound on the simulation index.
+                Defaults to 2000.
+
+        Returns:
+            pandas.DataFrame: Refreshed aggregated metadata DataFrame.
+        """
         return self._helper.refresh_metadata_df_on_disk(
             num_sims_to_crawl=num_sims_to_crawl
         )
@@ -256,6 +320,24 @@ class RITCatalog(catalog.CatalogBase):
         max_id_in_name=-1,
         use_cache=True,
     ):
+        """Download waveform or psi4 data for all simulations in the catalog.
+
+        Args:
+            num_sims_to_crawl (int): Maximum number of simulations to process.
+                Defaults to 2000.
+            which_data (str): ``"waveform"`` or ``"psi4"``. Defaults to
+                ``"waveform"``.
+            possible_res (list[int] or None): Resolution values to try.
+                Defaults to the list in ``utils.rit_catalog_info``.
+            max_id_in_name (int): Maximum ID suffix to search for. Defaults to
+                ``-1`` (uses the value in ``utils.rit_catalog_info``).
+            use_cache (bool): Skip download if a non-empty file exists locally.
+                Defaults to True.
+
+        Returns:
+            dict[str, pathlib.Path]: Mapping from simulation name to the
+            local file path for each successfully downloaded file.
+        """
         return self._helper.download_data_for_catalog(
             num_sims_to_crawl=num_sims_to_crawl,
             which_data=which_data,
@@ -265,9 +347,24 @@ class RITCatalog(catalog.CatalogBase):
         )
 
     def write_metadata_df_to_disk(self):
+        """Write the current aggregated metadata DataFrame to ``metadata.csv``.
+
+        Delegates to ``RITCatalogHelper.write_metadata_df_to_disk()``.
+        """
         return self._helper.write_metadata_df_to_disk()
 
     def download_waveform_data(self, sim_name, use_cache=None):
+        """Download the waveform HDF5 file for *sim_name*.
+
+        Args:
+            sim_name (str): RIT simulation name tag,
+                e.g. ``"RIT:BBH:0001-n100-id3"``.
+            use_cache (bool or None): Use the cached file if present.
+                Defaults to None (uses helper's default).
+
+        Returns:
+            bool: True if the file is available locally after the call.
+        """
         return self._helper.download_waveform_data(sim_name, use_cache=use_cache)
 
     def psi4_filename_from_simname(self, sim_name):
@@ -294,6 +391,25 @@ class RITCatalog(catalog.CatalogBase):
 
 
 class RITCatalogHelper(object):
+    """Internal helper for RIT catalog scraping, caching, and file naming.
+
+    Handles all the catalog-specific complexity that ``RITCatalog`` delegates:
+
+    - **File naming** – converts simulation name tags (e.g.
+      ``"RIT:BBH:0001-n100-id3"``) to metadata filenames, waveform filenames,
+      and psi4 filenames in the formats used on the RIT web server.
+    - **Metadata scraping** – downloads ``*_Metadata.txt`` files from the RIT
+      web server one-by-one, parses them with ``parse_metadata_txt()``, and
+      aggregates them into a Pandas DataFrame.
+    - **Disk caching** – reads/writes the aggregated DataFrame as
+      ``~/.cache/RIT/metadata/metadata.csv`` and stores individual
+      ``*_Metadata.txt`` files in ``~/.cache/RIT/metadata/``.
+    - **Data downloads** – downloads waveform HDF5 and psi4 tar.gz files via
+      ``wget`` into ``~/.cache/RIT/data/``.
+
+    This class is not part of the public API; use ``RITCatalog`` instead.
+    """
+
     def __init__(self, catalog=None, use_cache=True, verbosity=0) -> None:
         self.verbosity = verbosity
         self.catalog_url = utils.rit_catalog_info["url"]
@@ -332,6 +448,21 @@ class RITCatalogHelper(object):
             d.mkdir(parents=True, exist_ok=True)
 
     def metadata_filenames(self, idx, res, id_val):
+        """Return all candidate metadata filenames for simulation *idx*.
+
+        Returns one name for the quasicircular BBH format and one for the
+        eccentric BBH format, since a given index may correspond to either.
+
+        Args:
+            idx (int): Four-digit simulation index (e.g. ``1`` for ``0001``).
+            res (int): Numerical resolution tag (e.g. ``100``).
+            id_val (int): ID suffix for quasicircular simulations (e.g. ``3``).
+
+        Returns:
+            list[str]: Two candidate filenames:
+            ``["RIT:BBH:NNNN-nRRR-idI_Metadata.txt",
+            "RIT:eBBH:NNNN-nRRR-ecc_Metadata.txt"]``.
+        """
         return [
             self.metadata_file_fmts[0].format(idx, res, id_val),
             self.metadata_file_fmts[1].format(idx, res),
@@ -386,6 +517,18 @@ class RITCatalogHelper(object):
             return self.metadata_file_fmts[1].format(idx, res)
 
     def metadata_filename_from_cache(self, idx):
+        """Return the path of the cached metadata file for simulation *idx*.
+
+        Searches the local metadata cache directory for any file whose name
+        starts with either the BBH or eBBH sim-tag prefix for this index.
+
+        Args:
+            idx (int): Four-digit simulation index.
+
+        Returns:
+            str: Full path of the first matching cached file, or ``""`` if no
+            cached file is found.
+        """
         possible_sim_tags = self.simtags(idx)
         file_name = ""
         for sim_tag in possible_sim_tags:
@@ -415,6 +558,18 @@ class RITCatalogHelper(object):
             return self.psi4_file_fmts[1].format(idx, res)
 
     def psi4_filename_from_cache(self, idx):
+        """Return the psi4 filename for simulation *idx* via the cache.
+
+        Looks up the cached metadata filename for *idx*, derives the
+        simulation name from it, and then computes the psi4 filename.
+
+        Args:
+            idx (int): Four-digit simulation index.
+
+        Returns:
+            str: Psi4 filename, e.g.
+            ``"ExtrapPsi4_RIT-BBH-0001-n100-id3.tar.gz"``.
+        """
         return self.psi4_filename_from_simname(
             self.simname_from_metadata_filename(self.metadata_filename_from_cache(idx))
         )
@@ -448,11 +603,36 @@ class RITCatalogHelper(object):
         )
 
     def waveform_filename_from_cache(self, idx):
+        """Return the waveform HDF5 filename for simulation *idx* via the cache.
+
+        Looks up the cached metadata filename for *idx*, derives the
+        simulation name from it, and then computes the waveform filename.
+
+        Args:
+            idx (int): Four-digit simulation index.
+
+        Returns:
+            str: Waveform filename, e.g.
+            ``"ExtrapStrain_RIT-BBH-0001-n100.h5"``.
+        """
         return self.waveform_filename_from_simname(
             self.simname_from_metadata_filename(self.metadata_filename_from_cache(idx))
         )
 
     def simname_from_cache(self, idx):
+        """Return the simulation name tag for *idx* by inspecting the cache.
+
+        Searches the metadata cache directory for a file matching either the
+        BBH or eBBH prefix, then derives the simulation name from the
+        filename.
+
+        Args:
+            idx (int): Four-digit simulation index.
+
+        Returns:
+            str: Simulation name tag (e.g. ``"RIT:BBH:0001-n100-id3"``), or
+            ``""`` if no cached metadata file is found for *idx*.
+        """
         possible_sim_tags = self.simtags(idx)
         for sim_tag in possible_sim_tags:
             mf = self.metadata_dir / sim_tag
@@ -467,12 +647,35 @@ class RITCatalogHelper(object):
         return ""
 
     def simnames(self, idx, res, id_val):
+        """Return candidate simulation name tags for *idx* at *res* and *id_val*.
+
+        Args:
+            idx (int): Four-digit simulation index.
+            res (int): Numerical resolution tag.
+            id_val (int): ID suffix for quasicircular simulations.
+
+        Returns:
+            list[str]: Two candidate simulation names (BBH and eBBH formats).
+        """
         return [
             self.simname_from_metadata_filename(mf)
             for mf in self.metadata_filenames(idx, res, id_val)
         ]
 
     def simtags(self, idx):
+        """Return the filename-prefix tags used to glob-search for *idx*.
+
+        Returns one prefix for the BBH format and one for the eBBH format,
+        which are used to search for cached metadata files with
+        ``glob(prefix + "*")``.
+
+        Args:
+            idx (int): Four-digit simulation index.
+
+        Returns:
+            list[str]: Two prefix strings, e.g.
+            ``["RIT:BBH:0001", "RIT:eBBH:0001"]``.
+        """
         return [
             self.metadata_file_fmts[0].split("-")[0].format(idx),
             self.metadata_file_fmts[1].split("-")[0].format(idx),
@@ -569,6 +772,26 @@ class RITCatalogHelper(object):
         return nxt, opts
 
     def metadata_from_link(self, link, save_to=None, num_retries=5):
+        """Fetch and parse a single RIT metadata file from a URL.
+
+        If *save_to* is given, downloads the file to disk and then parses it
+        with ``metadata_from_file()``.  Otherwise performs an in-memory HTTP
+        GET and parses the response body directly.
+
+        Args:
+            link (str): Full HTTP(S) URL to the ``*_Metadata.txt`` file.
+            save_to (str or pathlib.Path or None): If provided, save the
+                downloaded text to this path before parsing. Defaults to None.
+            num_retries (int): Number of request attempts with exponential
+                backoff. Defaults to 5.
+
+        Returns:
+            tuple[list[str], dict]: The output of ``parse_metadata_txt()``:
+            a list of non-empty metadata lines and a dict of parsed fields.
+
+        Raises:
+            ConnectionError: If all retry attempts fail.
+        """
         if save_to is not None:
             utils.download_file(link, save_to, progress=True)
             return self.metadata_from_file(save_to)
@@ -597,11 +820,37 @@ class RITCatalogHelper(object):
             return self.parse_metadata_txt(response.content.decode().split("\n"))
 
     def metadata_from_file(self, file_path):
+        """Parse a locally cached RIT metadata text file.
+
+        Args:
+            file_path (str or pathlib.Path): Path to the ``*_Metadata.txt``
+                file on disk.
+
+        Returns:
+            tuple[list[str], dict]: The output of ``parse_metadata_txt()``:
+            a list of non-empty metadata lines and a dict of parsed fields.
+        """
         with open(file_path, "r") as f:
             lines = f.readlines()
         return self.parse_metadata_txt(lines)
 
     def metadata_from_cache(self, idx):
+        """Build a single-row DataFrame from a cached metadata file for *idx*.
+
+        Searches the local metadata cache for any file matching the BBH or
+        eBBH prefix for *idx*.  If found, parses it and enriches the result
+        with the simulation name, metadata/psi4/waveform URLs and local paths.
+
+        Args:
+            idx (int): Four-digit simulation index.
+
+        Returns:
+            pandas.DataFrame: Single-row DataFrame with all metadata fields
+            plus ``simulation_name``, ``metadata_link``, ``metadata_location``,
+            ``psi4_data_link``, ``psi4_data_location``, ``waveform_data_link``,
+            and ``waveform_data_location`` columns.  Returns an empty DataFrame
+            if no cached file is found for *idx*.
+        """
         possible_sim_tags = self.simtags(idx)
         for sim_tag in possible_sim_tags:
             mf = self.metadata_dir / sim_tag
@@ -647,6 +896,24 @@ class RITCatalogHelper(object):
         return pd.DataFrame({})
 
     def download_metadata(self, idx, res, id_val=-1):
+        """Download (or read from cache) metadata for one simulation.
+
+        Tries the BBH filename format first, then the eBBH format.  For each
+        candidate filename, checks the local cache first (if ``use_cache`` is
+        True) before making an HTTP request.  The downloaded file is saved
+        to the metadata cache directory.
+
+        Args:
+            idx (int): Four-digit simulation index.
+            res (int): Numerical resolution tag (e.g. ``100``).
+            id_val (int): ID suffix for quasicircular simulations. Defaults to
+                ``-1`` (triggers the eccentric filename format as fallback).
+
+        Returns:
+            pandas.DataFrame: Single-row DataFrame (same schema as
+            ``metadata_from_cache()``), or an empty DataFrame if neither
+            filename is found locally or remotely.
+        """
         possible_file_names = [
             self.metadata_file_fmts[0].format(idx, res, id_val),
             self.metadata_file_fmts[1].format(idx, res),
@@ -828,6 +1095,12 @@ class RITCatalogHelper(object):
         return self.metadata
 
     def write_metadata_df_to_disk(self):
+        """Write the current ``self.metadata`` DataFrame to ``metadata.csv``.
+
+        Saves to ``~/.cache/RIT/metadata/metadata.csv`` (or the path
+        configured via ``NR_CATALOG_CACHE``).  Called automatically after
+        each simulation's metadata is downloaded during a catalog crawl.
+        """
         metadata_df_fpath = self.metadata_dir / "metadata.csv"
         with open(metadata_df_fpath, "w+") as f:
             try:
@@ -837,6 +1110,20 @@ class RITCatalogHelper(object):
                 self.metadata.to_csv(f)
 
     def refresh_metadata_df_on_disk(self, num_sims_to_crawl=2000):
+        """Rebuild the metadata CSV from cached ``*_Metadata.txt`` files.
+
+        Iterates over simulation indices 1 … *num_sims_to_crawl*, reads each
+        simulation's metadata from the local file cache (does **not** make
+        network requests), concatenates the results, and writes the aggregated
+        DataFrame to ``metadata.csv``.
+
+        Args:
+            num_sims_to_crawl (int): Upper bound on the simulation index to
+                scan. Defaults to 2000.
+
+        Returns:
+            pandas.DataFrame: The refreshed aggregated metadata DataFrame.
+        """
         sims = []
         for idx in tqdm(range(1, 1 + num_sims_to_crawl)):
             sim_data = self.metadata_from_cache(idx)
@@ -852,6 +1139,15 @@ class RITCatalogHelper(object):
         return self.metadata
 
     def read_metadata_df_from_disk(self):
+        """Load the aggregated metadata DataFrame from ``metadata.csv``.
+
+        If the CSV file does not exist or is empty, sets ``self.metadata`` to
+        an empty DataFrame and returns it.
+
+        Returns:
+            pandas.DataFrame: The previously saved aggregated metadata, or an
+            empty DataFrame if the cache file is absent.
+        """
         metadata_df_fpath = self.metadata_dir / "metadata.csv"
         if os.path.exists(metadata_df_fpath) and os.path.getsize(metadata_df_fpath) > 0:
             self.metadata = pd.read_csv(metadata_df_fpath)
@@ -860,6 +1156,22 @@ class RITCatalogHelper(object):
         return self.metadata
 
     def download_psi4_data(self, sim_name, use_cache=True):
+        """Download the psi4 tar.gz file for *sim_name* via ``wget``.
+
+        Skips the download if ``use_cache`` is True and a non-empty local
+        file already exists.
+
+        Args:
+            sim_name (str): RIT simulation name tag, e.g.
+                ``"RIT:BBH:0001-n100-id3"``.
+            use_cache (bool or None): Use cached file if present.  If
+                ``None``, falls back to the instance-level ``self.use_cache``.
+                Defaults to True.
+
+        Returns:
+            bool: True if the file is available locally (either from cache or
+            after a successful download), False if the URL was not found.
+        """
         if use_cache is None:
             use_cache = self.use_cache
         file_name = self.psi4_filename_from_simname(sim_name)
@@ -939,6 +1251,14 @@ class RITCatalogHelper(object):
                 return False
 
     def fetch_waveform_data_from_cache(self, idx):
+        """Not yet implemented.
+
+        Args:
+            idx (int): Four-digit simulation index.
+
+        Raises:
+            NotImplementedError: Always.
+        """
         raise NotImplementedError()
 
     def download_data_for_catalog(

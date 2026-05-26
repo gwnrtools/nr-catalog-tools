@@ -1,53 +1,185 @@
+"""Abstract base classes and shared implementation for NR waveform catalogs.
+
+Classes
+-------
+CatalogABC
+    Pure abstract interface that every catalog must implement.  Declares the
+    filename/filepath/URL/download contract for waveform, psi4, and metadata
+    data products.
+
+CatalogBase
+    Concrete mixin that combines ``CatalogABC`` with ``sxs.Catalog`` and
+    provides the shared ``get()``, ``get_metadata()``, ``get_parameters()``,
+    and ``set_attribute_in_waveform_data_file()`` implementations used by all
+    three catalog back-ends (RIT, SXS, MAYA).
+
+    Subclasses must set ``CATALOG_TYPE`` (e.g. ``"RIT"``) and implement all
+    abstract methods declared in ``CatalogABC``.
+"""
+
+from __future__ import annotations
+
 import os
 from abc import ABC, abstractmethod
+from typing import Any
+
 from sxs import Catalog as sxs_Catalog
 from nrcatalogtools import waveform
 from nrcatalogtools import metadata as md
 
 
 class CatalogABC(ABC):
+    """Pure abstract interface that every catalog back-end must implement.
+
+    Subclasses supply the catalog-specific logic for resolving file names,
+    local paths, remote URLs, and triggering downloads for the three data
+    products: *waveform strain* (HDF5), *psi4* (HDF5 or tar.gz), and
+    *per-simulation metadata* (text or JSON).
+
+    All methods take a ``sim_name`` string as their first positional
+    argument.  The naming convention for ``sim_name`` is catalog-specific
+    (e.g. ``"RIT:BBH:0001-n100-id3"``, ``"SXS:BBH:0001"``,
+    ``"GT0001"``).
+    """
+
     @abstractmethod
-    def waveform_filename_from_simname(self, sim_name):
+    def waveform_filename_from_simname(self, sim_name: str) -> str:
+        """Return the bare filename (no directory) for the waveform HDF5 file.
+
+        Args:
+            sim_name (str): Simulation name tag.
+
+        Returns:
+            str: Filename, e.g. ``"ExtrapStrain_RIT-BBH-0001-n100.h5"``.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def waveform_filepath_from_simname(self, sim_name):
+    def waveform_filepath_from_simname(self, sim_name: str) -> str:
+        """Return the absolute local path for the waveform HDF5 file.
+
+        The file may not yet exist on disk if it has not been downloaded.
+
+        Args:
+            sim_name (str): Simulation name tag.
+
+        Returns:
+            str: Absolute path under the catalog cache directory.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def waveform_url_from_simname(self, sim_name):
+    def waveform_url_from_simname(self, sim_name: str) -> str:
+        """Return the remote URL for the waveform HDF5 file.
+
+        Args:
+            sim_name (str): Simulation name tag.
+
+        Returns:
+            str: Full HTTP(S) URL.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def download_waveform_data(self, sim_name):
+    def download_waveform_data(self, sim_name: str) -> None:
+        """Download the waveform data file for *sim_name* into the local cache.
+
+        Args:
+            sim_name (str): Simulation name tag.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def psi4_filename_from_simname(self, sim_name):
+    def psi4_filename_from_simname(self, sim_name: str) -> str:
+        """Return the bare filename for the psi4 data file.
+
+        Args:
+            sim_name (str): Simulation name tag.
+
+        Returns:
+            str: Filename, e.g. ``"ExtrapPsi4_RIT-BBH-0001-n100-id3.tar.gz"``.
+
+        Raises:
+            NotImplementedError: If the catalog does not distribute psi4 data.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def psi4_filepath_from_simname(self, sim_name):
+    def psi4_filepath_from_simname(self, sim_name: str) -> str:
+        """Return the absolute local path for the psi4 data file.
+
+        Args:
+            sim_name (str): Simulation name tag.
+
+        Returns:
+            str: Absolute path under the catalog cache directory.
+
+        Raises:
+            NotImplementedError: If the catalog does not distribute psi4 data.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def psi4_url_from_simname(self, sim_name):
+    def psi4_url_from_simname(self, sim_name: str) -> str:
+        """Return the remote URL for the psi4 data file.
+
+        Args:
+            sim_name (str): Simulation name tag.
+
+        Returns:
+            str: Full HTTP(S) URL.
+
+        Raises:
+            NotImplementedError: If the catalog does not distribute psi4 data.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def download_psi4_data(self, sim_name):
+    def download_psi4_data(self, sim_name: str) -> None:
+        """Download the psi4 data file for *sim_name* into the local cache.
+
+        Args:
+            sim_name (str): Simulation name tag.
+
+        Raises:
+            NotImplementedError: If the catalog does not distribute psi4 data.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def metadata_filename_from_simname(self, sim_name):
+    def metadata_filename_from_simname(self, sim_name: str) -> str:
+        """Return the bare filename for the per-simulation metadata file.
+
+        Args:
+            sim_name (str): Simulation name tag.
+
+        Returns:
+            str: Filename, e.g. ``"RIT:BBH:0001-n100-id3_Metadata.txt"``.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def metadata_filepath_from_simname(self, sim_name):
+    def metadata_filepath_from_simname(self, sim_name: str) -> str:
+        """Return the absolute local path for the per-simulation metadata file.
+
+        Args:
+            sim_name (str): Simulation name tag.
+
+        Returns:
+            str: Absolute path under the catalog cache directory.
+        """
         raise NotImplementedError()
 
     @abstractmethod
-    def metadata_url_from_simname(self, sim_name):
+    def metadata_url_from_simname(self, sim_name: str) -> str:
+        """Return the remote URL for the per-simulation metadata file.
+
+        Args:
+            sim_name (str): Simulation name tag.
+
+        Returns:
+            str: Full HTTP(S) URL.
+        """
         raise NotImplementedError()
 
 
@@ -62,9 +194,17 @@ class CatalogBase(CatalogABC, sxs_Catalog):
 
     @property
     def simulations_list(self):
+        """List of all simulation name tags in the catalog.
+
+        Returns:
+            list[str]: Simulation names in the order returned by
+            ``sxs.Catalog.simulations``.
+        """
         return list(self.simulations)
 
-    def get(self, sim_name, quantity="waveform", **kwargs):
+    def get(
+        self, sim_name: str, quantity: str = "waveform", **kwargs
+    ) -> waveform.WaveformModes:
         """Retrieve specific quantities for one simulation
 
         Args:
@@ -122,7 +262,7 @@ class CatalogBase(CatalogABC, sxs_Catalog):
                 f"Cannot provide quantity: {quantity}. Only supported options are [waveform, psi4]"
             )
 
-    def get_metadata(self, sim_name):
+    def get_metadata(self, sim_name: str) -> dict:
         """Get Metadata for this simulation
 
         Args:
@@ -150,7 +290,9 @@ class CatalogBase(CatalogABC, sxs_Catalog):
             metadata["catalog_type"] = self.CATALOG_TYPE
         return metadata
 
-    def set_attribute_in_waveform_data_file(self, sim_name, attr_name, attr_value):
+    def set_attribute_in_waveform_data_file(
+        self, sim_name: str, attr_name: str, attr_value: Any
+    ) -> None:
         """Set attributes in the HDF5 file holding waveform data for a given
         simulation
 
@@ -166,7 +308,7 @@ class CatalogBase(CatalogABC, sxs_Catalog):
             if attr_name not in fp.attrs:
                 fp.attrs[attr_name] = attr_value
 
-    def get_parameters(self, sim_name, total_mass=1.0):
+    def get_parameters(self, sim_name: str, total_mass: float = 1.0) -> dict:
         """Return the initial physical parameters for the simulation. Only for
         quasicircular simulations are supported, orbital eccentricity is ignored
 
