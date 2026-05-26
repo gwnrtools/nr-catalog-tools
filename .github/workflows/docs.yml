@@ -7,13 +7,15 @@ on:
     paths:
       - "docs/**"
       - "mkdocs.yml"
+      - "nrcatalogtools/**"
+      - "pyproject.toml"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,8 +26,11 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install MkDocs and plugins
-        run: pip install mkdocs-material pymdown-extensions
+      - name: Install docs dependencies
+        run: pip install -e ".[docs]"
 
-      - name: Build and deploy to GitHub Pages
+      - name: Build docs (strict — fails on any warning)
+        run: mkdocs build --strict
+
+      - name: Deploy to GitHub Pages
         run: mkdocs gh-deploy --force
