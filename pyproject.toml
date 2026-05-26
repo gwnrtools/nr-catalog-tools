@@ -29,6 +29,13 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/gwnrtools/nr-catalog-tools"
 
+[project.optional-dependencies]
+docs = [
+    "mkdocs-material>=9.0",
+    "mkdocstrings[python]>=0.25",
+    "pymdown-extensions",
+]
+
 [tool.setuptools.packages.find]
 where = ["."]
 

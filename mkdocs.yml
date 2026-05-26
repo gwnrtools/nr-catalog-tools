@@ -9,7 +9,21 @@ docs_dir: docs
 nav:
   - Home: index.md
   - Catalog Reference: catalogs.md
-  - WaveformModes API: waveform.md
+  - WaveformModes Guide: waveform.md
+  - API Reference:
+      - Overview: api/index.md
+      - catalog: api/catalog.md
+      - rit: api/rit.md
+      - sxs: api/sxs.md
+      - maya: api/maya.md
+      - waveform: api/waveform.md
+      - metadata: api/metadata.md
+      - registry: api/registry.md
+      - lvc: api/lvc.md
+      - utils: api/utils.md
+  - Tutorials:
+      - Loading a waveform: tutorials/load-waveform.md
+      - Cross-catalog comparison: tutorials/cross-catalog.md
   - Architecture: architecture.md
   - Package Internals: package.md
   - Scientific Goal: goal.md
@@ -36,6 +50,27 @@ theme:
     - search.suggest
     - search.highlight
     - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          paths: [.]
+          options:
+            docstring_style: google
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            members_order: source
+            separate_signature: true
+            show_signature_annotations: true
+            # Use static analysis only — avoids importing heavy runtime deps
+            # (lalsuite, pycbc, sxs) during the docs build.
+            allow_inspection: false
 
 markdown_extensions:
   - pymdownx.arithmatex:
