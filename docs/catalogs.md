@@ -2,7 +2,7 @@
 
 This page documents the three supported NR catalog backends and their metadata conventions.
 All three expose an **identical high-level interface** defined in
-[`CatalogBase`](../nrcatalogtools/catalog.py), so that LVK analysis pipelines, waveform
+[`CatalogBase`](api/catalog.md), so that LVK analysis pipelines, waveform
 modeling workflows, and cross-catalog comparison studies can switch between catalogs —
 or sweep across all three — without any catalog-specific code paths.
 
@@ -33,7 +33,7 @@ empty, then returns a `WaveformModes` object. See [waveform.md](waveform.md) for
 ## RIT Catalog
 
 **Class:** `nrcatalogtools.RITCatalog`  
-**Source:** [nrcatalogtools/rit.py](../nrcatalogtools/rit.py)  
+**Source:** [api/rit.md](api/rit.md)  
 **Data host:** `https://ccrg.rit.edu/content/data/rit-waveform-catalog`
 
 ### Loading
@@ -97,7 +97,7 @@ q1_ns = df[
 ## SXS Catalog
 
 **Class:** `nrcatalogtools.SXSCatalog`  
-**Source:** [nrcatalogtools/sxs.py](../nrcatalogtools/sxs.py)  
+**Source:** [api/sxs.md](api/sxs.md)  
 **Data host:** Zenodo (via the `sxs` package ≥ 2025.0.0)
 
 ### Loading
@@ -152,7 +152,7 @@ q1_ns = df[
 ## MAYA / GT Catalog
 
 **Class:** `nrcatalogtools.MayaCatalog`  
-**Source:** [nrcatalogtools/maya.py](../nrcatalogtools/maya.py)  
+**Source:** [api/maya.md](api/maya.md)  
 **Data host:** `https://cgpstorage.ph.utexas.edu/`
 
 ### Loading
@@ -199,7 +199,7 @@ q1_ns = df[
 
 ## Metadata Normalization
 
-[`metadata.py`](../nrcatalogtools/metadata.py) converts catalog-specific metadata into a
+[`metadata.py`](api/metadata.md) converts catalog-specific metadata into a
 PyCBC-compatible parameter dict via `get_source_parameters_from_metadata(metadata, total_mass)`.
 The catalog is detected by sentinel keys:
 

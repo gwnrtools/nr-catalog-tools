@@ -184,16 +184,39 @@ class CatalogABC(ABC):
 
 
 class CatalogBase(CatalogABC, sxs_Catalog):
+    """Shared implementation base for all NR catalog back-ends.
+
+    Combines ``CatalogABC`` (abstract interface) with ``sxs.Catalog``
+    (dict-backed simulation registry) and provides the default
+    ``get()``, ``get_metadata()``, ``get_parameters()``, and
+    ``set_attribute_in_waveform_data_file()`` implementations shared
+    by ``RITCatalog``, ``SXSCatalog``, and ``MayaCatalog``.
+
+    Subclasses must:
+    - Set ``CATALOG_TYPE`` to ``"RIT"``, ``"SXS"``, or ``"MAYA"``.
+    - Implement all ``@abstractmethod`` methods from ``CatalogABC``
+      (filename, filepath, URL, and download helpers for waveform,
+      psi4, and metadata products).
+    - Override ``get()`` if catalog-specific download logic is needed
+      (``SXSCatalog`` overrides because SXS data is managed by the
+      ``sxs`` package, not by local HDF5 files).
+    """
+
     # Subclasses set this to "RIT", "SXS", or "MAYA".  It is injected into
     # every metadata dict returned by get_metadata() so that downstream code
     # can dispatch on catalog_type without fragile sentinel-key detection.
     CATALOG_TYPE = None
 
     def __init__(self, *args, **kwargs) -> None:
+        """Delegate to ``sxs.Catalog.__init__``.
+
+        All positional and keyword arguments are forwarded unchanged to the
+        underlying ``sxs.Catalog`` constructor.
+        """
         sxs_Catalog.__init__(self, *args, **kwargs)
 
     @property
-    def simulations_list(self):
+    def simulations_list(self) -> list:
         """List of all simulation name tags in the catalog.
 
         Returns:

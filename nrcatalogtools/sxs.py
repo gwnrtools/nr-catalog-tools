@@ -39,11 +39,43 @@ _sxs_catalog_singleton = None
 
 @register_catalog("SXS")
 class SXSCatalog(catalog.CatalogBase):
+    """Catalog interface for the SXS (SpEC) NR waveform collection.
+
+    Wraps the ``sxs`` package to provide a ``CatalogBase``-compatible
+    interface over the SXS Zenodo-hosted catalog.  Key design points:
+
+    - Metadata is loaded via ``sxs.load("catalog", download=None)``,
+      which returns a ``sxs.Catalog`` dict of all ~2000 simulations.
+    - Path columns in the metadata are set to empty strings at load
+      time (lazy stub) because resolving real on-disk paths would
+      require one ``sxs.load()`` call per simulation (~2000 requests).
+      Paths are resolved on demand inside ``get()``.
+    - ``get()`` delegates to ``sxs.load(sim_name, auto_supersede=True)``
+      and wraps the returned ``sxs.WaveformModes`` in the local
+      ``WaveformModes`` subclass.
+    - A module-level singleton prevents redundant catalog loads when
+      ``load()`` is called multiple times in the same process.
+
+    Example:
+        >>> import nrcatalogtools as nrcat
+        >>> cat = nrcat.SXSCatalog.load(download=False)
+        >>> wfm = cat.get("SXS:BBH:0001")
+    """
+
     CATALOG_TYPE = "SXS"
 
     def __init__(
         self, catalog: dict | None = None, verbosity: int = 0, **kwargs
     ) -> None:
+        """Initialise SXSCatalog, loading the sxs catalog if *catalog* is None.
+
+        Args:
+            catalog (dict or None): Pre-built catalog dict (keyed by simulation
+                name).  Pass ``None`` (default) to call :meth:`load`
+                automatically.
+            verbosity (int): Logging verbosity level. Defaults to 0.
+            **kwargs: Forwarded to :meth:`load`.
+        """
         if catalog is not None:
             super().__init__(catalog, **kwargs)
         else:
@@ -91,7 +123,7 @@ class SXSCatalog(catalog.CatalogBase):
         _sxs_catalog_singleton = None
         return cls.load(download=True, **kwargs)
 
-    def waveform_filename_from_simname(self, sim_name):
+    def waveform_filename_from_simname(self, sim_name: str) -> str:
         """Return the bare filename for the strain waveform file.
 
         Resolves the path on demand by calling ``sxs.load(sim_name,
@@ -105,7 +137,7 @@ class SXSCatalog(catalog.CatalogBase):
         """
         return os.path.basename(self.waveform_filepath_from_simname(sim_name))
 
-    def waveform_filepath_from_simname(self, sim_name):
+    def waveform_filepath_from_simname(self, sim_name: str) -> str:
         """Return the absolute local path for the strain waveform file.
 
         Path resolution is lazy: this calls ``sxs.load(sim_name,
@@ -130,7 +162,7 @@ class SXSCatalog(catalog.CatalogBase):
                 )
         return file_path.as_posix()
 
-    def metadata_filename_from_simname(self, sim_name):
+    def metadata_filename_from_simname(self, sim_name: str) -> str:
         """Return the bare filename for the per-simulation metadata file.
 
         Args:
@@ -141,7 +173,7 @@ class SXSCatalog(catalog.CatalogBase):
         """
         return os.path.basename(self.metadata_filepath_from_simname(sim_name))
 
-    def metadata_filepath_from_simname(self, sim_name):
+    def metadata_filepath_from_simname(self, sim_name: str) -> str:
         """Return the absolute local path for the per-simulation metadata file.
 
         Args:
@@ -161,7 +193,7 @@ class SXSCatalog(catalog.CatalogBase):
                 )
         return file_path.as_posix()
 
-    def psi4_filename_from_simname(self, sim_name):
+    def psi4_filename_from_simname(self, sim_name: str) -> str:
         """Return the bare filename for the psi4 data file.
 
         Args:
@@ -172,7 +204,7 @@ class SXSCatalog(catalog.CatalogBase):
         """
         return os.path.basename(self.psi4_filepath_from_simname(sim_name))
 
-    def psi4_filepath_from_simname(self, sim_name):
+    def psi4_filepath_from_simname(self, sim_name: str) -> str:
         """Return the absolute local path for the psi4 data file.
 
         Args:
@@ -193,7 +225,7 @@ class SXSCatalog(catalog.CatalogBase):
                 )
         return file_path.as_posix()
 
-    def psi4_url_from_simname(self, sim_name):
+    def psi4_url_from_simname(self, sim_name: str) -> str:
         """Return the remote download URL for the psi4 data file.
 
         Args:
@@ -206,7 +238,7 @@ class SXSCatalog(catalog.CatalogBase):
         psi4_filename = sim.psi4_path[0]
         return sim.files.get(psi4_filename)["link"]
 
-    def download_psi4_data(self, sim_name):
+    def download_psi4_data(self, sim_name: str) -> None:
         """Download the psi4 data for *sim_name* via the ``sxs`` package.
 
         Accesses ``sim.psi4`` to trigger the download; the file is cached
@@ -216,8 +248,8 @@ class SXSCatalog(catalog.CatalogBase):
             sim_name (str): SXS simulation name, e.g. ``"SXS:BBH:0001"``.
         """
         sim = sxs.load(sim_name, download=True)
-        # Accessing the psi4 property will trigger the download
-        _ = sim.psi4
+        # Accessing the psi4 property triggers the download as a side effect
+        sim.psi4  # noqa: B018
 
     def get(
         self, sim_name: str, extrapolation_order: int = 2, download: bool = True
@@ -266,7 +298,7 @@ class SXSCatalog(catalog.CatalogBase):
             raw_obj.data, raw_obj.time, sim_metadata=sim_metadata, **meta
         )
 
-    def download_waveform_data(self, sim_name):
+    def download_waveform_data(self, sim_name: str) -> object:
         """Download the strain waveform data for *sim_name* via ``sxs.load()``.
 
         First fetches the simulation metadata JSON, then downloads the
@@ -279,25 +311,19 @@ class SXSCatalog(catalog.CatalogBase):
         Returns:
             sxs.WaveformModes: Raw waveform object returned by ``sxs.load()``.
         """
-        _ = sxs.load(f"{sim_name}/metadata.json")
+        sxs.load(f"{sim_name}/metadata.json")
         return sxs.load(f"{sim_name}/rhOverM")
 
-    def waveform_url_from_simname(self, sim_name):
+    def waveform_url_from_simname(self, _sim_name: str) -> str:
         """Not implemented for SXS; downloads are managed by ``sxs.load()``.
-
-        Args:
-            sim_name (str): SXS simulation name.
 
         Raises:
             NotImplementedError: Always.
         """
         raise NotImplementedError("This shouldn't be called.")
 
-    def metadata_url_from_simname(self, sim_name):
+    def metadata_url_from_simname(self, _sim_name: str) -> str:
         """Not implemented for SXS; use ``sxs.load()`` instead.
-
-        Args:
-            sim_name (str): SXS simulation name.
 
         Raises:
             NotImplementedError: Always.

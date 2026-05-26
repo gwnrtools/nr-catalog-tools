@@ -41,6 +41,8 @@ transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat)
 get_nr_to_lal_rotation_angles(h5_file, sim_metadata, inclination, phi_ref, f_ref, t_ref, tol)
 """
 
+from __future__ import annotations
+
 import h5py
 import lal
 import lalsimulation as lalsim
@@ -50,7 +52,7 @@ from pycbc.types import TimeSeries
 from scipy.interpolate import interp1d
 
 
-def get_lal_mode_dictionary(mode_array):
+def get_lal_mode_dictionary(mode_array: list) -> object:
     """
     Get LALDict with all specified modes.
 
@@ -73,7 +75,7 @@ def get_lal_mode_dictionary(mode_array):
     return waveform_dictionary
 
 
-def get_lal_mode_dictionary_from_lmax(lmax):
+def get_lal_mode_dictionary_from_lmax(lmax: int) -> object:
     r"""
     Get LALDict with modes derived from `lmax`.
 
@@ -94,7 +96,14 @@ def get_lal_mode_dictionary_from_lmax(lmax):
     return get_lal_mode_dictionary(mode_array)
 
 
-def get_modes_from_lvcnr_file(path_to_file, Mtot, distance, srate, lmax=4, f_low=None):
+def get_modes_from_lvcnr_file(
+    path_to_file: str,
+    Mtot: float,
+    distance: float,
+    srate: int,
+    lmax: int = 4,
+    f_low: float | None = None,
+) -> tuple:
     r"""
     Get individual modes from LVCNR format file.
 
@@ -195,8 +204,14 @@ def get_modes_from_lvcnr_file(path_to_file, Mtot, distance, srate, lmax=4, f_low
 
 
 def get_strain_from_lvcnr_file(
-    path_to_file, Mtot, distance, inclination, phi_ref, srate, mode_array=None
-):
+    path_to_file: str,
+    Mtot: float,
+    distance: float,
+    inclination: float,
+    phi_ref: float,
+    srate: int,
+    mode_array: list | None = None,
+) -> tuple:
     """
     Get full strain from LVCNR format file.
 
@@ -279,7 +294,12 @@ def get_strain_from_lvcnr_file(
     )
 
 
-def check_interp_req(h5_file=None, metadata=None, ref_time=None, avail_ref_time=None):
+def check_interp_req(
+    h5_file: object = None,
+    metadata: dict | None = None,
+    ref_time: float | None = None,
+    avail_ref_time: float | None = None,
+) -> tuple:
     """Check if the required reference time is different from
     the available reference time in the NR HDF5 file or the
     simulation metadata.
@@ -344,7 +364,7 @@ def check_interp_req(h5_file=None, metadata=None, ref_time=None, avail_ref_time=
     return interp, avail_ref_time
 
 
-def get_ref_freq_from_ref_time(h5_file, ref_time):
+def get_ref_freq_from_ref_time(h5_file: object, ref_time: float) -> float:
     """Get the reference frequency from reference time
 
     Parameters
@@ -366,7 +386,7 @@ def get_ref_freq_from_ref_time(h5_file, ref_time):
     return ref_freq
 
 
-def get_ref_time_from_ref_freq(h5_file, ref_freq):
+def get_ref_time_from_ref_freq(h5_file: object, ref_freq: float) -> float:
     """Get the reference time from reference frequency
 
     Parameters
@@ -389,9 +409,9 @@ def get_ref_time_from_ref_freq(h5_file, ref_freq):
 
 
 def check_nr_attrs(
-    sim_metadata_object,
-    req_attrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"],
-):
+    sim_metadata_object: object,
+    req_attrs: list = ["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"],
+) -> bool:
     """Check if the NR h5 file or a simulation metadata dictionary
         contains all the attributes required.
 
@@ -427,7 +447,9 @@ def check_nr_attrs(
     return present, absent_attrs
 
 
-def get_interp_ref_values_from_h5_file(h5_file, req_ts_attrs, ref_time):
+def get_interp_ref_values_from_h5_file(
+    h5_file: object, req_ts_attrs: list, ref_time: float
+) -> dict:
     """Get the interpolated reference values at a given reference time
     from the NR HDF5 File
 
@@ -455,9 +477,9 @@ def get_interp_ref_values_from_h5_file(h5_file, req_ts_attrs, ref_time):
 
 
 def get_ref_vals(
-    sim_metadata_object,
-    req_attrs=["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"],
-):
+    sim_metadata_object: object,
+    req_attrs: list = ["LNhatx", "LNhaty", "LNhatz", "nhatx", "nhaty", "nhatz"],
+) -> dict:
     """Get the reference values from a NR HDF5 file
     or a simulation metadata dictionary.
 
@@ -489,7 +511,7 @@ def get_ref_vals(
     return params
 
 
-def compute_lal_source_frame_from_sxs_metadata(sim_metadata):
+def compute_lal_source_frame_from_sxs_metadata(sim_metadata: dict) -> tuple:
     """Compute the LAL source frame vectors at the
     available reference time from the SXS simulation
     metadata.
@@ -554,7 +576,9 @@ def compute_lal_source_frame_from_sxs_metadata(sim_metadata):
     return params
 
 
-def compute_lal_source_frame_by_interp(h5_file, req_ts_attrs, t_ref):
+def compute_lal_source_frame_by_interp(
+    h5_file: object, req_ts_attrs: list, t_ref: float
+) -> tuple:
     """
     Compute the LAL source frame vectors at a given reference time
     by interpolation of time series data.
@@ -610,7 +634,7 @@ def compute_lal_source_frame_by_interp(h5_file, req_ts_attrs, t_ref):
     return params
 
 
-def normalize_metadata(sim_metadata):
+def normalize_metadata(sim_metadata: dict) -> dict:
     """Ensure that the keys of the metadata are
     as required.
 
@@ -633,7 +657,7 @@ def normalize_metadata(sim_metadata):
     return norm_sim_metadata
 
 
-def get_ref_time_from_metadata(sim_metadata):
+def get_ref_time_from_metadata(sim_metadata: dict) -> float:
     """Get the reference time of definition of the LAL
     frame from the simulation metadata, if available.
 
@@ -662,7 +686,9 @@ def get_ref_time_from_metadata(sim_metadata):
     return t_ref
 
 
-def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
+def transform_spins_nr_to_lal(
+    nrSpin1: object, nrSpin2: object, n_hat: object, ln_hat: object
+) -> tuple:
     """Trnasform the spins of the NR simulation from the
     NR frame to the  frame.
     Parameters
@@ -709,8 +735,14 @@ def transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat):
 
 
 def get_nr_to_lal_rotation_angles(
-    h5_file, sim_metadata, inclination, phi_ref=0, f_ref=None, t_ref=None, tol=1e-6
-):
+    h5_file: object,
+    sim_metadata: dict,
+    inclination: float,
+    phi_ref: float = 0,
+    f_ref: float | None = None,
+    t_ref: float | None = None,
+    tol: float = 1e-6,
+) -> tuple:
     r"""Get the angular coordinates :math:`\theta, \phi`
     and the rotation angle :math:`\alpha` from the H5 file
 
