@@ -56,9 +56,9 @@ memoryview; all arithmetic wraps it with `np.array(..., dtype=complex)`.
 ```python
 mode22 = wfm.get_mode(
     2, 2,
-    total_mass=60.0,   # M_sun
-    distance=100.0,    # Mpc
-    delta_t=1./4096,   # seconds (or M units — see delta_t convention below)
+    total_mass=60.0,          # M_sun
+    distance=100.0,           # Mpc
+    delta_t_seconds=1./4096,  # physical seconds (4096 Hz sampling)
 )
 # mode22 is a complex pycbc.types.TimeSeries
 ```
@@ -74,11 +74,11 @@ $$H = h_+ + i h_\times = \sum_{\ell,m} {}^{-2}Y_{\ell m}(\iota, \phi_c) \, h_{\e
 
 ```python
 pols = wfm.get_td_waveform(
-    total_mass=40.,     # M_sun
-    distance=100.,      # Mpc
-    inclination=0.2,    # radians
-    coa_phase=0.3,      # radians
-    delta_t=1./4096,    # seconds
+    total_mass=40.,           # M_sun
+    distance=100.,            # Mpc
+    inclination=0.2,          # radians
+    coa_phase=0.3,            # radians
+    delta_t_seconds=1./4096,  # physical seconds
 )
 hp = pols.real()
 hc = -1 * pols.imag()
@@ -110,18 +110,19 @@ Reads the relaxation time from metadata (tries keys `'relaxed-time'`, `'relaxati
 
 ---
 
-## `delta_t` convention
+## Sampling interval parameters
 
-The `get_mode()` and `get_td_waveform()` methods accept a single `delta_t` parameter
-whose interpretation depends on its magnitude:
+`get_mode()` and `get_td_waveform()` accept two explicit sampling parameters:
 
-| Value | Interpretation |
-|-------|----------------|
-| `delta_t > 1/128` | **Dimensionless M units** (NR native, e.g. `0.5` means $0.5\,GM/c^3$) |
-| `delta_t ≤ 1/128` | **Physical seconds** (e.g. `1/4096` for 4096 Hz sampling) |
+| Parameter | Interpretation |
+|-----------|----------------|
+| `delta_t_seconds` | **Physical seconds** (e.g. `1/4096` for 4096 Hz sampling) |
+| `delta_t_Msun` | **Dimensionless M units** (NR native, e.g. `0.5` means $0.5\,GM/c^3$) |
 
-The returned `TimeSeries.delta_t` is **always in physical seconds** regardless of which
-convention was used for the input `delta_t`.
+The returned `TimeSeries.delta_t` is **always in physical seconds**.
+
+> **Deprecated:** The old `delta_t` keyword argument (which inferred units from the magnitude)
+> is deprecated. Use `delta_t_seconds` or `delta_t_Msun` explicitly.
 
 ---
 
@@ -169,8 +170,8 @@ $$\mathcal{M} = 1 - \max_{t_c,\, \phi_c,\, R \in SO(3)} \frac{\langle h_1 | h_2 
 mismatch = wfm_a.match_sphere_averaged(
     wfm_b,
     psd=my_psd,
-    f_lower=20.0,   # Hz
-    delta_t=1./4096,
+    f_lower=20.0,            # Hz
+    delta_t_seconds=1./4096,
 )
 ```
 

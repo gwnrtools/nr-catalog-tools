@@ -69,7 +69,7 @@ print(wfm.LM)     # available (ell, m) mode pairs
 mode22 = wfm.get_mode(2, 2,
                       total_mass=60.0,   # M_sun
                       distance=100.0,    # Mpc
-                      delta_t=1./4096)   # seconds
+                      delta_t_seconds=1./4096)
 ```
 
 ### Get h₊ and h✕ polarizations
@@ -108,6 +108,24 @@ params = ritcat.get_parameters("RIT:BBH:0001-n100-id3", total_mass=60.0)
 | [docs/architecture.md](docs/architecture.md) | Architectural overview and design decisions |
 | [docs/package.md](docs/package.md) | Detailed package internals |
 | [docs/goal.md](docs/goal.md) | Scientific motivation and mismatch formalism |
+
+---
+
+## Building the docs locally
+
+```bash
+# Install the package with docs extras
+pip install -e ".[docs]"
+
+# Serve with live reload at http://127.0.0.1:8000
+mkdocs serve
+
+# Or produce a static build in site/
+mkdocs build
+```
+
+The docs site is deployed automatically from `master` via GitHub Actions whenever
+files under `docs/`, `mkdocs.yml`, `nrcatalogtools/`, or `pyproject.toml` change.
 
 ---
 
