@@ -86,21 +86,18 @@ class MayaCatalog(catalog.CatalogBase):
                 10=most verbose]. Defaults to 0.
         """
         if catalog is not None:
-            super().__init__(catalog)
+            super().__init__(catalog["simulations"])
         else:
             obj = type(self).load(verbosity=verbosity, **kwargs)
-            super().__init__(obj._dict)
+            super().__init__(obj._simulations)
         self._verbosity = verbosity
-        self._dict["catalog_file_description"] = "scraped from website"
-        self._dict["modified"] = {}
-        self._dict["records"] = {}
 
         # Other info
         self.num_of_sims = 0
         self.cache_dir = utils.maya_catalog_info["cache_dir"]
         self.use_cache = use_cache
 
-        self.metadata = pd.DataFrame.from_dict(catalog)
+        self.metadata = pd.DataFrame.from_dict(self._simulations)
         self.metadata_url = utils.maya_catalog_info["metadata_url"]
         self.metadata_dir = utils.maya_catalog_info["metadata_dir"]
 
@@ -294,7 +291,7 @@ class MayaCatalog(catalog.CatalogBase):
 
         This method is idempotent and safe to call multiple times.
         """
-        metadata_dict = self._dict["simulations"]
+        metadata_dict = self._simulations
         existing_cols = list(metadata_dict[list(metadata_dict.keys())[0]].keys())
         new_cols = [
             "metadata_link",

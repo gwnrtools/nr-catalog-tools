@@ -96,16 +96,13 @@ class RITCatalog(catalog.CatalogBase):
             **kwargs: Forwarded to :meth:`load`.
         """
         if catalog is not None:
-            super().__init__(catalog)
+            super().__init__(catalog["simulations"])
         else:
             obj = type(self).load(verbosity=verbosity, **kwargs)
-            super().__init__(obj._dict)
+            super().__init__(obj._simulations)
             helper = obj._helper
         self._helper = helper
         self._verbosity = verbosity
-        self._dict["catalog_file_description"] = "scraped from website"
-        self._dict["modified"] = {}
-        self._dict["records"] = {}
 
     @classmethod
     def load(

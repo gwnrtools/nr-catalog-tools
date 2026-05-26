@@ -215,21 +215,21 @@ def get_source_parameters_from_metadata(
 
     parameters = dict()
     if catalog_type == "RIT":
-        q = metadata["relaxed_mass_ratio_1_over_2"]
+        q = metadata["relaxed-mass-ratio-1-over-2"]
         eta = min(q / (1 + q) ** 2, 0.25)
         m1, m2 = mtotal_eta_to_mass1_mass2(total_mass, eta)
-        s1x = metadata["relaxed_chi1x"]
-        s1y = metadata["relaxed_chi1y"]
-        s1z = metadata["relaxed_chi1z"]
+        s1x = metadata.get("relaxed-chi1x", 0.0)
+        s1y = metadata.get("relaxed-chi1y", 0.0)
+        s1z = metadata.get("relaxed-chi1z", 0.0)
         if np.isnan(s1x):
             s1x = 0
         if np.isnan(s1y):
             s1y = 0
         if np.isnan(s1z):
             s1z = 0
-        s2x = metadata["relaxed_chi2x"]
-        s2y = metadata["relaxed_chi2y"]
-        s2z = metadata["relaxed_chi2z"]
+        s2x = metadata.get("relaxed-chi2x", 0.0)
+        s2y = metadata.get("relaxed-chi2y", 0.0)
+        s2z = metadata.get("relaxed-chi2z", 0.0)
         if np.isnan(s2x):
             s2x = 0
         if np.isnan(s2y):
@@ -247,7 +247,7 @@ def get_source_parameters_from_metadata(
             spin2z=s2z,
         )
         # Now gather initial frequency information
-        freq22 = metadata["freq_start_22"]
+        freq22 = metadata.get("freq-start-22", -1)
         if not np.isnan(freq22) and float(freq22) > 0:
             parameters.update(f_lower=float(freq22) / (total_mass * lal.MTSUN_SI))
         else:
