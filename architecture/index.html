@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://gwnrtools.github.io/nr-catalog-tools/architecture/">
       
       
-        <link rel="prev" href="../waveform/">
+        <link rel="prev" href="../tutorials/cross-catalog/">
       
       
         <link rel="next" href="../package/">
@@ -52,6 +52,8 @@
         <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
     
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -269,10 +271,50 @@
   
     
   
-  WaveformModes API
+  WaveformModes Guide
 
       </a>
     </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../tutorials/load-waveform/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
   
 
       
@@ -448,7 +490,7 @@
   <span class="md-ellipsis">
     
   
-    WaveformModes API
+    WaveformModes Guide
   
 
     
@@ -457,6 +499,460 @@
   
 
       </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/rit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    rit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/sxs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sxs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/maya/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    maya
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/waveform/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    waveform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    metadata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/lvc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lvc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/load-waveform/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading a waveform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/cross-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-catalog comparison
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -622,10 +1118,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#metadata-normalization-metadatapy" class="md-nav__link">
+  <a href="#metadata-normalization-metadatamd" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Metadata Normalization (metadata.py)
+        Metadata Normalization (metadata.md)
       
     </span>
   </a>
@@ -815,10 +1311,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#metadata-normalization-metadatapy" class="md-nav__link">
+  <a href="#metadata-normalization-metadatamd" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Metadata Normalization (metadata.py)
+        Metadata Normalization (metadata.md)
       
     </span>
   </a>
@@ -863,10 +1359,10 @@ overlapping communities:</p>
 <p>All three backends implement an identical interface so analysis code is catalog-agnostic.</p>
 <hr />
 <h2 id="class-hierarchy">Class Hierarchy<a class="headerlink" href="#class-hierarchy" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>sxs.Catalog
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  └── CatalogBase (catalog.py)        ← abstract interface + shared get()/get_parameters()
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>CatalogABC (catalog.py)               ← abstract base interface
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  └── CatalogBase (catalog.py)        ← shared get()/get_parameters() with internal dict simulations registry
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        ├── RITCatalog  (rit.py)       ← web-scraped .txt metadata; HDF5 / tar.gz data
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        ├── SXSCatalog  (sxs.py)       ← delegates to sxs package (Zenodo-backed)
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        ├── SXSCatalog  (sxs.py)       ← delegates to new sxs.Simulations (Zenodo-backed)
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        └── MayaCatalog (maya.py)      ← pickle metadata; HDF5 data via mayawaves
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>sxs.WaveformModes (ndarray subclass)
@@ -876,19 +1372,19 @@ overlapping communities:</p>
 <h2 id="key-design-decisions">Key Design Decisions<a class="headerlink" href="#key-design-decisions" title="Permanent link">&para;</a></h2>
 <ol>
 <li>
-<p><strong><code>CatalogBase.get()</code> is the central dispatch</strong> (<a href="../nrcatalogtools/catalog.py#L62">catalog.py:62</a>). It handles download-on-demand for RIT/MAYA, then calls <code>WaveformModes.load_from_h5()</code>. <code>SXSCatalog</code> overrides <code>get()</code> entirely because SXS data goes through <code>sxs.load()</code> / Zenodo, not local HDF5.</p>
+<p><strong><code>CatalogBase.get()</code> is the central dispatch</strong> (<a href="../api/catalog/">catalog.md</a>). It handles download-on-demand for RIT/MAYA, then calls <code>WaveformModes.load_from_h5()</code>. <code>SXSCatalog</code> overrides <code>get()</code> entirely because SXS data goes through <code>sxs.load()</code> / Zenodo, not local HDF5.</p>
 </li>
 <li>
-<p><strong>Lazy path resolution for SXS</strong> (<a href="../nrcatalogtools/sxs.py">sxs.py</a>). All path columns are stub empty strings at catalog-load time. Resolving real paths for all ~2000 SXS simulations would require ~2000 <code>sxs.load()</code> calls. Actual file access is deferred to <code>get()</code>.</p>
+<p><strong>Lazy path resolution for SXS</strong> (<a href="../api/sxs/">sxs.md</a>). All path columns are stub empty strings at catalog-load time. Resolving real paths for all ~2000 SXS simulations would require ~2000 <code>sxs.load()</code> calls. Actual file access is deferred to <code>get()</code>.</p>
 </li>
 <li>
-<p><strong><code>_filepath</code> as per-instance attribute</strong> (<a href="../nrcatalogtools/waveform.py">waveform.py</a>). Extracted from <code>w_attributes</code> before passing to the <code>sxs.WaveformModes</code> parent <code>__new__</code>, preventing class-level sharing where loading a second simulation would silently overwrite the first object's path.</p>
+<p><strong><code>_filepath</code> as per-instance attribute</strong> (<a href="../api/waveform/">waveform.md</a>). Extracted from <code>w_attributes</code> before passing to the <code>sxs.WaveformModes</code> parent <code>__new__</code>, preventing class-level sharing where loading a second simulation would silently overwrite the first object's path.</p>
 </li>
 <li>
-<p><strong><code>sxs</code> memoryview → numpy wrapping</strong> (<a href="../nrcatalogtools/waveform.py">waveform.py</a>). <code>sxs.WaveformModes.data</code> may return a memoryview (not a writable numpy array). All arithmetic wraps it with <code>np.array(..., dtype=complex)</code>.</p>
+<p><strong><code>sxs</code> memoryview → numpy wrapping</strong> (<a href="../api/waveform/">waveform.md</a>). <code>sxs.WaveformModes.data</code> may return a memoryview (not a writable numpy array). All arithmetic wraps it with <code>np.array(..., dtype=complex)</code>.</p>
 </li>
 <li>
-<p><strong><code>delta_t</code> dual convention</strong> (<a href="../nrcatalogtools/waveform.py">waveform.py</a>). Values <code>&gt; 1/128</code> are dimensionless M units (NR native); <code>≤ 1/128</code> are physical seconds. The returned <code>TimeSeries.delta_t</code> is always in seconds.</p>
+<p><strong><code>delta_t</code> dual convention</strong> (<a href="../api/waveform/">waveform.md</a>). Values <code>&gt; 1/128</code> are dimensionless M units (NR native); <code>≤ 1/128</code> are physical seconds. The returned <code>TimeSeries.delta_t</code> is always in seconds.</p>
 </li>
 </ol>
 <hr />
@@ -906,9 +1402,9 @@ overlapping communities:</p>
 </code></pre></div>
 <h3 id="sxs-load-path">SXS load path<a class="headerlink" href="#sxs-load-path" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>SXSCatalog.load()
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  → sxs.load(&quot;catalog&quot;, download=None)
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  → sxs.load(&quot;simulations&quot;, download=None)
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  → SXSCatalog.get(sim_name)
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  → sxs.load(sim_name, auto_supersede=True)          # Zenodo-backed
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  → sxs.load(sim_name, extrapolation=&quot;N{n}&quot;, auto_supersede=True) # Zenodo-backed
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  → sim_obj.strain                                   # sxs.WaveformModes
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  → WaveformModes(raw_obj.data, raw_obj.time, ...)  # thin wrapper
 </code></pre></div>
@@ -969,36 +1465,35 @@ overlapping communities:</p>
 </tbody>
 </table>
 <hr />
-<h2 id="metadata-normalization-metadatapy">Metadata Normalization (<a href="../nrcatalogtools/metadata.py">metadata.py</a>)<a class="headerlink" href="#metadata-normalization-metadatapy" title="Permanent link">&para;</a></h2>
+<h2 id="metadata-normalization-metadatamd">Metadata Normalization (<a href="../api/metadata/">metadata.md</a>)<a class="headerlink" href="#metadata-normalization-metadatamd" title="Permanent link">&para;</a></h2>
 <p>Catalog-specific keys are normalized to PyCBC-compatible output in <code>get_source_parameters_from_metadata()</code>:</p>
 <table>
 <thead>
 <tr>
-<th>Catalog sentinel key</th>
+<th><code>catalog_type</code> value</th>
 <th>Input keys</th>
 <th>Output keys</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>relaxed_mass1</code> (RIT)</td>
-<td><code>relaxed_chi1x/y/z</code>, <code>freq_start_22</code></td>
+<td><code>"RIT"</code></td>
+<td><code>relaxed-chi1x/y/z</code>, <code>freq-start-22</code></td>
 <td><code>spin1x/y/z</code>, <code>f_lower</code></td>
 </tr>
 <tr>
-<td><code>GTID</code> (MAYA)</td>
+<td><code>"MAYA"</code></td>
 <td><code>a1x/y/z</code>, <code>omega_orbital</code></td>
 <td><code>spin1x/y/z</code>, <code>f_lower</code></td>
 </tr>
 <tr>
-<td><em>(else)</em> (SXS)</td>
+<td><code>"SXS"</code></td>
 <td><code>reference_dimensionless_spin1/2</code>, <code>reference_orbital_frequency</code></td>
 <td><code>spin1x/y/z</code>, <code>f_lower</code></td>
 </tr>
 </tbody>
 </table>
-<p><strong>RIT quirk</strong>: raw metadata text files use hyphens (<code>relaxed-chi1z</code>); <code>parse_metadata_txt()</code> in
-<code>RITCatalogHelper</code> converts to underscores when building the DataFrame.</p>
+<p><strong>RIT keys</strong>: raw metadata text files use hyphens (<code>relaxed-chi1z</code>); the internal scraper retains them, and they are accessed directly using hyphens.</p>
 
 
 

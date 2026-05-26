@@ -16,7 +16,7 @@
         <link rel="prev" href="../catalogs/">
       
       
-        <link rel="next" href="../architecture/">
+        <link rel="next" href="../api/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>WaveformModes API - nr-catalog-tools</title>
+        <title>WaveformModes Guide - nr-catalog-tools</title>
       
     
     
@@ -52,6 +52,8 @@
         <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
       
     
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
     
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -78,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#waveformmodes-api-reference" class="md-skip">
+        <a href="#waveformmodes-conceptual-guide" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              WaveformModes API
+              WaveformModes Guide
             
           </span>
         </div>
@@ -271,10 +273,50 @@
   
     
   
-  WaveformModes API
+  WaveformModes Guide
 
       </a>
     </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api/" class="md-tabs__link">
+          
+  
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../tutorials/load-waveform/" class="md-tabs__link">
+          
+  
+  
+  Tutorials
+
+        </a>
+      </li>
+    
   
 
       
@@ -457,7 +499,7 @@
   <span class="md-ellipsis">
     
   
-    WaveformModes API
+    WaveformModes Guide
   
 
     
@@ -475,7 +517,7 @@
   <span class="md-ellipsis">
     
   
-    WaveformModes API
+    WaveformModes Guide
   
 
     
@@ -551,113 +593,74 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
+  <a href="#core-usage-patterns" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Properties
+        Core usage patterns
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Core usage patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#getting-a-physically-scaled-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting a physically-scaled mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-polarizations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting polarizations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#starting-frequency-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting-frequency helpers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trimming-to-relaxation-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trimming to relaxation time
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#core-methods" class="md-nav__link">
+  <a href="#sampling-interval-parameters" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Core Methods
+        Sampling interval parameters
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Core Methods">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#get_mode_dataell-em" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        get_mode_data(ell, em)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#get_modeell-em-total_massnone-distancenone-delta_tnone-to_pycbctrue" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        get_mode(ell, em, total_mass=None, distance=None, delta_t=None, to_pycbc=True)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="get_mode(ell, em, total_mass=None, distance=None, delta_t=None, to_pycbc=True)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#delta_t-convention" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        delta_t convention
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#f_lower_at_1msuntnone" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        f_lower_at_1Msun(t=None)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#get_td_waveformtotal_mass-distance-inclination-coa_phase-delta_t-lal_conventionfalse" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        get_td_waveform(total_mass, distance, inclination, coa_phase, delta_t, lal_convention=False)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#trim_to_relaxation_timetotal_mass" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        trim_to_relaxation_time(total_mass)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#f_lower_at_relaxationtotal_mass" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        f_lower_at_relaxation(total_mass)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -665,19 +668,19 @@
   <a href="#frame-rotation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Frame Rotation
+        Frame rotation
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Frame Rotation">
+    <nav class="md-nav" aria-label="Frame rotation">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#rotatedr" class="md-nav__link">
+  <a href="#rotating-a-waveformmodes-object" class="md-nav__link">
     <span class="md-ellipsis">
       
-        rotated(R)
+        Rotating a WaveformModes object
       
     </span>
   </a>
@@ -685,10 +688,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#apply_wigner_rotation_to_mode_dictmode_dict-r-ell_max" class="md-nav__link">
+  <a href="#rotating-a-mode-dict-surrogate-pycbc-format" class="md-nav__link">
     <span class="md-ellipsis">
       
-        apply_wigner_rotation_to_mode_dict(mode_dict, R, ell_max)
+        Rotating a mode dict (surrogate / PyCBC format)
       
     </span>
   </a>
@@ -704,12 +707,12 @@
   <a href="#mismatch-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Mismatch Methods
+        Mismatch methods
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Mismatch Methods">
+    <nav class="md-nav" aria-label="Mismatch methods">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -743,16 +746,509 @@
   <a href="#unit-conventions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unit Conventions
+        Unit conventions
       
     </span>
   </a>
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#design-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design notes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Design notes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-instance-_filepath-attribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-instance _filepath attribute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#non-writable-memoryview-wrapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-writable memoryview wrapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    catalog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/rit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    rit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/sxs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    sxs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/maya/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    maya
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/waveform/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    waveform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    metadata
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/registry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    registry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/lvc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lvc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    utils
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tutorials
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tutorials
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/load-waveform/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loading a waveform
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tutorials/cross-catalog/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-catalog comparison
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
       
     </li>
   
@@ -916,113 +1412,74 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#properties" class="md-nav__link">
+  <a href="#core-usage-patterns" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Properties
+        Core usage patterns
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="Core usage patterns">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#getting-a-physically-scaled-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting a physically-scaled mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#getting-polarizations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting polarizations
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#starting-frequency-helpers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Starting-frequency helpers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#trimming-to-relaxation-time" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Trimming to relaxation time
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#core-methods" class="md-nav__link">
+  <a href="#sampling-interval-parameters" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Core Methods
+        Sampling interval parameters
       
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Core Methods">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#get_mode_dataell-em" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        get_mode_data(ell, em)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#get_modeell-em-total_massnone-distancenone-delta_tnone-to_pycbctrue" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        get_mode(ell, em, total_mass=None, distance=None, delta_t=None, to_pycbc=True)
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="get_mode(ell, em, total_mass=None, distance=None, delta_t=None, to_pycbc=True)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#delta_t-convention" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        delta_t convention
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#f_lower_at_1msuntnone" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        f_lower_at_1Msun(t=None)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#get_td_waveformtotal_mass-distance-inclination-coa_phase-delta_t-lal_conventionfalse" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        get_td_waveform(total_mass, distance, inclination, coa_phase, delta_t, lal_convention=False)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#trim_to_relaxation_timetotal_mass" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        trim_to_relaxation_time(total_mass)
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#f_lower_at_relaxationtotal_mass" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        f_lower_at_relaxation(total_mass)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1030,19 +1487,19 @@
   <a href="#frame-rotation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Frame Rotation
+        Frame rotation
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Frame Rotation">
+    <nav class="md-nav" aria-label="Frame rotation">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#rotatedr" class="md-nav__link">
+  <a href="#rotating-a-waveformmodes-object" class="md-nav__link">
     <span class="md-ellipsis">
       
-        rotated(R)
+        Rotating a WaveformModes object
       
     </span>
   </a>
@@ -1050,10 +1507,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#apply_wigner_rotation_to_mode_dictmode_dict-r-ell_max" class="md-nav__link">
+  <a href="#rotating-a-mode-dict-surrogate-pycbc-format" class="md-nav__link">
     <span class="md-ellipsis">
       
-        apply_wigner_rotation_to_mode_dict(mode_dict, R, ell_max)
+        Rotating a mode dict (surrogate / PyCBC format)
       
     </span>
   </a>
@@ -1069,12 +1526,12 @@
   <a href="#mismatch-methods" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Mismatch Methods
+        Mismatch methods
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Mismatch Methods">
+    <nav class="md-nav" aria-label="Mismatch methods">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1108,10 +1565,49 @@
   <a href="#unit-conventions" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Unit Conventions
+        Unit conventions
       
     </span>
   </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#design-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design notes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Design notes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#per-instance-_filepath-attribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Per-instance _filepath attribute
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#non-writable-memoryview-wrapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-writable memoryview wrapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1135,14 +1631,17 @@
   
 
 
-<h1 id="waveformmodes-api-reference"><code>WaveformModes</code> API Reference<a class="headerlink" href="#waveformmodes-api-reference" title="Permanent link">&para;</a></h1>
+<h1 id="waveformmodes-conceptual-guide"><code>WaveformModes</code> — Conceptual Guide<a class="headerlink" href="#waveformmodes-conceptual-guide" title="Permanent link">&para;</a></h1>
 <p><strong>Class:</strong> <code>nrcatalogtools.WaveformModes</code><br />
-<strong>Source:</strong> <a href="../nrcatalogtools/waveform.py">nrcatalogtools/waveform.py</a><br />
-<strong>Inherits from:</strong> <code>sxs.WaveformModes</code> (which is an ndarray subclass)</p>
+<strong>Inherits from:</strong> <code>sxs.WaveformModes</code> (ndarray subclass)</p>
+<blockquote>
+<p><strong>Auto-generated API reference</strong>: For a complete method listing with signatures and
+docstrings, see <a href="../api/waveform/">API Reference → waveform</a>.</p>
+</blockquote>
 <p><code>WaveformModes</code> is the central data object returned by all catalog <code>get()</code> calls. It stores
-complex gravitational-wave strain multipole modes <span class="arithmatex">\(h_{\ell m}(t)\)</span> in dimensionless NR units,
-and provides methods to convert to physical units, extract individual modes, sum to polarizations,
-apply frame rotations, and compute mismatches.</p>
+complex gravitational-wave strain multipole modes <span class="arithmatex">\(h_{\ell m}(t)\)</span> in dimensionless NR units
+and provides methods to convert to physical units, extract individual modes, sum to
+polarizations, apply frame rotations, and compute mismatches.</p>
 <hr />
 <h2 id="construction">Construction<a class="headerlink" href="#construction" title="Permanent link">&para;</a></h2>
 <p>Three construction paths are available. In normal usage you will not call these directly —
@@ -1155,220 +1654,127 @@ onto a common uniform time grid. Returns a <code>WaveformModes</code> with shape
 <h3 id="from-targz-rit-psi4-files">From tar.gz (RIT psi4 files)<a class="headerlink" href="#from-targz-rit-psi4-files" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">WaveformModes</span><span class="o">.</span><span class="n">load_from_targz</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="n">metadata_dict</span><span class="p">,</span> <span class="n">verbosity</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </code></pre></div>
-<p>Reads ASCII <code>.asc</code> / <code>.dat</code> / <code>.txt</code> files (columns: <code>time</code>, <code>real</code>, <code>imag</code>) from inside the
-archive. Missing modes are filled with zeros. Interpolates onto a uniform grid.</p>
+<p>Reads ASCII <code>.asc</code> / <code>.dat</code> / <code>.txt</code> files (columns: <code>time</code>, <code>real</code>, <code>imag</code>) from inside
+the archive. Missing modes are filled with zeros. Interpolates onto a uniform grid.</p>
 <h3 id="wrapping-an-sxswaveformmodes-sxs-catalog">Wrapping an <code>sxs.WaveformModes</code> (SXS catalog)<a class="headerlink" href="#wrapping-an-sxswaveformmodes-sxs-catalog" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">WaveformModes</span><span class="p">(</span><span class="n">raw_sxs_obj</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">raw_sxs_obj</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">sim_metadata</span><span class="o">=</span><span class="n">metadata_dict</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="p">)</span>
 </code></pre></div>
 <p>Used internally by <code>SXSCatalog.get()</code>. The <code>sxs.WaveformModes.data</code> property may return a
 memoryview; all arithmetic wraps it with <code>np.array(..., dtype=complex)</code>.</p>
 <hr />
-<h2 id="properties">Properties<a class="headerlink" href="#properties" title="Permanent link">&para;</a></h2>
+<h2 id="core-usage-patterns">Core usage patterns<a class="headerlink" href="#core-usage-patterns" title="Permanent link">&para;</a></h2>
+<h3 id="getting-a-physically-scaled-mode">Getting a physically-scaled mode<a class="headerlink" href="#getting-a-physically-scaled-mode" title="Permanent link">&para;</a></h3>
+<p><code>get_mode()</code> is the primary method for retrieving a scaled individual mode:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">mode22</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">get_mode</span><span class="p">(</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">total_mass</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span>          <span class="c1"># M_sun</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">distance</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>           <span class="c1"># Mpc</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">delta_t_seconds</span><span class="o">=</span><span class="mf">1.</span><span class="o">/</span><span class="mi">4096</span><span class="p">,</span>  <span class="c1"># physical seconds (4096 Hz sampling)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">)</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># mode22 is a complex pycbc.types.TimeSeries</span>
+</code></pre></div>
+<p>The amplitude is scaled by <span class="arithmatex">\(G M_\text{tot} / (c^2 \cdot d_\text{Mpc} \cdot \text{Mpc})\)</span> and
+the time epoch is set so that <span class="arithmatex">\(t=0\)</span> coincides with the peak of the <span class="arithmatex">\((2,2)\)</span> mode.</p>
+<h3 id="getting-polarizations">Getting polarizations<a class="headerlink" href="#getting-polarizations" title="Permanent link">&para;</a></h3>
+<p><code>get_td_waveform()</code> sums over all modes with spin-weight <span class="arithmatex">\(-2\)</span> spherical harmonics:</p>
+<div class="arithmatex">\[H = h_+ + i h_\times = \sum_{\ell,m} {}^{-2}Y_{\ell m}(\iota, \phi_c) \, h_{\ell m}(t)\]</div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">pols</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">get_td_waveform</span><span class="p">(</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">total_mass</span><span class="o">=</span><span class="mf">40.</span><span class="p">,</span>           <span class="c1"># M_sun</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">distance</span><span class="o">=</span><span class="mf">100.</span><span class="p">,</span>            <span class="c1"># Mpc</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">inclination</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>          <span class="c1"># radians</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">coa_phase</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>            <span class="c1"># radians</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">delta_t_seconds</span><span class="o">=</span><span class="mf">1.</span><span class="o">/</span><span class="mi">4096</span><span class="p">,</span>  <span class="c1"># physical seconds</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">hp</span> <span class="o">=</span> <span class="n">pols</span><span class="o">.</span><span class="n">real</span><span class="p">()</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">hc</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">pols</span><span class="o">.</span><span class="n">imag</span><span class="p">()</span>
+</code></pre></div>
+<blockquote>
+<p><strong>Polarization convention:</strong> Returns <code>conjugate(h)</code> so that <code>.real()</code> gives <span class="arithmatex">\(h_+\)</span> and
+<code>.imag()</code> gives <span class="arithmatex">\(+h_\times\)</span>.  This differs from LAL convention where <code>imag() = -h_\times</code>.
+Pass <code>lal_convention=True</code> to get LAL-compatible output.</p>
+</blockquote>
+<h3 id="starting-frequency-helpers">Starting-frequency helpers<a class="headerlink" href="#starting-frequency-helpers" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># GW frequency at waveform start, normalized to 1 M_sun — divide by total_mass to get Hz</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">f_start_1msun</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">f_lower_at_1Msun</span><span class="p">()</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">f_start_hz</span> <span class="o">=</span> <span class="n">f_start_1msun</span> <span class="o">/</span> <span class="n">total_mass_msun</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="c1"># GW frequency at the relaxation epoch</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="n">f_relax_hz</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">f_lower_at_relaxation</span><span class="p">(</span><span class="n">total_mass</span><span class="o">=</span><span class="mf">60.0</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="trimming-to-relaxation-time">Trimming to relaxation time<a class="headerlink" href="#trimming-to-relaxation-time" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">wfm_trimmed</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">trim_to_relaxation_time</span><span class="p">(</span><span class="n">total_mass</span><span class="o">=</span><span class="mf">60.0</span><span class="p">)</span>
+</code></pre></div>
+<p>Reads the relaxation time from metadata (tries keys <code>'relaxed-time'</code>, <code>'relaxation_time'</code>,
+<code>'reference_time'</code>).</p>
+<hr />
+<h2 id="sampling-interval-parameters">Sampling interval parameters<a class="headerlink" href="#sampling-interval-parameters" title="Permanent link">&para;</a></h2>
+<p><code>get_mode()</code> and <code>get_td_waveform()</code> accept two explicit sampling parameters:</p>
 <table>
 <thead>
 <tr>
-<th>Property</th>
-<th>Type</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>time</code></td>
-<td><code>np.ndarray</code> (1-D)</td>
-<td>Dimensionless NR times in units of <span class="arithmatex">\(GM_\text{tot}/c^3\)</span></td>
-</tr>
-<tr>
-<td><code>data</code></td>
-<td><code>np.ndarray</code> (2-D, complex)</td>
-<td>Shape <code>(n_times, n_modes)</code></td>
-</tr>
-<tr>
-<td><code>LM</code></td>
-<td><code>np.ndarray</code> (2-D, int)</td>
-<td><code>[[ell, m], ...]</code> for each column in <code>data</code></td>
-</tr>
-<tr>
-<td><code>ell_min</code>, <code>ell_max</code></td>
-<td><code>int</code></td>
-<td>Minimum and maximum <span class="arithmatex">\(\ell\)</span> present</td>
-</tr>
-<tr>
-<td><code>n_modes</code></td>
-<td><code>int</code></td>
-<td>Number of mode columns</td>
-</tr>
-<tr>
-<td><code>filepath</code></td>
-<td><code>str</code></td>
-<td>Path to the source data file</td>
-</tr>
-<tr>
-<td><code>sim_metadata</code></td>
-<td><code>dict</code></td>
-<td>Raw catalog-specific metadata</td>
-</tr>
-<tr>
-<td><code>metadata</code></td>
-<td><code>dict</code></td>
-<td>Alias for <code>sim_metadata</code></td>
-</tr>
-<tr>
-<td><code>peak_time_22</code></td>
-<td><code>float</code></td>
-<td>Dimensionless time of peak $</td>
-</tr>
-<tr>
-<td><code>label</code></td>
-<td><code>str</code></td>
-<td>LaTeX summary string: <span class="arithmatex">\(q\)</span>, <span class="arithmatex">\(\chi_1\)</span>, <span class="arithmatex">\(\chi_2\)</span></td>
-</tr>
-<tr>
-<td><code>label_nolatex</code></td>
-<td><code>str</code></td>
-<td>Plain-text version of the same label</td>
-</tr>
-</tbody>
-</table>
-<hr />
-<h2 id="core-methods">Core Methods<a class="headerlink" href="#core-methods" title="Permanent link">&para;</a></h2>
-<h3 id="get_mode_dataell-em"><code>get_mode_data(ell, em)</code><a class="headerlink" href="#get_mode_dataell-em" title="Permanent link">&para;</a></h3>
-<p>Returns the raw NR data column for mode <code>(ell, em)</code> as a real 2-column array
-(<code>[:, 0]</code> = real part, <code>[:, 1]</code> = imaginary part) in dimensionless units.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">raw</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">get_mode_data</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>   <span class="c1"># shape (n_times, 2)</span>
-</code></pre></div>
-<hr />
-<h3 id="get_modeell-em-total_massnone-distancenone-delta_tnone-to_pycbctrue"><code>get_mode(ell, em, total_mass=None, distance=None, delta_t=None, to_pycbc=True)</code><a class="headerlink" href="#get_modeell-em-total_massnone-distancenone-delta_tnone-to_pycbctrue" title="Permanent link">&para;</a></h3>
-<p>The primary method for retrieving a physically-scaled mode.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">mode22</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">get_mode</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>                      <span class="n">total_mass</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span>   <span class="c1"># M_sun</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>                      <span class="n">distance</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>    <span class="c1"># Mpc</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>                      <span class="n">delta_t</span><span class="o">=</span><span class="mf">1.</span><span class="o">/</span><span class="mi">4096</span><span class="p">)</span>   <span class="c1"># seconds (or M units, see below)</span>
-</code></pre></div>
-<p><strong>Returns:</strong> A complex PyCBC <code>TimeSeries</code> (if <code>to_pycbc=True</code>) or a numpy array.</p>
-<ul>
-<li>Amplitude is scaled by <span class="arithmatex">\(G M_\text{tot} / (c^2 \cdot d_\text{Mpc} \cdot \text{Mpc})\)</span></li>
-<li>Time is resampled to <code>delta_t</code></li>
-<li>Epoch is set so that <span class="arithmatex">\(t = 0\)</span> coincides with the peak of the <span class="arithmatex">\((2,2)\)</span> mode</li>
-</ul>
-<h4 id="delta_t-convention"><code>delta_t</code> convention<a class="headerlink" href="#delta_t-convention" title="Permanent link">&para;</a></h4>
-<table>
-<thead>
-<tr>
-<th>Value</th>
+<th>Parameter</th>
 <th>Interpretation</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>delta_t &gt; 1/128</code></td>
-<td><strong>Dimensionless M units</strong> (NR native, e.g. <code>0.5</code> means <span class="arithmatex">\(0.5\,GM/c^3\)</span>)</td>
+<td><code>delta_t_seconds</code></td>
+<td><strong>Physical seconds</strong> (e.g. <code>1/4096</code> for 4096 Hz sampling)</td>
 </tr>
 <tr>
-<td><code>delta_t ≤ 1/128</code></td>
-<td><strong>Physical seconds</strong> (e.g. <code>1/4096</code> for detector-band data)</td>
+<td><code>delta_t_Msun</code></td>
+<td><strong>Dimensionless M units</strong> (NR native, e.g. <code>0.5</code> means <span class="arithmatex">\(0.5\,GM/c^3\)</span>)</td>
 </tr>
 </tbody>
 </table>
-<p>The returned <code>TimeSeries.delta_t</code> is <strong>always in physical seconds</strong> regardless of which
-convention was used for input.</p>
-<hr />
-<h3 id="f_lower_at_1msuntnone"><code>f_lower_at_1Msun(t=None)</code><a class="headerlink" href="#f_lower_at_1msuntnone" title="Permanent link">&para;</a></h3>
-<p>Returns the instantaneous GW frequency of the <span class="arithmatex">\((2,2)\)</span> mode in Hz, <strong>normalized to a
-1 M☉ system</strong>. <code>t</code> must be given in dimensionless M units (same as <code>self.time</code>).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># Frequency at the start of the waveform (for any total mass M)</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="n">f_start_hz</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">f_lower_at_1Msun</span><span class="p">()</span> <span class="o">/</span> <span class="n">total_mass_msun</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># Frequency at a specific NR time</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">f_hz</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">f_lower_at_1Msun</span><span class="p">(</span><span class="n">t</span><span class="o">=</span><span class="n">wfm</span><span class="o">.</span><span class="n">time</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">total_mass_msun</span>
-</code></pre></div>
-<p>If <code>t=None</code>, returns the frequency at <code>wfm.time[0]</code>.</p>
+<p>The returned <code>TimeSeries.delta_t</code> is <strong>always in physical seconds</strong>.</p>
 <blockquote>
-<p><strong>Phase convention note:</strong> Returns <code>abs(f)</code> to handle the SXS sign convention where
-<span class="arithmatex">\(h \propto e^{-i\Phi}\)</span> (decreasing phase) versus RIT/MAYA where <span class="arithmatex">\(h \propto e^{+i\Phi}\)</span>.</p>
+<p><strong>Deprecated:</strong> The old <code>delta_t</code> keyword argument (which inferred units from the magnitude)
+is deprecated. Use <code>delta_t_seconds</code> or <code>delta_t_Msun</code> explicitly.</p>
 </blockquote>
 <hr />
-<h3 id="get_td_waveformtotal_mass-distance-inclination-coa_phase-delta_t-lal_conventionfalse"><code>get_td_waveform(total_mass, distance, inclination, coa_phase, delta_t, lal_convention=False)</code><a class="headerlink" href="#get_td_waveformtotal_mass-distance-inclination-coa_phase-delta_t-lal_conventionfalse" title="Permanent link">&para;</a></h3>
-<p>Sums modes with spin-weight <span class="arithmatex">\(-2\)</span> spherical harmonics to produce the sky-direction strain:</p>
-<div class="arithmatex">\[H = h_+ + i h_\times = \sum_{\ell,m} {}^{-2}Y_{\ell m}(\iota, \phi_c) \, h_{\ell m}(t)\]</div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">pols</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">get_td_waveform</span><span class="p">(</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">total_mass</span><span class="o">=</span><span class="mf">40.</span><span class="p">,</span>     <span class="c1"># M_sun</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">distance</span><span class="o">=</span><span class="mf">100.</span><span class="p">,</span>      <span class="c1"># Mpc</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">inclination</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>    <span class="c1"># radians</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">coa_phase</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>      <span class="c1"># radians</span>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">delta_t</span><span class="o">=</span><span class="mf">1.</span><span class="o">/</span><span class="mi">4096</span><span class="p">,</span>    <span class="c1"># seconds</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="n">hp</span> <span class="o">=</span> <span class="n">pols</span><span class="o">.</span><span class="n">real</span><span class="p">()</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">hc</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">pols</span><span class="o">.</span><span class="n">imag</span><span class="p">()</span>
+<h2 id="frame-rotation">Frame rotation<a class="headerlink" href="#frame-rotation" title="Permanent link">&para;</a></h2>
+<h3 id="rotating-a-waveformmodes-object">Rotating a <code>WaveformModes</code> object<a class="headerlink" href="#rotating-a-waveformmodes-object" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">quaternionic</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="n">R</span> <span class="o">=</span> <span class="n">quaternionic</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">from_euler_angles</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="n">wfm_rotated</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">rotated</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>
 </code></pre></div>
-<p><strong>Polarization convention:</strong> Returns <code>conjugate(h)</code> so that:
-- <code>.real()</code> gives <span class="arithmatex">\(h_+\)</span>
-- <code>.imag()</code> gives <span class="arithmatex">\(+h_\times\)</span></p>
-<p>Note this differs from LAL convention where <code>imag() = -h_\times</code>. Set <code>lal_convention=True</code>
-to get LAL-compatible output.</p>
+<p>Applies Wigner D-matrix rotation: <span class="arithmatex">\(h^{\text{rot}}_{\ell m}(t) = \sum_{m'} h_{\ell m'}(t) \, D^\ell_{m'm}(R)\)</span></p>
+<p>Uses the <code>spherical</code> package for Wigner D-matrix computation.</p>
+<h3 id="rotating-a-mode-dict-surrogate-pycbc-format">Rotating a mode dict (surrogate / PyCBC format)<a class="headerlink" href="#rotating-a-mode-dict-surrogate-pycbc-format" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">nrcatalogtools</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_wigner_rotation_to_mode_dict</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">rotated_modes</span> <span class="o">=</span> <span class="n">apply_wigner_rotation_to_mode_dict</span><span class="p">(</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">mode_dict</span><span class="p">,</span>      <span class="c1"># {(ell, m): pycbc.TimeSeries, ...}</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">R</span><span class="p">,</span>              <span class="c1"># quaternionic rotation</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">ell_max</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">)</span>
+</code></pre></div>
+<p>Useful for rotating surrogate model outputs into the NR frame for direct comparison.</p>
 <hr />
-<h3 id="trim_to_relaxation_timetotal_mass"><code>trim_to_relaxation_time(total_mass)</code><a class="headerlink" href="#trim_to_relaxation_timetotal_mass" title="Permanent link">&para;</a></h3>
-<p>Returns a slice of the waveform starting from the relaxation epoch. Reads the relaxation
-time from metadata (tries keys <code>'relaxed-time'</code>, <code>'relaxation_time'</code>, <code>'reference_time'</code>).</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">wfm_trimmed</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">trim_to_relaxation_time</span><span class="p">(</span><span class="n">total_mass</span><span class="o">=</span><span class="mf">60.0</span><span class="p">)</span>
-</code></pre></div>
-<hr />
-<h3 id="f_lower_at_relaxationtotal_mass"><code>f_lower_at_relaxation(total_mass)</code><a class="headerlink" href="#f_lower_at_relaxationtotal_mass" title="Permanent link">&para;</a></h3>
-<p>Convenience method. Returns the GW frequency (Hz) at the relaxation time for the given
-total mass.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">f_relax</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">f_lower_at_relaxation</span><span class="p">(</span><span class="n">total_mass</span><span class="o">=</span><span class="mf">60.0</span><span class="p">)</span>   <span class="c1"># Hz</span>
-</code></pre></div>
-<hr />
-<h2 id="frame-rotation">Frame Rotation<a class="headerlink" href="#frame-rotation" title="Permanent link">&para;</a></h2>
-<h3 id="rotatedr"><code>rotated(R)</code><a class="headerlink" href="#rotatedr" title="Permanent link">&para;</a></h3>
-<p>Applies a Wigner D-matrix rotation to all modes:</p>
-<div class="arithmatex">\[h^{\text{rot}}_{\ell m}(t) = \sum_{m'} h_{\ell m'}(t) \, D^\ell_{m' m}(R)\]</div>
-<p><code>R</code> is a <code>quaternionic.array</code> representing the rotation. Uses the <code>spherical</code> package for
-Wigner D-matrix computation.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">quaternionic</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">R</span> <span class="o">=</span> <span class="n">quaternionic</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">from_euler_angles</span><span class="p">(</span><span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">)</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="n">wfm_rotated</span> <span class="o">=</span> <span class="n">wfm</span><span class="o">.</span><span class="n">rotated</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>
-</code></pre></div>
-<h3 id="apply_wigner_rotation_to_mode_dictmode_dict-r-ell_max"><code>apply_wigner_rotation_to_mode_dict(mode_dict, R, ell_max)</code><a class="headerlink" href="#apply_wigner_rotation_to_mode_dictmode_dict-r-ell_max" title="Permanent link">&para;</a></h3>
-<p>Standalone function (also importable from <code>nrcatalogtools</code>) for rotating a <code>dict</code> of PyCBC
-<code>TimeSeries</code> objects as returned by <code>gwsurrogate</code> or <code>pycbc.waveform.get_td_waveform_modes()</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">nrcatalogtools</span><span class="w"> </span><span class="kn">import</span> <span class="n">apply_wigner_rotation_to_mode_dict</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">rotated_modes</span> <span class="o">=</span> <span class="n">apply_wigner_rotation_to_mode_dict</span><span class="p">(</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">mode_dict</span><span class="p">,</span>      <span class="c1"># {(ell, m): TimeSeries, ...}</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">R</span><span class="p">,</span>              <span class="c1"># quaternionic rotation</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="n">ell_max</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="p">)</span>
-</code></pre></div>
-<hr />
-<h2 id="mismatch-methods">Mismatch Methods<a class="headerlink" href="#mismatch-methods" title="Permanent link">&para;</a></h2>
+<h2 id="mismatch-methods">Mismatch methods<a class="headerlink" href="#mismatch-methods" title="Permanent link">&para;</a></h2>
 <h3 id="match_sphere_averagedother-psd-f_lower-delta_t"><code>match_sphere_averaged(other, psd, f_lower, delta_t, ...)</code><a class="headerlink" href="#match_sphere_averagedother-psd-f_lower-delta_t" title="Permanent link">&para;</a></h3>
-<p>Compute the sky-averaged mismatch between <code>self</code> and <code>other</code>:</p>
+<p>Sky-averaged mismatch minimized over <span class="arithmatex">\(t_c\)</span>, <span class="arithmatex">\(\phi_c\)</span>, and <span class="arithmatex">\(R \in SO(3)\)</span>:</p>
 <div class="arithmatex">\[\mathcal{M} = 1 - \max_{t_c,\, \phi_c,\, R \in SO(3)} \frac{\langle h_1 | h_2 \rangle}{\sqrt{\langle h_1 | h_1 \rangle \langle h_2 | h_2 \rangle}}\]</div>
-<p>Optimization is via Nelder-Mead over <span class="arithmatex">\((t_c, \phi_c, \alpha, \beta)\)</span> where <span class="arithmatex">\((\alpha, \beta)\)</span> are
-Euler angles parameterizing <span class="arithmatex">\(R\)</span>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">mismatch</span> <span class="o">=</span> <span class="n">wfm_a</span><span class="o">.</span><span class="n">match_sphere_averaged</span><span class="p">(</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">wfm_b</span><span class="p">,</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="n">psd</span><span class="o">=</span><span class="n">my_psd</span><span class="p">,</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="n">f_lower</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>     <span class="c1"># Hz</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>    <span class="n">delta_t</span><span class="o">=</span><span class="mf">1.</span><span class="o">/</span><span class="mi">4096</span><span class="p">,</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="p">)</span>
+<!-- Mismatch = 1 - max over (time shift, phase shift, SO(3) rotation) of normalized inner product -->
+
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">mismatch</span> <span class="o">=</span> <span class="n">wfm_a</span><span class="o">.</span><span class="n">match_sphere_averaged</span><span class="p">(</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">wfm_b</span><span class="p">,</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">psd</span><span class="o">=</span><span class="n">my_psd</span><span class="p">,</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">f_lower</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>            <span class="c1"># Hz</span>
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">delta_t_seconds</span><span class="o">=</span><span class="mf">1.</span><span class="o">/</span><span class="mi">4096</span><span class="p">,</span>
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="match_sphere_averaged_bms_maximizedother-psd-f_lower-j_max"><code>match_sphere_averaged_bms_maximized(other, psd, f_lower, j_max, ...)</code><a class="headerlink" href="#match_sphere_averaged_bms_maximizedother-psd-f_lower-j_max" title="Permanent link">&para;</a></h3>
-<p>Extended version that additionally optimizes over BMS supertranslation coefficients
-<span class="arithmatex">\(\alpha_{jk}\)</span> up to degree <code>j_max</code>:</p>
+<p>Extended version that additionally optimizes over BMS supertranslation coefficients:</p>
 <div class="arithmatex">\[h'_{\ell m}(u) = h_{\ell m}(u) - \sum_{j,k,p,q} \alpha_{jk} \, \mathcal{G}^{\ell m}_{jk,pq} \, \dot{h}_{pq}(u)\]</div>
+<!-- Modified strain = original strain minus sum over BMS supertranslation modes weighted by Gaunt coefficients -->
+
 <p>Requires the <code>scri</code> package for spin-weighted Gaunt coefficients.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">mismatch</span> <span class="o">=</span> <span class="n">wfm_a</span><span class="o">.</span><span class="n">match_sphere_averaged_bms_maximized</span><span class="p">(</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="n">wfm_b</span><span class="p">,</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">psd</span><span class="o">=</span><span class="n">my_psd</span><span class="p">,</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">f_lower</span><span class="o">=</span><span class="mf">20.0</span><span class="p">,</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="n">j_max</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>          <span class="c1"># include ell=1 spatial translations + ell=2 proper supertranslations</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="p">)</span>
-</code></pre></div>
 <hr />
-<h2 id="unit-conventions">Unit Conventions<a class="headerlink" href="#unit-conventions" title="Permanent link">&para;</a></h2>
-<p>All data stored in <code>WaveformModes</code> is in <strong>geometrized, mass-scaled dimensionless units</strong>:</p>
+<h2 id="unit-conventions">Unit conventions<a class="headerlink" href="#unit-conventions" title="Permanent link">&para;</a></h2>
+<p>All data stored internally in <code>WaveformModes</code> uses <strong>geometrized, mass-scaled dimensionless
+units</strong>:</p>
 <table>
 <thead>
 <tr>
@@ -1387,16 +1793,26 @@ Euler angles parameterizing <span class="arithmatex">\(R\)</span>.</p>
 </tr>
 </tbody>
 </table>
-<p>Physical conversion factors (from <a href="../nrcatalogtools/utils.py"><code>utils.py</code></a>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">lal</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="c1"># Time: 1 NR M unit → seconds</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="n">m_secs</span> <span class="o">=</span> <span class="n">total_mass_msun</span> <span class="o">*</span> <span class="n">lal</span><span class="o">.</span><span class="n">MTSUN_SI</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="c1"># Amplitude: dimensionless → strain at distance d_Mpc</span>
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="n">amp_scale</span> <span class="o">=</span> <span class="p">(</span><span class="n">lal</span><span class="o">.</span><span class="n">G_SI</span> <span class="o">*</span> <span class="n">total_mass_msun</span> <span class="o">*</span> <span class="n">lal</span><span class="o">.</span><span class="n">MSUN_SI</span>
-<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>             <span class="o">/</span> <span class="p">(</span><span class="n">lal</span><span class="o">.</span><span class="n">C_SI</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">d_Mpc</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="o">*</span> <span class="n">lal</span><span class="o">.</span><span class="n">PC_SI</span><span class="p">))</span>
+<p>Physical conversion factors (from <a href="../api/utils/"><code>nrcatalogtools.utils</code></a>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">lal</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># Time: 1 NR M unit → seconds</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">m_secs</span> <span class="o">=</span> <span class="n">total_mass_msun</span> <span class="o">*</span> <span class="n">lal</span><span class="o">.</span><span class="n">MTSUN_SI</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="c1"># Amplitude: dimensionless → strain at distance d_Mpc</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="n">amp_scale</span> <span class="o">=</span> <span class="p">(</span><span class="n">lal</span><span class="o">.</span><span class="n">G_SI</span> <span class="o">*</span> <span class="n">total_mass_msun</span> <span class="o">*</span> <span class="n">lal</span><span class="o">.</span><span class="n">MSUN_SI</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>             <span class="o">/</span> <span class="p">(</span><span class="n">lal</span><span class="o">.</span><span class="n">C_SI</span><span class="o">**</span><span class="mi">2</span> <span class="o">*</span> <span class="n">d_Mpc</span> <span class="o">*</span> <span class="mf">1e6</span> <span class="o">*</span> <span class="n">lal</span><span class="o">.</span><span class="n">PC_SI</span><span class="p">))</span>
 </code></pre></div>
+<hr />
+<h2 id="design-notes">Design notes<a class="headerlink" href="#design-notes" title="Permanent link">&para;</a></h2>
+<h3 id="per-instance-_filepath-attribute">Per-instance <code>_filepath</code> attribute<a class="headerlink" href="#per-instance-_filepath-attribute" title="Permanent link">&para;</a></h3>
+<p><code>_filepath</code> is extracted and stored as a per-instance attribute <strong>before</strong> the parent
+<code>sxs.WaveformModes.__new__()</code> call. This prevents class-level sharing where loading a
+second simulation would overwrite the first simulation's cached file path.</p>
+<h3 id="non-writable-memoryview-wrapping">Non-writable memoryview wrapping<a class="headerlink" href="#non-writable-memoryview-wrapping" title="Permanent link">&para;</a></h3>
+<p><code>sxs.WaveformModes.data</code> may return a non-writable memoryview. All arithmetic in
+<code>WaveformModes</code> wraps the data with <code>np.array(..., dtype=complex)</code> before any in-place
+operations to avoid <code>ValueError: assignment destination is read-only</code>.</p>
 
 
 
