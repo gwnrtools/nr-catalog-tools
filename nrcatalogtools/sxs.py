@@ -65,22 +65,23 @@ class SXSCatalog(catalog.CatalogBase):
     CATALOG_TYPE = "SXS"
 
     def __init__(
-        self, catalog: dict | None = None, verbosity: int = 0, **kwargs
+        self, simulations_dict: dict | None = None, verbosity: int = 0, **kwargs
     ) -> None:
-        """Initialise SXSCatalog, loading the sxs catalog if *catalog* is None.
+        """Initialise SXSCatalog, loading the sxs catalog if *simulations_dict* is None.
 
         Args:
-            catalog (dict or None): Pre-built catalog dict (keyed by simulation
-                name).  Pass ``None`` (default) to call :meth:`load`
-                automatically.
+            simulations_dict (dict or None): Pre-built simulations dict keyed
+                by simulation name → metadata dict.  Pass ``None`` (default)
+                to call :meth:`load` automatically.
             verbosity (int): Logging verbosity level. Defaults to 0.
             **kwargs: Forwarded to :meth:`load`.
         """
-        if catalog is not None:
-            super().__init__(catalog, **kwargs)
+        if simulations_dict is not None:
+            super().__init__(simulations_dict)
         else:
             obj = type(self).load(verbosity=verbosity, **kwargs)
-            super().__init__(obj._dict)
+            super().__init__(obj._simulations)
+            self._sxs_simulations = obj._sxs_simulations
         self._verbosity = verbosity
         self._add_paths_to_metadata()
 
@@ -108,18 +109,25 @@ class SXSCatalog(catalog.CatalogBase):
         if _sxs_catalog_singleton is not None and download is not True:
             return _sxs_catalog_singleton
 
-        sxs_catalog = sxs.load("catalog", download=download, **kwargs)
-        # sxs.Catalog is not subscriptable; pass the underlying dict
-        _sxs_catalog_singleton = cls(catalog=sxs_catalog._dict, verbosity=verbosity)
+        sxs_sims = sxs.load("simulations", download=download, **kwargs)
+        simulations_dict = {k: dict(v) for k, v in sxs_sims.items()}
+        _sxs_catalog_singleton = cls(
+            simulations_dict=simulations_dict, verbosity=verbosity
+        )
+        _sxs_catalog_singleton._sxs_simulations = sxs_sims
         return _sxs_catalog_singleton
 
     @classmethod
     def reload(cls, **kwargs) -> SXSCatalog:
         """Force a fresh download and replace the cached singleton.
 
-        Equivalent to ``SXSCatalog.load(download=True, **kwargs)``.
+        Equivalent to calling ``sxs.Simulations.reload()`` and then reloading.
         """
         global _sxs_catalog_singleton
+        import sxs
+
+        if hasattr(sxs.Simulations, "reload"):
+            sxs.Simulations.reload()
         _sxs_catalog_singleton = None
         return cls.load(download=True, **kwargs)
 
@@ -279,12 +287,13 @@ class SXSCatalog(catalog.CatalogBase):
         try:
             raw_obj = sim_obj.strain
         except Exception:
-            # Fallback for older sxs versions: load rhOverM directly
-            raw_obj = sxs.load(
-                f"{sim_name}/rhOverM",
-                extrapolation_order=extrapolation_order,
+            # Fallback: reload with explicit extrapolation string (new sxs API)
+            sim_obj = sxs.load(
+                sim_name,
+                extrapolation=f"N{extrapolation_order}",
                 download=download,
             )
+            raw_obj = sim_obj.strain
 
         # Get the sim metadata (from our catalog dict, keyed by sim_name)
         sim_metadata = self.get_metadata(sim_name)
@@ -332,6 +341,35 @@ class SXSCatalog(catalog.CatalogBase):
             "Direct URL access not supported for SXS; use sxs.load()."
         )
 
+    def to_sxs(self) -> "sxs.Simulations":
+        """Return the live ``sxs.Simulations`` object backing this catalog."""
+        return self._sxs_simulations
+
+    @property
+    def simulations_dataframe(self):
+        """Return the sxs.SimulationsDataFrame for this catalog."""
+        return self._sxs_simulations.dataframe
+
+    @property
+    def table(self):
+        """Alias for simulations_dataframe."""
+        return self.simulations_dataframe
+
+    @property
+    def tag(self) -> str:
+        """Return the git tag of the catalog snapshot."""
+        return self._sxs_simulations.tag
+
+    @property
+    def published_at(self) -> str:
+        """Return the ISO timestamp from GitHub Releases."""
+        return self._sxs_simulations.published_at
+
+    @property
+    def modified(self) -> str:
+        """Approximate the modified property using published_at."""
+        return self.published_at
+
     def _add_paths_to_metadata(self):
         """Seed per-simulation metadata with empty stub path/URL columns.
 
@@ -343,7 +381,7 @@ class SXSCatalog(catalog.CatalogBase):
         never sees a ``KeyError``.  Actual paths are resolved lazily in
         ``waveform_filepath_from_simname()`` and ``metadata_filepath_from_simname()``.
         """
-        metadata_dict = self._dict["simulations"]
+        metadata_dict = self._simulations
         if not metadata_dict:
             return
         existing_cols = list(next(iter(metadata_dict.values())).keys())

@@ -8,10 +8,10 @@ CatalogABC
     data products.
 
 CatalogBase
-    Concrete mixin that combines ``CatalogABC`` with ``sxs.Catalog`` and
-    provides the shared ``get()``, ``get_metadata()``, ``get_parameters()``,
-    and ``set_attribute_in_waveform_data_file()`` implementations used by all
-    three catalog back-ends (RIT, SXS, MAYA).
+    Concrete base class that combines ``CatalogABC`` with a plain-dict
+    simulation registry and provides the shared ``get()``, ``get_metadata()``,
+    ``get_parameters()``, and ``set_attribute_in_waveform_data_file()``
+    implementations used by all three catalog back-ends (RIT, SXS, MAYA).
 
     Subclasses must set ``CATALOG_TYPE`` (e.g. ``"RIT"``) and implement all
     abstract methods declared in ``CatalogABC``.
@@ -21,9 +21,11 @@ from __future__ import annotations
 
 import os
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
-from sxs import Catalog as sxs_Catalog
+if TYPE_CHECKING:
+    import sxs
+
 from nrcatalogtools import waveform
 from nrcatalogtools import metadata as md
 
@@ -183,12 +185,13 @@ class CatalogABC(ABC):
         raise NotImplementedError()
 
 
-class CatalogBase(CatalogABC, sxs_Catalog):
+class CatalogBase(CatalogABC):
     """Shared implementation base for all NR catalog back-ends.
 
-    Combines ``CatalogABC`` (abstract interface) with ``sxs.Catalog``
-    (dict-backed simulation registry) and provides the default
-    ``get()``, ``get_metadata()``, ``get_parameters()``, and
+    Owns ``self._simulations: dict[str, dict]`` (simulation name →
+    metadata dict) directly, with no dependency on ``sxs.Catalog``.
+    Provides the default ``get()``, ``get_metadata()``,
+    ``get_parameters()``, ``to_sxs()``, and
     ``set_attribute_in_waveform_data_file()`` implementations shared
     by ``RITCatalog``, ``SXSCatalog``, and ``MayaCatalog``.
 
@@ -207,23 +210,60 @@ class CatalogBase(CatalogABC, sxs_Catalog):
     # can dispatch on catalog_type without fragile sentinel-key detection.
     CATALOG_TYPE = None
 
-    def __init__(self, *args, **kwargs) -> None:
-        """Delegate to ``sxs.Catalog.__init__``.
+    def __init__(self, simulations: dict, **kwargs) -> None:
+        """Store the simulation metadata dict.
 
-        All positional and keyword arguments are forwarded unchanged to the
-        underlying ``sxs.Catalog`` constructor.
+        Args:
+            simulations (dict): Mapping of simulation name → metadata dict.
+            **kwargs: Accepted for subclass compatibility; not forwarded.
         """
-        sxs_Catalog.__init__(self, *args, **kwargs)
+        self._simulations = simulations
+
+    @property
+    def simulations(self) -> dict:
+        """Mapping of simulation name → metadata dict for all simulations.
+
+        Returns:
+            dict[str, dict]: The full simulation registry.
+        """
+        return self._simulations
 
     @property
     def simulations_list(self) -> list:
         """List of all simulation name tags in the catalog.
 
         Returns:
-            list[str]: Simulation names in the order returned by
-            ``sxs.Catalog.simulations``.
+            list[str]: Simulation names in insertion order.
         """
-        return list(self.simulations)
+        return list(self._simulations)
+
+    def to_sxs(self) -> "sxs.Simulations":
+        """Return an ``sxs.Simulations`` view of this catalog's metadata.
+
+        For ``SXSCatalog``, the live ``sxs.Simulations`` object (fully
+        populated with ``.dataframe``, ``.tag``, etc.) is returned via an
+        override.  For RIT and MAYA catalogs this constructs an
+        ``sxs.Simulations`` object from the local metadata dict; sxs-specific
+        columns in ``.dataframe`` will be NaN because RIT/MAYA keys do not
+        match the SXS schema.
+
+        Returns:
+            sxs.Simulations: An sxs-native catalog object.
+        """
+        import sxs
+
+        return sxs.Simulations(self._simulations)
+
+    def save(self, file: str) -> None:
+        """Save this catalog's metadata to a JSON file.
+
+        Args:
+            file (str): Path to the output JSON file.
+        """
+        import json
+
+        with open(file, "w") as f:
+            json.dump(dict(self._simulations), f, indent=4)
 
     def get(
         self, sim_name: str, quantity: str = "waveform", **kwargs
@@ -242,7 +282,7 @@ class CatalogBase(CatalogABC, sxs_Catalog):
         Returns:
             nrcatalogtools.waveform.WaveformModes: Waveform modes
         """
-        if sim_name not in self.simulations_dataframe.index.to_list():
+        if sim_name not in self._simulations:
             raise IOError(
                 f"Simulation {sim_name} not found in catalog."
                 f"Please check that it exists"
@@ -299,13 +339,12 @@ class CatalogBase(CatalogABC, sxs_Catalog):
             key (value: ``"RIT"``, ``"SXS"``, or ``"MAYA"``) so that
             downstream code can dispatch without fragile sentinel-key checks.
         """
-        sim_dict = self.simulations
-        if sim_name not in list(sim_dict.keys()):
+        if sim_name not in self._simulations:
             raise IOError(
                 f"Simulation {sim_name} not found in catalog."
                 f"Please check that it exists"
             )
-        metadata = sim_dict[sim_name]
+        metadata = self._simulations[sim_name]
         # Inject catalog_type once; idempotent on repeated calls.
         # sxs.Metadata is an OrderedDict subclass so __setitem__ works directly;
         # RIT and MAYA use plain dicts — no conversion needed in either case.
