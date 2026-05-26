@@ -24,6 +24,49 @@ from nrcatalogtools.waveform.units import _modal_dt
 
 
 class WaveformModes(sxs_WaveformModes):
+    """Catalog-agnostic container for spin-weighted spherical-harmonic waveform modes.
+
+    Inherits from ``sxs.WaveformModes`` (itself an ``numpy.ndarray`` subclass)
+    so that instances *are* NumPy arrays.  This is an **intentional design
+    choice**, not technical debt, motivated by three requirements:
+
+    1. **Zero-copy performance.**  Mismatch calculations (``match_single_mode``,
+       ``match_sphere_averaged``, BMS supertranslation optimization) pass mode
+       data directly to PyCBC and SciPy routines that expect array-protocol
+       objects.  Inheritance lets NumPy hand them the underlying buffer without
+       an intermediate copy.
+
+    2. **Wigner-rotation reuse.**  The parent class exposes ``evaluate()``,
+       ``index()``, ``LM``, and Wigner-D rotation infrastructure from the
+       ``sxs`` / ``spherical`` stack.  Inheriting avoids re-implementing or
+       wrapping that non-trivial mathematics.
+
+    3. **Downstream compatibility.**  Research workflows in PyCBC, ``scri``,
+       and user scripts rely on ``isinstance(wfm, sxs.WaveformModes)``
+       checks and on standard NumPy slicing semantics.  Breaking that
+       contract would impose migration costs across the gravitational-wave
+       community.
+
+    **Attribute propagation.**  Because ``numpy.ndarray`` subclasses lose
+    plain instance attributes during slicing and view-casting, all custom
+    state (``_filepath``, ``_present_modes``, ``_peak_time_22``,
+    ``_t_ref_nr``, ``verbosity``) is stored inside the ``_metadata`` dict
+    that ``sxs.TimeSeries`` already propagates.  Property descriptors
+    provide transparent read/write access.  See ``_custom_meta_keys``,
+    ``__array_finalize__``, ``__copy__``, and ``__deepcopy__`` for details.
+    """
+
+    # Custom keys stored inside ``_metadata`` so they survive the
+    # ``sxs.TimeSeries._slice`` → ``type(self)(new_data, **metadata)``
+    # reconstruction path.  Each maps to a factory producing a safe default.
+    _custom_meta_keys = {
+        "_filepath": lambda: None,
+        "_present_modes": set,
+        "_peak_time_22": lambda: None,
+        "_t_ref_nr": lambda: None,
+        "verbosity": lambda: 0,
+    }
+
     def __new__(
         cls,
         data,
@@ -35,9 +78,13 @@ class WaveformModes(sxs_WaveformModes):
         verbosity=0,
         **w_attributes,
     ) -> None:
-        # Extract _filepath before passing w_attributes to the parent so it
-        # becomes a per-instance attribute, not a class-level one.
-        filepath = w_attributes.pop("_filepath", None)
+        # Pull custom keys out of w_attributes so they don't confuse the
+        # parent constructor, then re-inject them into _metadata afterwards.
+        custom_vals = {}
+        for key in list(cls._custom_meta_keys):
+            if key in w_attributes:
+                custom_vals[key] = w_attributes.pop(key)
+
         self = super().__new__(
             cls,
             data,
@@ -48,10 +95,101 @@ class WaveformModes(sxs_WaveformModes):
             ell_max=ell_max,
             **w_attributes,
         )
-        self._t_ref_nr = None
-        self._filepath = filepath
-        self.verbosity = verbosity
+
+        # Store custom attrs inside _metadata.
+        self._metadata.setdefault("_filepath", custom_vals.get("_filepath", None))
+        self._metadata.setdefault(
+            "_present_modes", custom_vals.get("_present_modes", set())
+        )
+        self._metadata.setdefault(
+            "_peak_time_22", custom_vals.get("_peak_time_22", None)
+        )
+        self._metadata.setdefault("_t_ref_nr", custom_vals.get("_t_ref_nr", None))
+        self._metadata.setdefault("verbosity", custom_vals.get("verbosity", verbosity))
         return self
+
+    # -- Attribute-propagation machinery (REQ-3.2) -------------------------
+    #
+    # All custom state lives in ``_metadata`` so it naturally travels through
+    # the ``sxs.TimeSeries._slice`` reconstruction path.  We expose
+    # convenient instance-level accessors that read/write ``_metadata``.
+
+    @property
+    def _filepath(self):
+        return self._metadata.get("_filepath")
+
+    @_filepath.setter
+    def _filepath(self, value):
+        self._metadata["_filepath"] = value
+
+    @property
+    def _present_modes(self):
+        return self._metadata.get("_present_modes", set())
+
+    @_present_modes.setter
+    def _present_modes(self, value):
+        self._metadata["_present_modes"] = value
+
+    @property
+    def _peak_time_22(self):
+        return self._metadata.get("_peak_time_22")
+
+    @_peak_time_22.setter
+    def _peak_time_22(self, value):
+        self._metadata["_peak_time_22"] = value
+
+    @property
+    def _t_ref_nr(self):
+        return self._metadata.get("_t_ref_nr")
+
+    @_t_ref_nr.setter
+    def _t_ref_nr(self, value):
+        self._metadata["_t_ref_nr"] = value
+
+    @property
+    def verbosity(self):
+        return self._metadata.get("verbosity", 0)
+
+    @verbosity.setter
+    def verbosity(self, value):
+        self._metadata["verbosity"] = value
+
+    def __array_finalize__(self, obj):
+        """Propagate ``_metadata`` (including custom keys) from *obj*.
+
+        Delegates to the parent ``sxs.TimeSeries.__array_finalize__`` which
+        handles the core ``_metadata`` dict copy.  Then ensures our custom
+        keys have safe defaults if they were absent on the source object
+        (e.g. view-casting from a plain ndarray).
+        """
+        super().__array_finalize__(obj)
+        if obj is None:
+            return
+        for key, default_factory in self._custom_meta_keys.items():
+            self._metadata.setdefault(key, default_factory())
+
+    def __copy__(self):
+        """Shallow copy that duplicates mutable custom containers."""
+
+        result = super().__copy__()
+        # Shallow-copy mutable containers to break aliasing.
+        pm = result._metadata.get("_present_modes")
+        if isinstance(pm, (set, dict, list)):
+            result._metadata["_present_modes"] = pm.copy()
+        return result
+
+    def __deepcopy__(self, memo):
+        """Deep copy that deeply duplicates custom metadata entries."""
+        import copy as _copy_mod
+
+        result = super().__deepcopy__(memo)
+        for key in self._custom_meta_keys:
+            val = result._metadata.get(key)
+            if val is not None:
+                result._metadata[key] = _copy_mod.deepcopy(val, memo)
+        return result
+
+    # -- End attribute-propagation machinery --------------------------------
 
     @classmethod
     def _load(
@@ -624,7 +762,7 @@ class WaveformModes(sxs_WaveformModes):
     @property
     def peak_time_22(self):
         """Dimensionless time of the peak amplitude of the (2,2) mode."""
-        if hasattr(self, "_peak_time_22"):
+        if self._peak_time_22 is not None:
             return self._peak_time_22
 
         try:
