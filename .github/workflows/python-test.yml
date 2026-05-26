@@ -1,141 +1,89 @@
-# This workflow will setup and test the python code using miniconda
+# Run the full unit-test suite and publish a coverage report as a workflow artefact.
+# Coverage is uploaded as an artefact (not to GitHub Pages, which is owned by docs.yml).
 
-name: Setup test publish reports
+name: Unit tests and coverage
 
 on: [push, pull_request]
-  # Allows you to run this workflow manually from the Actions tab
 
-
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
-  
+  group: unit-tests-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -el {0}
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: conda-incubator/setup-miniconda@v2
+      # ── 1. Source ──────────────────────────────────────────────────────────
+      - uses: actions/checkout@v4
+
+      # ── 2. Python ─────────────────────────────────────────────────────────
+      - uses: actions/setup-python@v5
         with:
-          auto-update-conda: true
-          environment-file: environment.yml
-          activate-environment: nrcat
-          python-version: "3.10"
-          channels: main, conda-forge
-          allow-softlinks: true
-          channel-priority: flexible
-          show-channel-urls: true
-      - run: |
-            # Conda diagnostic
-            echo "Echoing conda diagnostic information"
-            conda --version
-            conda info
-            conda list
-            conda config --show-sources
-            conda config --show
-            conda info --envs
-            python --version
-            pip --version
-            pwd
-            ls -l
-            ######################
-            # Setup linters
-            # conda install black isort -y
-            # ##################
-            # Setup nrcattools
-            echo "Setting up nrcatalogtools"
-            pip install -r requirements.txt
-            export NRC_DIR=${PWD}
-            echo $NRC_DIR
-            cd ./test
-            pwd
-            ls
-            echo "Downloading lalsuite-extras"
-            # ##################
-            # LAL extras
-            export LAL_DATA_PATH="${PWD}/lalsuite-extra/data/lalsimulation"
-            echo "Using LAL_DATA_PATH"
-            echo $LAL_DATA_PATH
-            mkdir -p $LAL_DATA_PATH
-            cd $LAL_DATA_PATH
-            ls
-            ## lal extras fetch method
-            # git lfs pull
-            wget -q https://git.ligo.org/lscsoft/lalsuite-extra/-/raw/master/data/lalsimulation/SEOBNRv4ROM_v2.0.hdf5 -O SEOBNRv4ROM_v2.0.hdf5
-            cd $NRC_DIR
-            pwd
-            ls
-            pip install -r requirements.txt
-            ls
-            export WTOOLS_DIR=$PWD
-            echo $WTOOLS_DIR
-            export PYTHONPATH="$WTOOLS_DIR":$PYTHONPATH
-            echo $PYTHONPATH
-            ####################
-            # Begin linting
-            # cd $NRC_DIR
-            # isort .
-            # black .
-            # flake8 .
-            # #################
-            # Begin testing
-            conda install -y coverage pytest
-            echo "Begin testing"
-            cd $NRC_DIR
-            # python -m unittest -v
-            python -m coverage run --source=nrcatalogtools -m pytest -v --tb=short
-            python -m coverage html
-            python test/.generate_badge.py
-      - name: Upload logs
+          python-version: "3.11"
+          cache: pip
+
+      # ── 3. System libs required by lalsuite ───────────────────────────────
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q libgsl-dev libfftw3-dev libhdf5-dev
+
+      # ── 4. Python dependencies ────────────────────────────────────────────
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install \
+            "sxs>=2025.0.0" \
+            "lalsuite>=7.0" \
+            "pycbc>=2.0" \
+            "mayawaves>=2024.0" \
+            quaternionic \
+            spherical \
+            scipy \
+            numpy \
+            pandas \
+            h5py \
+            requests \
+            pytest \
+            coverage
+          pip install -e .
+
+      # ── 5. Run tests with coverage ────────────────────────────────────────
+      # All tests are collected; tests guarded by @skipUnless / try-except
+      # (test_sxs_modes, test_gt_pol) skip gracefully when optional data or
+      # waveformtools is absent.  cross_catalog tests are excluded here because
+      # they require pre-downloaded waveform data from all three catalogs —
+      # those are handled by test-cross-catalog.yml.
+      - name: Run tests
+        run: |
+          python -m coverage run \
+            --source=nrcatalogtools \
+            -m pytest test/ \
+            -v \
+            --tb=short \
+            -m "not cross_catalog" \
+            -p no:warnings \
+            --junit-xml=test-results.xml
+
+      # ── 6. Coverage report ────────────────────────────────────────────────
+      - name: Generate coverage report
+        if: always()
+        run: |
+          python -m coverage html
+          python -m coverage report
+
+      # ── 7. Upload artefacts ───────────────────────────────────────────────
+      - name: Upload test results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: logs_n_coverage
-          path: |
-            ./test/logs/*
-            ./test/cov_badge.svg
-            ./test/htmlcov
-            
-  cov_reports:
-    name: Publish coverage reports
-    needs: build
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -el {0}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Download artefacts from build
-        uses: actions/download-artifact@v4
+          name: test-results
+          path: test-results.xml
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: logs_n_coverage
-      - name: Diagnostics
-        run: |
-          ls
-          ls ../
-          mv cov_badge.svg htmlcov/
-          cd htmlcov
-          ls
-          pwd
-      - name: Setup Pages
-        uses: actions/configure-pages@v3
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          # Upload entire repository
-          path: htmlcov
-        
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
+          name: coverage-html
+          path: htmlcov/
