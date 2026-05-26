@@ -62,7 +62,11 @@ nrcatalogtools/
 ├── rit.py          # RITCatalog + RITCatalogHelper
 ├── sxs.py          # SXSCatalog
 ├── maya.py         # MayaCatalog
-├── waveform.py     # WaveformModes
+├── waveform/       # WaveformModes sub-package
+│   ├── modes.py    #   WaveformModes class
+│   ├── loaders.py  #   load_from_h5, load_from_targz
+│   ├── matching.py #   match_sphere_averaged, match_sphere_averaged_bms_maximized
+│   └── units.py    #   time_to_physical, amp_to_physical (waveform-level)
 ├── metadata.py     # get_source_parameters_from_metadata()
 ├── lvc.py          # Frame-rotation helpers
 └── utils.py        # Cache paths, download helpers, unit conversions
@@ -107,7 +111,7 @@ mayacat = nrcat.MayaCatalog.load()
 wfm = ritcat.get("RIT:BBH:0003-n100-id0")
 
 # Physical-unit (2,2) mode
-mode22 = wfm.get_mode(2, 2, total_mass=60.0, distance=100.0, delta_t=1./4096)
+mode22 = wfm.get_mode(2, 2, total_mass=60.0, distance=100.0, delta_t_seconds=1./4096)
 
 # Polarizations
 pols = wfm.get_td_waveform(total_mass=40., distance=100., inclination=0.2, coa_phase=0.3)

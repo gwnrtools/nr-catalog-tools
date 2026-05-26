@@ -41,7 +41,11 @@ nrcatalogtools/
 ├── rit.py             # RITCatalog + RITCatalogHelper
 ├── sxs.py             # SXSCatalog
 ├── maya.py            # MayaCatalog
-├── waveform.py        # WaveformModes (core waveform object)
+├── waveform/          # WaveformModes sub-package
+│   ├── modes.py       #   WaveformModes class
+│   ├── loaders.py     #   load_from_h5, load_from_targz
+│   ├── matching.py    #   match_sphere_averaged, bms_maximized variant
+│   └── units.py       #   waveform-level unit helpers
 ├── metadata.py        # get_source_parameters_from_metadata()
 ├── lvc.py             # Frame rotation helpers (check_interp_req,
 │                      #   get_nr_to_lal_rotation_angles, get_ref_vals)
@@ -60,7 +64,7 @@ sxs.Catalog  (from the sxs package)
             └── MayaCatalog  (nrcatalogtools/maya.py)
 
 sxs.WaveformModes  (from the sxs package)
-    └── WaveformModes  (nrcatalogtools/waveform.py)
+    └── WaveformModes  (nrcatalogtools/waveform/modes.py)
 ```
 
 `CatalogBase` inherits from `sxs.Catalog`, which stores all simulation metadata in `self._dict["simulations"]` — a plain `dict` keyed by simulation name, where each value is another `dict` of metadata fields.
@@ -176,7 +180,7 @@ wfm = mayacat.get("GT0001", quantity="waveform")
 
 ---
 
-## 5. `WaveformModes` (`waveform.py`)
+## 5. `WaveformModes` (`waveform/`)
 
 The central data object. Inherits from `sxs.WaveformModes`, which in turn is an ndarray subclass. The internal data array has shape `(n_times, n_modes)` with complex dtype.
 
@@ -384,7 +388,7 @@ DELTA_T    = 1.0 / 4096  # seconds
 
 # RIT / MAYA
 wfm = ritcat.get("RIT:BBH:0001-n100-id3", quantity="waveform")
-mode22 = wfm.get_mode(2, 2, total_mass=TOTAL_MASS, distance=DISTANCE, delta_t=DELTA_T)
+mode22 = wfm.get_mode(2, 2, total_mass=TOTAL_MASS, distance=DISTANCE, delta_t_seconds=DELTA_T)
 # mode22 is a complex PyCBC TimeSeries; epoch set so peak is at t=0
 # mode22.real() ≈ h_plus;  mode22.imag() ≈ h_cross
 
