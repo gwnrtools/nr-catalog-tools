@@ -30,10 +30,14 @@ Lookup
     obj = cls.load()
 """
 
-_REGISTRY: dict = {}
+from __future__ import annotations
+
+from typing import Callable, Type
+
+_REGISTRY: dict[str, type] = {}
 
 
-def register_catalog(tag: str):
+def register_catalog(tag: str) -> Callable[[Type], Type]:
     """Class decorator that registers a catalog under *tag*.
 
     Parameters
@@ -73,7 +77,7 @@ def register_catalog(tag: str):
     return decorator
 
 
-def get_catalog(tag: str):
+def get_catalog(tag: str) -> Type:
     """Return the catalog class registered under *tag*.
 
     Parameters

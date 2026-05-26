@@ -1,3 +1,46 @@
+"""Frame-rotation helpers and LVCNR format utilities.
+
+This module provides the low-level functions needed to:
+
+1. **Read LVCNR HDF5 files** – parse mode data and strain from the LVK
+   NR format (``get_modes_from_lvcnr_file``, ``get_strain_from_lvcnr_file``).
+
+2. **Compute the LAL source frame** – derive the NR orbital normal
+   (``LNhat``) and binary-separation unit vector (``nhat``) from HDF5
+   file attributes, time-series data, or SXS-style simulation metadata
+   (``compute_lal_source_frame_from_sxs_metadata``,
+   ``compute_lal_source_frame_by_interp``).
+
+3. **Rotate NR waveforms into the LAL frame** – compute the SO(3) rotation
+   angles (``theta``, ``psi``, ``alpha``) needed to project the NR
+   waveform onto the detector line of sight at a given inclination and
+   reference phase (``get_nr_to_lal_rotation_angles``).
+
+4. **Build LAL mode dictionaries** – create LAL parameter dictionaries
+   with a specified set of (ell, m) modes for use with LALSimulation
+   waveform routines (``get_lal_mode_dictionary``,
+   ``get_lal_mode_dictionary_from_lmax``).
+
+Public functions
+----------------
+get_lal_mode_dictionary(mode_array)
+get_lal_mode_dictionary_from_lmax(lmax)
+get_modes_from_lvcnr_file(path_to_file, Mtot, distance, srate, lmax, f_low)
+get_strain_from_lvcnr_file(path_to_file, Mtot, distance, inclination, phi_ref, srate, mode_array)
+check_interp_req(h5_file, metadata, ref_time, avail_ref_time)
+get_ref_freq_from_ref_time(h5_file, ref_time)
+get_ref_time_from_ref_freq(h5_file, ref_freq)
+check_nr_attrs(sim_metadata_object, req_attrs)
+get_interp_ref_values_from_h5_file(h5_file, req_ts_attrs, ref_time)
+get_ref_vals(sim_metadata_object, req_attrs)
+compute_lal_source_frame_from_sxs_metadata(sim_metadata)
+compute_lal_source_frame_by_interp(h5_file, req_ts_attrs, t_ref)
+normalize_metadata(sim_metadata)
+get_ref_time_from_metadata(sim_metadata)
+transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat)
+get_nr_to_lal_rotation_angles(h5_file, sim_metadata, inclination, phi_ref, f_ref, t_ref, tol)
+"""
+
 import h5py
 import lal
 import lalsimulation as lalsim

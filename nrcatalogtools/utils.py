@@ -1,9 +1,52 @@
+"""Utility constants, cache-path definitions, and download helpers.
+
+Module-level constants
+----------------------
+nrcatalog_cache_dir : pathlib.Path
+    Root cache directory; defaults to ``~/.cache/`` but can be overridden
+    by setting the ``NR_CATALOG_CACHE`` environment variable.
+
+rit_catalog_info : dict
+    Cache paths, base URLs, filename format strings, and parameter ranges
+    for the RIT catalog.
+
+maya_catalog_info : dict
+    Cache paths and base URLs for the MAYA/GT catalog.
+
+sxs_catalog_info : dict
+    Cache paths and base URLs for the SXS catalog (supplemental; the
+    ``sxs`` package manages its own cache internally).
+
+Public functions
+----------------
+url_exists(link, num_retries, verbosity)
+    HEAD-request check with exponential-backoff retries.
+
+download_file(url, path, progress, if_newer, num_retries, verbosity)
+    Download a URL to a local path; tries the ``sxs`` downloader first and
+    falls back to ``requests``.
+
+call_with_timeout(myfunc, args, kwargs, timeout)
+    Run a callable in a subprocess with a hard wall-clock timeout.
+
+time_to_physical(M)
+    Convert dimensionless NR time units to seconds.
+
+amp_to_physical(M, D)
+    Scale dimensionless NR strain amplitude to SI units.
+
+amplitude_phase_frequency_from_complex_mode(hlm)
+    Compute instantaneous amplitude, phase, and frequency from a complex
+    PyCBC TimeSeries.
+"""
+
+from __future__ import annotations
+
 import functools
 import os
 import pathlib
 import shutil
 import time
-
 import lal
 import requests
 
@@ -71,7 +114,7 @@ sxs_catalog_info["data_dir"] = sxs_catalog_info["cache_dir"] / "data/"
 sxs_catalog_info["metadata_dir"] = sxs_catalog_info["cache_dir"] / "metadata"
 
 
-def url_exists(link, num_retries=5, verbosity=0):
+def url_exists(link: str, num_retries: int = 5, verbosity: int = 0) -> bool:
     """Check if a given URL exists on the web.
 
     Retries up to ``num_retries`` times on network errors, with exponential
@@ -106,7 +149,14 @@ def url_exists(link, num_retries=5, verbosity=0):
     return False
 
 
-def download_file(url, path, progress=False, if_newer=True, num_retries=5, verbosity=0):
+def download_file(
+    url: str,
+    path: str | pathlib.Path,
+    progress: bool = False,
+    if_newer: bool = True,
+    num_retries: int = 5,
+    verbosity: int = 0,
+) -> pathlib.Path:
     """
     Download a file from the given URL to the specified local path.
 
@@ -175,7 +225,9 @@ def download_file(url, path, progress=False, if_newer=True, num_retries=5, verbo
     return path
 
 
-def call_with_timeout(myfunc, args=(), kwargs={}, timeout=5):
+def call_with_timeout(
+    myfunc: object, args: tuple = (), kwargs: dict = {}, timeout: float = 5
+):
     """
     Call a function with a time limit in a separate process.
 
@@ -220,7 +272,7 @@ def call_with_timeout(myfunc, args=(), kwargs={}, timeout=5):
         raise Exception("Timeout")
 
 
-def time_to_physical(M):
+def time_to_physical(M: float) -> float:
     """
     Factor to convert time from dimensionless units to SI units
 
@@ -236,7 +288,7 @@ def time_to_physical(M):
     return M * lal.MTSUN_SI
 
 
-def amp_to_physical(M, D):
+def amp_to_physical(M: float, D: float) -> float:
     """
     Factor to rescale strain to mass M and distance D convert from
     dimensionless units to SI units
