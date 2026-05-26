@@ -22,10 +22,10 @@ All three backends implement an identical interface so analysis code is catalog-
 ## Class Hierarchy
 
 ```
-sxs.Catalog
-  └── CatalogBase (catalog.py)        ← abstract interface + shared get()/get_parameters()
+CatalogABC (catalog.py)               ← abstract base interface
+  └── CatalogBase (catalog.py)        ← shared get()/get_parameters() with internal dict simulations registry
         ├── RITCatalog  (rit.py)       ← web-scraped .txt metadata; HDF5 / tar.gz data
-        ├── SXSCatalog  (sxs.py)       ← delegates to sxs package (Zenodo-backed)
+        ├── SXSCatalog  (sxs.py)       ← delegates to new sxs.Simulations (Zenodo-backed)
         └── MayaCatalog (maya.py)      ← pickle metadata; HDF5 data via mayawaves
 
 sxs.WaveformModes (ndarray subclass)
@@ -68,9 +68,9 @@ RITCatalog.load()
 
 ```
 SXSCatalog.load()
-  → sxs.load("catalog", download=None)
+  → sxs.load("simulations", download=None)
   → SXSCatalog.get(sim_name)
-  → sxs.load(sim_name, auto_supersede=True)          # Zenodo-backed
+  → sxs.load(sim_name, extrapolation="N{n}", auto_supersede=True) # Zenodo-backed
   → sim_obj.strain                                   # sxs.WaveformModes
   → WaveformModes(raw_obj.data, raw_obj.time, ...)  # thin wrapper
 ```
@@ -108,12 +108,11 @@ MayaCatalog.load()
 
 Catalog-specific keys are normalized to PyCBC-compatible output in `get_source_parameters_from_metadata()`:
 
-| Catalog sentinel key | Input keys | Output keys |
+| `catalog_type` value | Input keys | Output keys |
 |---|---|---|
-| `relaxed_mass1` (RIT) | `relaxed_chi1x/y/z`, `freq_start_22` | `spin1x/y/z`, `f_lower` |
-| `GTID` (MAYA) | `a1x/y/z`, `omega_orbital` | `spin1x/y/z`, `f_lower` |
-| _(else)_ (SXS) | `reference_dimensionless_spin1/2`, `reference_orbital_frequency` | `spin1x/y/z`, `f_lower` |
+| `"RIT"` | `relaxed-chi1x/y/z`, `freq-start-22` | `spin1x/y/z`, `f_lower` |
+| `"MAYA"` | `a1x/y/z`, `omega_orbital` | `spin1x/y/z`, `f_lower` |
+| `"SXS"` | `reference_dimensionless_spin1/2`, `reference_orbital_frequency` | `spin1x/y/z`, `f_lower` |
 
-**RIT quirk**: raw metadata text files use hyphens (`relaxed-chi1z`); `parse_metadata_txt()` in
-`RITCatalogHelper` converts to underscores when building the DataFrame.
+**RIT keys**: raw metadata text files use hyphens (`relaxed-chi1z`); the internal scraper retains them, and they are accessed directly using hyphens.
 

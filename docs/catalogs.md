@@ -98,7 +98,7 @@ q1_ns = df[
 
 **Class:** `nrcatalogtools.SXSCatalog`  
 **Source:** [api/sxs.md](api/sxs.md)  
-**Data host:** Zenodo (via the `sxs` package ≥ 2025.0.0)
+**Data host:** Zenodo (via the `sxs` package ≥ 2024.0.0)
 
 ### Loading
 
@@ -201,13 +201,13 @@ q1_ns = df[
 
 [`metadata.py`](api/metadata.md) converts catalog-specific metadata into a
 PyCBC-compatible parameter dict via `get_source_parameters_from_metadata(metadata, total_mass)`.
-The catalog is detected by sentinel keys:
+The catalog is detected by the explicit `catalog_type` metadata key (`"RIT"`, `"MAYA"`, or `"SXS"`), which is injected dynamically during load:
 
-| Sentinel key present | Catalog |
+| `catalog_type` value | Catalog |
 |---|---|
-| `relaxed_mass1` | RIT |
-| `GTID` | MAYA |
-| _(neither of the above)_ | SXS |
+| `"RIT"` | RIT |
+| `"MAYA"` | MAYA |
+| `"SXS"` | SXS |
 
 All three paths produce the same output dict:
 

@@ -84,7 +84,7 @@ pip install nrcatalogtools
 
 | Package | Version | Role |
 |---------|---------|------|
-| `sxs` | ≥ 2025.0.0 | SXS catalog access; base classes `sxs.Catalog`, `sxs.WaveformModes` |
+| `sxs` | ≥ 2024.0.0 | SXS simulations access; base class `sxs.WaveformModes` |
 | `pycbc` | any | `TimeSeries`, `match()`, `get_td_waveform_modes()`, `pnutils` |
 | `lal` / `lalsimulation` | any | Physical constants (`MTSUN_SI`, `MSUN_SI`, `G_SI`, `C_SI`, `PC_SI`) |
 | `h5py` | any | HDF5 reading (RIT waveform files) |
