@@ -57,7 +57,7 @@ nrcatalogtools/
 ## 3. Class Hierarchy
 
 ```
-sxs.Catalog  (from the sxs package)
+CatalogABC  (nrcatalogtools/catalog.py)
     └── CatalogBase  (nrcatalogtools/catalog.py)
             ├── RITCatalog   (nrcatalogtools/rit.py)
             ├── SXSCatalog   (nrcatalogtools/sxs.py)
@@ -67,7 +67,7 @@ sxs.WaveformModes  (from the sxs package)
     └── WaveformModes  (nrcatalogtools/waveform/modes.py)
 ```
 
-`CatalogBase` inherits from `sxs.Catalog`, which stores all simulation metadata in `self._dict["simulations"]` — a plain `dict` keyed by simulation name, where each value is another `dict` of metadata fields.
+`CatalogBase` inherits from `CatalogABC` and owns a plain `dict` simulation registry stored directly in `self._simulations` keyed by simulation name, removing the dependency on `sxs.Catalog`.
 
 `WaveformModes` inherits from `sxs.WaveformModes`, which is itself an ndarray-like object storing complex mode data with shape `(n_times, n_modes)`.
 
@@ -127,7 +127,7 @@ wfm = ritcat.get("RIT:BBH:0001-n100-id3", quantity="waveform")
 
 ### 4.3 `SXSCatalog` (`sxs.py`)
 
-**Metadata source:** Loaded via `sxs.load("catalog", download=None)` (sxs package ≥ 2025.0.0), which fetches from the Simulations directory on Zenodo.
+**Metadata source:** Loaded via `sxs.load("simulations", download=None)` (sxs package ≥ 2024.0.0), which fetches the new simulations metadata from Zenodo/GitHub.
 
 **Waveform files:** Managed entirely by the `sxs` package (Zenodo-backed). Accessed via `sxs.load(sim_name, auto_supersede=True)` which returns a `Simulation` object; `.strain` gives the `sxs.WaveformModes`.
 
@@ -295,13 +295,13 @@ All three catalogs agree to within ~0.75% on the peak amplitude of the $(2,2)$ m
 
 ## 7. Metadata Normalization (`metadata.py`)
 
-`get_source_parameters_from_metadata(metadata, total_mass)` converts catalog-specific metadata into a PyCBC-compatible parameter dict. The catalog is identified by the presence of sentinel keys:
+`get_source_parameters_from_metadata(metadata, total_mass)` converts catalog-specific metadata into a PyCBC-compatible parameter dict. The catalog is identified by the explicit `catalog_type` metadata key (`"RIT"`, `"MAYA"`, or `"SXS"`), which is injected dynamically during load:
 
-| Key present | Catalog | |
-|------------|---------|--|
-| `relaxed_mass1` | RIT | reads `relaxed_mass_ratio_1_over_2`, `relaxed_chi1x`, …, `freq_start_22` |
-| `GTID` | MAYA/GT | reads `q`, `a1x`/`a1y`/`a1z`, `a2x`/`a2y`/`a2z`, `Momega` |
-| _(none of above)_ | SXS | reads `reference_mass_ratio`, `reference_dimensionless_spin1/2`, `reference_orbital_frequency` |
+| `catalog_type` value | Catalog | Description |
+|----------------------|---------|-------------|
+| `"RIT"` | RIT | reads `relaxed-mass-ratio-1-over-2`, `relaxed-chi1x`, …, `freq-start-22` |
+| `"MAYA"` | MAYA/GT | reads `q`, `a1x`/`a1y`/`a1z`, `a2x`/`a2y`/`a2z`, `Momega` |
+| `"SXS"` | SXS | reads `reference_mass_ratio`, `reference_dimensionless_spin1/2`, `reference_orbital_frequency` |
 
 **Spin key output:** All three paths write spin components as `spin1x`, `spin1y`, `spin1z`, `spin2x`, `spin2y`, `spin2z` — compatible with PyCBC's `get_td_waveform_modes()`.
 
@@ -340,7 +340,7 @@ Controlled by the `NR_CATALOG_CACHE` environment variable (defaults to `~/.cache
 
 | Package | Role |
 |---------|------|
-| `sxs` (≥ 2025.0.0) | SXS catalog access, base classes (`sxs.Catalog`, `sxs.WaveformModes`) |
+| `sxs` (≥ 2024.0.0) | SXS simulations access, base class (`sxs.WaveformModes`) |
 | `mayawaves` | MAYA coalescence loading |
 | `pycbc` | `TimeSeries`, `match()`, `get_td_waveform_modes()`, `pnutils` |
 | `lal` / `lalsimulation` | Physical constants (`MTSUN_SI`, `MSUN_SI`, `G_SI`, `C_SI`, `PC_SI`) |
@@ -428,14 +428,14 @@ f_relax = wfm.f_lower_at_1Msun(t=t_relax_dimless) / TOTAL_MASS   # Hz
 `sxs.WaveformModes.data` may return a memoryview rather than a writable numpy array. All arithmetic operations (especially in-place `*=`) must wrap the result with `np.array(..., dtype=complex)` first. The relevant locations are: `get_mode()` (mode_data, h_mode_complex) and `peak_time_22` (mode22_data).
 
 ### `sxs` API version
-The package requires `sxs ≥ 2025.0.0`. The older API `sxs.load("SXS:BBH:0001/rhOverM")` with catalog metadata from `data.black-holes.org` is no longer functional. The current API is:
+The package requires `sxs ≥ 2024.0.0`. The older API `sxs.load("SXS:BBH:0001/rhOverM")` with catalog metadata from `data.black-holes.org` is no longer functional. The current API is:
 ```python
 sim = sxs.load("SXS:BBH:0001", auto_supersede=True)
 strain = sim.strain   # sxs.WaveformModes
 ```
 
 ### Metadata key naming across catalogs
-RIT metadata uses **hyphens** in raw text files (`relaxed-chi1z`) but the internal DataFrame retains them as-is. When calling `get_source_parameters_from_metadata()`, these are accessed with underscores (`relaxed_chi1z`) — the parser maps hyphen → underscore during `parse_metadata_txt()`. MAYA uses short names (`a1x`, `q`). SXS uses long underscored names (`reference_dimensionless_spin1`).
+RIT metadata uses **hyphens** in the scraped registry (`relaxed-chi1z`). When calling `get_source_parameters_from_metadata()`, these are accessed directly using hyphens, consistent with the scraped format. MAYA uses short names (`a1x`, `q`). SXS uses long underscored names (`reference_dimensionless_spin1`).
 
 ### `check_interp_req` call signature (`lvc.py`)
 The function signature is `check_interp_req(h5_file=None, metadata=None, ref_time=None, ...)`. Call sites must pass `ref_time` as a **keyword argument**:

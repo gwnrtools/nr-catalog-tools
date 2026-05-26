@@ -123,7 +123,7 @@ def url_exists(link: str, num_retries: int = 5, verbosity: int = 0) -> bool:
     is not accessible / not found — no point retrying).
 
     Args:
-        link : complete web URL
+        link (str): Complete web URL.
         num_retries (int): Maximum number of attempts. Defaults to 5.
         verbosity (int): Print retry progress when > 0. Defaults to 0.
 
