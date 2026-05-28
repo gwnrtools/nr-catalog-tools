@@ -9,6 +9,7 @@ docs_dir: docs
 nav:
   - Home: index.md
   - Catalog Reference: catalogs.md
+  - Catalog Organization: catalog_organization.md
   - WaveformModes Guide: waveform.md
   - API Reference:
       - Overview: api/index.md

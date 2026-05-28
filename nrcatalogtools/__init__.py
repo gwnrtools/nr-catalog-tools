@@ -45,6 +45,7 @@ from .rit import RITCatalog
 from .sxs import SXSCatalog
 from .registry import get_catalog, list_catalogs, register_catalog
 from .waveform import WaveformModes, apply_wigner_rotation_to_mode_dict
+from .classification import NRCatalogClassifier
 from .metadata import (
     RIT_KEYS,
     SXS_KEYS,
@@ -59,6 +60,8 @@ __all__ = [
     "MayaCatalog",
     "RITCatalog",
     "SXSCatalog",
+    # Classifier
+    "NRCatalogClassifier",
     # Registry
     "register_catalog",
     "get_catalog",
