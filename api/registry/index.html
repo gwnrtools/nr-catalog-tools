@@ -265,6 +265,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../../catalog_organization/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Catalog Organization
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../../waveform/" class="md-tabs__link">
         
   
@@ -483,6 +502,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../../catalog_organization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Catalog Organization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../waveform/" class="md-nav__link">
         
   
@@ -528,10 +574,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
             
   
   
@@ -549,8 +595,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1075,10 +1121,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
         
           
-          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
             
   
   
@@ -1096,8 +1142,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1570,7 +1616,7 @@ at import time.</p>
 <a id="__codelineno-0-65" name="__codelineno-0-65"></a><span class="sd">    &quot;&quot;&quot;</span>
 <a id="__codelineno-0-66" name="__codelineno-0-66"></a>
 <a id="__codelineno-0-67" name="__codelineno-0-67"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">decorator</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-<a id="__codelineno-0-68" name="__codelineno-0-68"></a>        <span class="k">if</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">_REGISTRY</span><span class="p">:</span>
+<a id="__codelineno-0-68" name="__codelineno-0-68"></a>        <span class="k">if</span> <span class="n">tag</span> <span class="ow">in</span> <span class="n">_REGISTRY</span> <span class="ow">and</span> <span class="n">_REGISTRY</span><span class="p">[</span><span class="n">tag</span><span class="p">]</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">!=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">:</span>
 <a id="__codelineno-0-69" name="__codelineno-0-69"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
 <a id="__codelineno-0-70" name="__codelineno-0-70"></a>                <span class="sa">f</span><span class="s2">&quot;Catalog tag &#39;</span><span class="si">{</span><span class="n">tag</span><span class="si">}</span><span class="s2">&#39; is already registered &quot;</span>
 <a id="__codelineno-0-71" name="__codelineno-0-71"></a>                <span class="sa">f</span><span class="s2">&quot;(by </span><span class="si">{</span><span class="n">_REGISTRY</span><span class="p">[</span><span class="n">tag</span><span class="p">]</span><span class="o">.</span><span class="vm">__qualname__</span><span class="si">}</span><span class="s2">). &quot;</span>
