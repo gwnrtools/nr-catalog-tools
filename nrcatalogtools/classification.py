@@ -83,7 +83,7 @@ class NRCatalogClassifier:
     def load_nrsur_calibration_sims(self) -> set[str]:
         """Load and return the set of SXS simulations used to train/calibrate NRSur7dq4.
 
-        Uses the existing training simulations list in the workspace.
+        Extracts the calibration set from `catalog_organization/sxs_classification.json`.
 
         Returns
         -------
@@ -94,30 +94,30 @@ class NRCatalogClassifier:
             return self._nrsur_sims
 
         import nrcatalogtools
+        import json
 
         base_dir = os.path.dirname(os.path.dirname(nrcatalogtools.__file__))
-        possible_paths = [
-            os.path.join(
-                base_dir, "project", "scripts", "nrsur7dq4_training_simulations.txt"
-            ),
-            os.path.join(base_dir, "project", "nrsur7dq4_training_simulations.txt"),
-            "/home/prayush/src/nr-catalog-tools/project/scripts/nrsur7dq4_training_simulations.txt",
-            "/home/prayush/src/nr-catalog-tools/project/nrsur7dq4_training_simulations.txt",
-        ]
+        path = os.path.join(base_dir, "catalog_organization", "sxs_classification.json")
 
-        for path in possible_paths:
-            if os.path.exists(path):
-                sims = set()
+        sims = set()
+        if os.path.exists(path):
+            try:
                 with open(path, "r") as f:
-                    for line in f:
-                        line = line.strip()
-                        if line and not line.startswith("#"):
-                            sims.add(line)
-                self._nrsur_sims = sims
-                return self._nrsur_sims
+                    data = json.load(f)
+                for category_data in data.values():
+                    if (
+                        isinstance(category_data, dict)
+                        and "simulations" in category_data
+                    ):
+                        for sim_entry in category_data["simulations"]:
+                            if isinstance(sim_entry, dict) and sim_entry.get(
+                                "nrsur7dq4_calibration"
+                            ):
+                                sims.add(sim_entry["id"])
+            except Exception:
+                pass
 
-        # Fallback if no files exist, query by name matching standard patterns
-        self._nrsur_sims = set()
+        self._nrsur_sims = sims
         return self._nrsur_sims
 
     def classify_simulation(self, catalog_name: str, sim_name: str) -> str:
