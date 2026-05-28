@@ -65,7 +65,7 @@ def register_catalog(tag: str) -> Callable[[Type], Type]:
     """
 
     def decorator(cls):
-        if tag in _REGISTRY:
+        if tag in _REGISTRY and _REGISTRY[tag].__name__ != cls.__name__:
             raise ValueError(
                 f"Catalog tag '{tag}' is already registered "
                 f"(by {_REGISTRY[tag].__qualname__}). "
