@@ -253,3 +253,71 @@ def harmonize(
         else:
             rec.notes.append("no transform in sidecar; nothing undone")
     return w, rec
+
+
+# --------------------------------------------------------------------------
+# applying a *given* BMS element -- for the transfer control: the element
+# fitted at one total mass is applied, not re-fitted, at the others.
+# --------------------------------------------------------------------------
+
+
+def apply_bms_to_mode_dict(
+    modes: dict,
+    delta_t: float,
+    supertranslation_M=None,
+    boost_velocity=None,
+    frame_rotation=None,
+    total_mass: float = 1.0,
+    distance: float = 1.0,
+):
+    """Transform a ``{(ell, m): series}`` dict by a BMS element and return the
+    same kind of dict on the transformed retarded-time grid.
+
+    ``supertranslation_M`` is the coefficient array as ``scri`` expects it
+    (``(ell_max + 1)**2`` complex entries, ell = 0 first) **in units of M**, so
+    that an element fitted at one total mass can be applied at another: the
+    geometry is mass-independent, only its expression in seconds changes.
+    ``boost_velocity`` is dimensionless.  ``frame_rotation`` is a quaternion.
+    Series may be pycbc TimeSeries or plain arrays; a TimeSeries' epoch is
+    honoured, otherwise the grid starts at zero.
+    """
+    from nrcats import utils
+
+    keys = sorted(modes)
+    n = min(len(np.asarray(v)) for v in modes.values())
+    first = modes[keys[0]]
+    if hasattr(first, "sample_times"):
+        t_s = np.asarray(first.sample_times, dtype=float)[:n]
+    else:
+        t_s = np.arange(n) * float(delta_t)
+    ell_max = max(k[0] for k in keys)
+    # Geometric units throughout the transform: the scri object declares r and
+    # M scaled out, and the inhomogeneous supertranslation term assumes it.
+    # Physical strain with alpha in seconds is wrong by ~1e14 for ell >= 2.
+    m_secs = utils.time_to_physical(total_mass)
+    amp = utils.amp_to_physical(total_mass, distance)
+    t_M = t_s / m_secs
+    s = _to_scri(t_M, {k: np.asarray(v)[:n] / amp for k, v in modes.items()}, ell_max)
+    kwargs = {"ell_max": ell_max}
+    if supertranslation_M is not None:
+        kwargs["supertranslation"] = np.asarray(supertranslation_M, dtype=complex)
+    if boost_velocity is not None and len(boost_velocity):
+        kwargs["boost_velocity"] = [float(b) for b in boost_velocity]
+    if frame_rotation is not None:
+        kwargs["frame_rotation"] = np.asarray(frame_rotation, dtype=float).tolist()
+    tr = s.transform(**kwargs)
+    # back onto the original uniform grid, over the span the transform kept
+    tw = t_M[(t_M >= tr.t[0]) & (t_M <= tr.t[-1])]
+    tri = tr.interpolate(tw)
+    out = {}
+    for k in keys:
+        col = np.ascontiguousarray(tri.data[:, tri.index(*k)]) * amp
+        if hasattr(first, "sample_times"):
+            from pycbc.types import TimeSeries
+
+            out[k] = TimeSeries(
+                col.astype(np.complex128), delta_t=float(delta_t), epoch=float(tw[0] * m_secs)
+            )
+        else:
+            out[k] = col
+    return out

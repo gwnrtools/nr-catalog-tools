@@ -141,3 +141,49 @@ def test_harmonize_applies_only_what_the_sidecar_records():
     assert rec.space_translation == [0.01, 0.0, 0.0]
     assert any("add_memory" in n for n in rec.notes)
     assert out is not w
+
+
+def _rel_on_grid(ref: dict, x: dict, margin=0.02) -> float:
+    """|x - ref| / |ref| with x interpolated onto ref's grid over the overlap.
+
+    Element-wise comparison is wrong here: every transform trims the grid's
+    start by a few samples, so a chirp compared against itself shifted by k
+    samples reports a phase error that has nothing to do with the transform.
+    """
+    tr = np.asarray(ref[(2, 2)].sample_times, dtype=float)
+    tx = np.asarray(x[(2, 2)].sample_times, dtype=float)
+    lo, hi = max(tr[0], tx[0]), min(tr[-1], tx[-1])
+    sel = (tr > lo + margin * (hi - lo)) & (tr < hi - margin * (hi - lo))
+    tt = tr[sel]
+    num = den = 0.0
+    for k in ref:
+        a = np.asarray(ref[k])[sel]
+        xb = np.asarray(x[k])
+        b = np.interp(tt, tx, xb.real) + 1j * np.interp(tt, tx, xb.imag)
+        num += np.linalg.norm(a - b) ** 2
+        den += np.linalg.norm(a) ** 2
+    return float(np.sqrt(num / den))
+
+
+def test_apply_bms_to_mode_dict_round_trips_and_is_in_geometric_units():
+    """Apply a CoM-scale boost and an ell = 2 supertranslation to a physical-unit
+    mode dict, then the negated pair; the identity must be at the interpolation
+    floor and each round trip far inside what the forward step moved.  The
+    ell = 2 element is the one that exposes units: in physical strain the
+    inhomogeneous term is wrong by ~1e14, and the forward move would read as
+    1e15 rather than order one."""
+    from test_match_consolidation import _mode_dict, DT, M_TOT
+
+    w = _chirp_wfm(n_times=4096, ell_max=3)
+    md = _mode_dict(w)
+    ident = frame.apply_bms_to_mode_dict(md, DT, total_mass=M_TOT)
+    assert _rel_on_grid(md, ident) < 1e-10
+
+    a20 = np.zeros(16, dtype=complex)
+    a20[6] = 0.02  # (2, 0), in M
+    v = np.array([0.0, 0.0, 1e-4])
+    fwd = frame.apply_bms_to_mode_dict(md, DT, supertranslation_M=a20, boost_velocity=v, total_mass=M_TOT)
+    back = frame.apply_bms_to_mode_dict(fwd, DT, supertranslation_M=-a20, boost_velocity=-v, total_mass=M_TOT)
+    moved, residual = _rel_on_grid(md, fwd), _rel_on_grid(md, back)
+    assert 1e-3 < moved < 10.0, moved  # physics-scale, not 1e15
+    assert residual < 0.01 * moved, (moved, residual)
