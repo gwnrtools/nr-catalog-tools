@@ -187,3 +187,48 @@ def test_apply_bms_to_mode_dict_round_trips_and_is_in_geometric_units():
     moved, residual = _rel_on_grid(md, fwd), _rel_on_grid(md, back)
     assert 1e-3 < moved < 10.0, moved  # physics-scale, not 1e15
     assert residual < 0.01 * moved, (moved, residual)
+
+
+def _block_norms(md, ell):
+    """sum_m |h_lm|^2 at each time -- invariant under a rotation of the frame."""
+    keys = [k for k in md if k[0] == ell]
+    n = min(len(md[k]) for k in keys)
+    return sum(np.abs(np.asarray(md[k])[:n]) ** 2 for k in keys)
+
+
+def test_to_coprecessing_preserves_ell_block_norms_and_lands_on_z():
+    """A rotation cannot change sum_m |h_lm|^2 within a complete ell block, and
+    the rotated waveform's own radiation axis must be zhat -- that is what
+    "coprecessing" means.  Both are checked on a WaveformModes and on a mode
+    dict, which must agree with each other."""
+    w = _chirp_wfm(n_times=1024, ell_max=3)
+
+    rotated, axis = frame.to_coprecessing(w)
+    before, after = _by_lm(w), _by_lm(rotated)
+    for ell in (2, 3):
+        b, a = _block_norms(before, ell), _block_norms(after, ell)
+        n = min(len(b), len(a))
+        assert np.allclose(b[:n], a[:n], rtol=1e-8, atol=0), ell
+
+    # idempotence: rotating again finds an axis along zhat
+    _, axis2 = frame.to_coprecessing(rotated)
+    z = np.array([0.0, 0.0, 1.0])
+    cos = np.abs(axis2 @ z) / np.linalg.norm(axis2, axis=1)
+    assert np.median(cos) > 0.999, np.median(cos)
+    assert axis.shape[1] == 3
+
+    # the dict path must give the same rotation as the object path
+    md = _by_lm(w)
+    rot_md, axis_md = frame.to_coprecessing(md, times=np.asarray(w.time))
+    n = min(len(axis), len(axis_md))
+    assert np.allclose(axis[:n], axis_md[:n], atol=1e-10)
+
+
+def test_to_coprecessing_refuses_an_incomplete_ell_block():
+    """The rotation mixes m within a block, so a dict missing modes would be
+    silently zero-filled and the result would be wrong rather than partial."""
+    w = _chirp_wfm(n_times=256, ell_max=2)
+    md = _by_lm(w)
+    md.pop((2, -1))
+    with pytest.raises(ValueError, match="complete blocks"):
+        frame.to_coprecessing(md)

@@ -36,6 +36,7 @@ __all__ = [
     "undo_com_correction",
     "strip_memory",
     "harmonize",
+    "to_coprecessing",
 ]
 
 
@@ -259,6 +260,91 @@ def harmonize(
 # applying a *given* BMS element -- for the transfer control: the element
 # fitted at one total mass is applied, not re-fitted, at the others.
 # --------------------------------------------------------------------------
+
+
+def to_coprecessing(obj, ell_max: int | None = None, times=None):
+    """Rotate a waveform into its own coprecessing frame.
+
+    Accepts an nrcats :class:`WaveformModes` (rotated in its native geometric
+    representation and returned as the same kind of object) or a
+    ``{(ell, m): series}`` dict, whose values may be pycbc ``TimeSeries`` --
+    returned as the same type on the same grid -- or bare arrays, in which case
+    ``times`` is required and arrays come back.  Returns ``(rotated, axis)``,
+    where ``axis`` is the dominant radiation axis in the original frame,
+    sign-resolved.
+
+    The coprecessing frame follows the instantaneous radiation axis, so this is
+    a **time-dependent** rotation and the result is not a waveform any inertial
+    observer sees: it is a diagnostic that divides the precession out, and the
+    difference between a match taken here and one taken in the inertial frame
+    is what the precession dynamics contribute.
+
+    Units need no care, unlike a supertranslation.  A rotation acts on the
+    modes homogeneously -- within each complete ell block and with no additive
+    term -- so it is exact in whatever units the caller holds, physical or
+    geometric (contrast :func:`apply_bms_to_mode_dict`, where feeding physical
+    strain to a dimensionless declaration was wrong by 1e14;
+    catalog-comparison-paper findings 5ab).
+
+    The axis is fixed only up to a sign by ``to_coprecessing_frame``, and the
+    anti-aligned branch does get picked in practice; the sense of rotation of
+    the coprecessing (2,2) phase resolves it (see
+    ``reference_frame._coprecessing_axis``, which this delegates to so the two
+    cannot drift apart).
+    """
+    from nrcats.reference_frame import _coprecessing_axis
+
+    if isinstance(obj, dict):
+        keys = sorted(k for k in obj if ell_max is None or k[0] <= ell_max)
+        if not keys:
+            raise ValueError("no modes to rotate")
+        lo = min(k[0] for k in keys)
+        hi = max(k[0] for k in keys)
+        lm = [(ell, m) for ell in range(lo, hi + 1) for m in range(-ell, ell + 1)]
+        missing = [k for k in lm if k not in obj]
+        if missing:
+            raise ValueError(
+                f"the rotation mixes m within an ell block, so complete blocks "
+                f"are required; missing {missing[:4]}"
+            )
+        ref = obj[(2, 2)] if (2, 2) in obj else obj[keys[0]]
+        n = min(len(obj[k]) for k in lm)
+        data = np.zeros((n, len(lm)), dtype=complex)
+        for k in lm:
+            data[:, lm.index(k)] = np.asarray(obj[k])[:n]
+        if hasattr(ref, "sample_times"):
+            t = np.asarray(ref.sample_times, dtype=float)[:n]
+        elif times is not None:
+            t = np.asarray(times, dtype=float)[:n]
+        else:
+            raise ValueError(
+                "a dict of bare arrays needs `times`; only pycbc TimeSeries "
+                "carry their own grid"
+            )
+        _, axis, _, w = _coprecessing_axis(t, data, lo, hi)
+        arr = np.asarray(w.data)
+        cols = {k: np.ascontiguousarray(arr[:, lm.index(k)]) for k in lm}
+        if not hasattr(ref, "sample_times"):
+            return cols, axis
+        cls = type(ref)
+        out = {
+            k: cls(v, delta_t=ref.delta_t, epoch=ref.start_time)
+            for k, v in cols.items()
+        }
+        return out, axis
+
+    lm = [tuple(int(v) for v in x) for x in obj.LM]
+    _, axis, _, w = _coprecessing_axis(
+        np.asarray(obj.time, dtype=float),
+        np.asarray(obj),
+        int(obj.ell_min),
+        int(obj.ell_max),
+    )
+    arr = np.asarray(w.data)
+    rotated = _rebuild(
+        obj, np.asarray(w.time), {k: arr[:, lm.index(k)] for k in lm}
+    )
+    return rotated, axis
 
 
 def apply_bms_to_mode_dict(
