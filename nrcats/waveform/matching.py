@@ -1311,6 +1311,212 @@ def compute_strain_match(
     )
 
 
+@dataclass(frozen=True)
+class PolarizationMatchResult:
+    """Outcome of a fixed-orientation comparison of the two polarisations.
+
+    Attributes
+    ----------
+    match_plus, match_cross : float
+        Match in [0, 1] of :math:`h_+` and of :math:`h_\times`, maximised over
+        the time shift **only**.  NaN on failure.
+    match_plus_quadrature, match_cross_quadrature : float
+        The same maximised over the time shift *and a quadrature phase of that
+        one real series*, which is what ``pycbc.filter.match`` reports for a
+        real template.  Always at least the value above.  This is **not** a
+        marginalisation over the polarisation angle: rotating the basis mixes
+        :math:`h_+` and :math:`h_\times` into each other, and no operation on
+        :math:`h_+` alone can undo it.  For the polarisation-angle-maximised
+        number use :func:`compute_strain_match`, whose ``alpha`` is exactly
+        that rotation.
+    inclination, coa_phase : float
+        The orientation the comparison was made at, in radians.
+    time_shift_plus, time_shift_cross : float
+        Time offset applied, in seconds, relative to the (2,2)-peak alignment.
+    n_bins : int
+        Frequency bins inside the band.
+    failure : str or None
+        Reason, when the match could not be computed.
+    """
+
+    match_plus: float
+    match_cross: float
+    match_plus_quadrature: float
+    match_cross_quadrature: float
+    inclination: float
+    coa_phase: float
+    time_shift_plus: float = float("nan")
+    time_shift_cross: float = float("nan")
+    n_bins: int = 0
+    failure: str | None = None
+
+    @property
+    def mismatch_plus(self) -> float:
+        return 1.0 - self.match_plus
+
+    @property
+    def mismatch_cross(self) -> float:
+        return 1.0 - self.match_cross
+
+
+def _polarization_fail(reason, inclination, coa_phase, n_bins=0):
+    nan = float("nan")
+    return PolarizationMatchResult(
+        match_plus=nan,
+        match_cross=nan,
+        match_plus_quadrature=nan,
+        match_cross_quadrature=nan,
+        inclination=float(inclination),
+        coa_phase=float(coa_phase),
+        n_bins=int(n_bins),
+        failure=reason,
+    )
+
+
+def compute_polarization_match(
+    modes_a,
+    modes_b,
+    delta_t: float,
+    inclination: float,
+    coa_phase: float = 0.0,
+    psd=None,
+    psd_name: str = "aLIGOZeroDetHighPower",
+    f_lower: float = 20.0,
+    f_upper=None,
+    taper_fraction: float = TAPER_FRACTION,
+) -> PolarizationMatchResult:
+    r"""Match :math:`h_+` and :math:`h_	imes` separately at one orientation.
+
+    Builds the complex strain from each mode set at the given inclination and
+    coalescence phase,
+
+    .. math::
+
+        h = h_+ - i h_	imes = \sum_{\ell m} h_{\ell m}\,
+            {}_{-2}Y_{\ell m}(\iota, \varphi),
+
+    and matches the two real polarisations one at a time, maximising over the
+    time shift alone.
+
+    Why the polarisations separately, and why nothing else is maximised over
+    ---------------------------------------------------------------------------
+    A rotation of the polarisation basis by :math:`\psi` sends
+    :math:`h_+ + i h_\times \to e^{2i\psi}(h_+ + i h_\times)`, so it mixes
+    the two polarisations into each other.  :func:`compute_strain_match`
+    maximises over exactly that phase, which makes its result independent of
+    the basis -- and therefore blind to the *relative* phase of the two
+    polarisations.  That relative phase is physical: an observer with a known
+    polarisation angle sees a definite mixture, and a parameter-estimation
+    analysis that fixes :math:`\psi` inherits the disagreement this function
+    reports.  Both mode sets are projected here in the same convention from the
+    same source frame, so the basis is shared and the comparison is meaningful.
+    ``match_*_quadrature`` is reported alongside as the value a search quoting a
+    single real template would see; it is a quadrature phase of that one
+    polarisation and not a rotation of the basis, so it does not recover a
+    :math:`\psi` offset -- measured on a synthetic chirp rotated by
+    :math:`\psi = \pi/4` at :math:`\iota = 60^\circ`, :math:`h_+` falls to
+    0.613 and the quadrature value stays at 0.613, while
+    :func:`compute_strain_match`, which maximises over the rotation itself,
+    returns ~1.
+
+    Inclination and coalescence phase are arguments, not search dimensions, for
+    the reason :func:`compute_strain_match` gives about inclination: a mode set
+    that agrees only at some fitted orientation is not the same waveform.  In
+    particular the source-frame azimuth is **not** maximised over here, unlike
+    in :func:`compute_strain_match`, because fixing the orientation is the whole
+    point -- which means the caller is responsible for supplying two mode sets
+    already in a common source frame.  Two sets that differ by a rigid rotation
+    will report a large mismatch, correctly.
+
+    Parameters
+    ----------
+    modes_a, modes_b : dict
+        ``{(ell, m): series}``.  Only the modes present in both are used; no
+        completeness requirement, since the projection is a plain sum with no
+        mixing of ``m``.
+    delta_t : float
+        Sample spacing in seconds, shared by both mode sets.
+    inclination, coa_phase : float
+        Viewing angles in radians.
+
+    Returns
+    -------
+    PolarizationMatchResult
+    """
+    from nrcats.waveform.modes_worker import _interpolated_peak
+
+    common = set(modes_a) & set(modes_b)
+    if not common:
+        return _polarization_fail("no_common_modes", inclination, coa_phase)
+
+    a_in = {k: modes_a[k] for k in common}
+    b_in = {k: modes_b[k] for k in common}
+    ha = sum(_partial_strains(a_in, inclination, coa_phase, taper_fraction).values())
+    hb = sum(_partial_strains(b_in, inclination, coa_phase, taper_fraction).values())
+    ha = np.asarray(ha, dtype=complex)
+    hb = np.asarray(hb, dtype=complex)
+
+    # Peak-align before padding, as compute_strain_match does, so that t_c = 0
+    # is the expected optimum.
+    ia, ib = _peak_index(a_in), _peak_index(b_in)
+    lead = max(ia, ib)
+    trail = max(len(ha) - ia, len(hb) - ib)
+    n_fft = _next_pow2(lead + trail)
+
+    def _place(c, i):
+        out = np.zeros(n_fft, dtype=float)
+        out[lead - i : lead - i + len(c)] = c
+        return out
+
+    freqs = np.fft.fftfreq(n_fft, d=delta_t)
+    f_hi = float(f_upper) if f_upper else 0.5 / delta_t
+    inv_psd = _inverse_psd(psd, psd_name, freqs, f_lower, f_hi, delta_t, n_fft)
+    n_bins = int(np.count_nonzero(inv_psd[: n_fft // 2 + 1]))
+    if n_bins < MIN_BINS_IN_BAND:
+        return _polarization_fail("insufficient_bins", inclination, coa_phase, n_bins)
+
+    # Same normalisation as compute_strain_match, so the numbers are comparable;
+    # it cancels in the ratio either way.
+    pref = 2.0 * delta_t / n_fft
+    out = {}
+    for name, ra, rb in (
+        ("plus", ha.real, hb.real),
+        ("cross", -ha.imag, -hb.imag),
+    ):
+        A = np.fft.fft(_place(ra, ia))
+        B = np.fft.fft(_place(rb, ib))
+        norm_a = np.sqrt(pref * float(np.sum(np.abs(A) ** 2 * inv_psd)))
+        norm_b = np.sqrt(pref * float(np.sum(np.abs(B) ** 2 * inv_psd)))
+        if not (norm_a > 0 and norm_b > 0):
+            # A polarisation can be identically zero -- h_cross vanishes at
+            # iota = 0 for an aligned-spin system -- and a normalised match on
+            # it would be an arbitrary number rather than a failure.
+            out[name] = (float("nan"), float("nan"), float("nan"))
+            continue
+        z = pref * np.fft.fft(A * np.conj(B) * inv_psd)
+        denom = norm_a * norm_b
+        m_fixed = _interpolated_peak(z.real) / denom
+        m_quad = _interpolated_peak(np.abs(z)) / denom
+        lag = int(np.argmax(z.real))
+        shift = (lag if lag <= n_fft // 2 else lag - n_fft) * delta_t
+        out[name] = (float(m_fixed), float(m_quad), float(shift))
+
+    if all(not np.isfinite(v[0]) for v in out.values()):
+        return _polarization_fail("zero_norm", inclination, coa_phase, n_bins)
+
+    return PolarizationMatchResult(
+        match_plus=out["plus"][0],
+        match_cross=out["cross"][0],
+        match_plus_quadrature=out["plus"][1],
+        match_cross_quadrature=out["cross"][1],
+        inclination=float(inclination),
+        coa_phase=float(coa_phase),
+        time_shift_plus=out["plus"][2],
+        time_shift_cross=out["cross"][2],
+        n_bins=n_bins,
+    )
+
+
 def compute_strain_mismatch_averaged(
     modes_a, modes_b, delta_t: float, inclination: float, n_azimuth: int = 12, **kwargs
 ) -> dict:

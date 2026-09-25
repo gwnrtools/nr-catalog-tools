@@ -612,3 +612,111 @@ def test_bms_recovers_a_known_ell2_supertranslation():
     layout = info["layout"]
     i20 = layout.index((2, 0, "re"))
     assert fitted[i20] < -0.15, (fitted, layout)  # the inverse of +0.5 M, mostly recovered
+
+
+def _shifted_dict(md, k):
+    """Delay every mode by ``k`` samples without discarding any signal.
+
+    Padding at the front and dropping the tail, as an earlier version of this
+    test did, deletes ``k`` samples of real waveform -- and on the bare chirp
+    those sit on a flat maximum-amplitude plateau, so the match fell to 0.91 and
+    looked like a failure of the time maximisation.
+    """
+    out = {}
+    for key, v in md.items():
+        arr = np.asarray(v)
+        out[key] = PTS(
+            np.concatenate([np.zeros(k, dtype=complex), arr]),
+            delta_t=v.delta_t,
+            epoch=v.start_time,
+        )
+    return out
+
+
+def test_polarization_match_is_one_for_identical_mode_sets():
+    from nrcats.waveform.matching import compute_polarization_match
+
+    w = _chirp_wfm(n_times=2048, ell_max=3, ringdown=64.0)
+    md = _mode_dict(w)
+    r = compute_polarization_match(md, md, delta_t=DT, inclination=1.05, f_lower=F_LOWER)
+    assert r.failure is None
+    assert r.match_plus > 1 - 1e-9 and r.match_cross > 1 - 1e-9
+    assert r.match_plus_quadrature >= r.match_plus - 1e-12
+    assert r.match_cross_quadrature >= r.match_cross - 1e-12
+
+
+def test_polarization_match_undoes_a_time_shift():
+    """A pure delay costs nothing, and the reported shift is the residual.
+
+    The mode sets are aligned on their (2,2) peaks before padding, so an
+    integer-sample delay is absorbed there and ``time_shift_*`` -- documented as
+    the offset *relative to that alignment* -- comes back at zero rather than at
+    the applied delay.  Both facts are the contract.
+    """
+    from nrcats.waveform.matching import compute_polarization_match
+
+    w = _chirp_wfm(n_times=2048, ell_max=3, ringdown=64.0)
+    md = _mode_dict(w)
+    r = compute_polarization_match(
+        md, _shifted_dict(md, 9), delta_t=DT, inclination=1.05, f_lower=F_LOWER
+    )
+    assert r.failure is None
+    assert r.match_plus > 0.999, r.match_plus
+    assert r.match_cross > 0.999, r.match_cross
+    assert abs(r.time_shift_plus) <= DT, r.time_shift_plus
+    assert abs(r.time_shift_cross) <= DT, r.time_shift_cross
+
+
+def test_polarization_match_is_not_blind_to_the_polarisation_basis():
+    """The property this function exists for.
+
+    A rotation of the polarisation basis by psi multiplies the complex strain by
+    e^{2i psi}, mixing h_+ and h_cross.  compute_strain_match maximises over
+    exactly that and so cannot see it; this function fixes the basis and must.
+    A quadrature phase of one real polarisation is not the same freedom and does
+    not recover it either -- which is why the quadrature columns are labelled as
+    such rather than as a psi marginalisation.
+    """
+    from nrcats.waveform.matching import (
+        compute_polarization_match,
+        compute_strain_match,
+    )
+
+    w = _chirp_wfm(n_times=2048, ell_max=3, ringdown=64.0)
+    md = _mode_dict(w)
+    psi = np.pi / 4
+    rot = {
+        k: PTS(np.asarray(v) * np.exp(2j * psi), delta_t=v.delta_t, epoch=v.start_time)
+        for k, v in md.items()
+    }
+
+    r = compute_polarization_match(
+        md, rot, delta_t=DT, inclination=1.05, f_lower=F_LOWER
+    )
+    assert r.failure is None
+    # measured 0.613 for both the fixed and the quadrature value
+    assert r.match_plus < 0.9, r.match_plus
+    assert r.match_plus_quadrature < 0.95, r.match_plus_quadrature
+
+    # the frame-maximised complex-strain match absorbs the same rotation
+    s = compute_strain_match(md, rot, DT, inclination=1.05, f_lower=F_LOWER)
+    assert s.match > 0.99, s.match
+
+
+def test_polarization_match_refuses_a_zero_waveform():
+    """A normalised match against numerically zero returns an arbitrary number
+    rather than failing -- the defect sec:conventions of the manuscript is
+    about -- so this path must report instead."""
+    from nrcats.waveform.matching import compute_polarization_match
+
+    w = _chirp_wfm(n_times=512, ell_max=2, ringdown=32.0)
+    md = _mode_dict(w)
+    zero = {
+        k: PTS(np.zeros(len(v), dtype=complex), delta_t=v.delta_t, epoch=v.start_time)
+        for k, v in md.items()
+    }
+    r = compute_polarization_match(
+        md, zero, delta_t=DT, inclination=1.05, f_lower=F_LOWER
+    )
+    assert r.failure == "zero_norm"
+    assert not np.isfinite(r.match_plus)

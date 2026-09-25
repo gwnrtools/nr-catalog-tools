@@ -25,7 +25,16 @@ logger = logging.getLogger(__name__)
 
 
 def _interpolated_peak_abs(q):
-    """Peak of ``|q|`` refined below the sample spacing.
+    """Peak of ``|q|`` refined below the sample spacing.  See
+    :func:`_interpolated_peak`, which this delegates to; the polarisation
+    matches need the same refinement on a *signed* series, where the peak of
+    ``Re q`` is the maximum over time shift at fixed polarisation angle.
+    """
+    return _interpolated_peak(np.abs(q))
+
+
+def _interpolated_peak(y):
+    """Peak of a real series ``y`` refined below the sample spacing.
 
     The time maximization in the sphere-averaged matches is a discrete argmax
     over ``|ifft(...)|``, which quantizes the time shift to one sample.  That
@@ -44,14 +53,19 @@ def _interpolated_peak_abs(q):
     calling pycbc; keeping the two consistent is what makes a sphere-averaged
     mismatch comparable with a single-mode one.
 
-    Neighbours wrap: ``q`` is a circular correlation, so index ``-1`` and index
+    Neighbours wrap: ``y`` is a circular correlation, so index ``-1`` and index
     ``n`` are the genuine adjacent lags, not out-of-range.
+
+    ``y`` is already real and already signed as the caller wants it: the
+    quadrature maximisation passes ``|q|`` (via :func:`_interpolated_peak_abs`)
+    and the fixed-polarisation-angle maximisation passes ``Re q``, where a
+    negative peak is a genuine anti-correlation rather than a match.
 
     Returns the interpolated peak value.  Degenerate parabolas -- a flat or
     upward-curving triple, which occur when the peak is exactly on a sample or
     the series is constant -- fall back to the discrete maximum.
     """
-    a = np.abs(q)
+    a = np.asarray(y, dtype=float)
     i = int(np.argmax(a))
     n = a.size
     if n < 3:
