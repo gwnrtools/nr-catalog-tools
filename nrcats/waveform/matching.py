@@ -1331,6 +1331,15 @@ class PolarizationMatchResult:
         that rotation.
     inclination, coa_phase : float
         The orientation the comparison was made at, in radians.
+    match_plus_best_psi, best_psi : float
+        With ``n_psi``, the largest :math:`h_+` match over a rotation of the
+        polarisation basis, and the rotation that achieves it in radians on
+        [0, pi).  This is the diagnostic that says whether a fixed-basis
+        disagreement is a real waveform difference or an unaccounted basis
+        convention: if ``best_psi`` takes the same value across a population,
+        it is a convention and can be removed; if it scatters, no absolute
+        orientation is available and only the quadrature columns mean anything
+        (catalog-comparison-paper findings 5aj).
     time_shift_plus, time_shift_cross : float
         Time offset applied, in seconds, relative to the (2,2)-peak alignment.
     n_bins : int
@@ -1345,6 +1354,8 @@ class PolarizationMatchResult:
     match_cross_quadrature: float
     inclination: float
     coa_phase: float
+    match_plus_best_psi: float = float("nan")
+    best_psi: float = float("nan")
     time_shift_plus: float = float("nan")
     time_shift_cross: float = float("nan")
     n_bins: int = 0
@@ -1384,6 +1395,7 @@ def compute_polarization_match(
     f_lower: float = 20.0,
     f_upper=None,
     taper_fraction: float = TAPER_FRACTION,
+    n_psi: int = 0,
 ) -> PolarizationMatchResult:
     r"""Match :math:`h_+` and :math:`h_	imes` separately at one orientation.
 
@@ -1438,6 +1450,12 @@ def compute_polarization_match(
         Sample spacing in seconds, shared by both mode sets.
     inclination, coa_phase : float
         Viewing angles in radians.
+    n_psi : int, optional
+        When positive, also scan this many polarisation-basis rotations over
+        [0, pi) and report the best :math:`h_+` match and the angle achieving
+        it.  A rotation by :math:`\psi` multiplies the complex strain by
+        :math:`e^{2i\psi}`, so the scan costs two transforms per angle and
+        nothing else; 24 is plenty to locate a broad maximum.
 
     Returns
     -------
@@ -1504,6 +1522,26 @@ def compute_polarization_match(
     if all(not np.isfinite(v[0]) for v in out.values()):
         return _polarization_fail("zero_norm", inclination, coa_phase, n_bins)
 
+    best_psi = best_psi_match = float("nan")
+    if n_psi and int(n_psi) > 0:
+        # h_+(psi) = Re[e^{2 i psi} h], applied to ``modes_b`` only: the scan
+        # asks what basis rotation of the *model* reproduces the NR h_+, so it
+        # must undo a relative offset.  Rotating both sides by the same psi
+        # changes what h_+ means for each while preserving their relative
+        # offset, which is a common rotation and recovers nothing -- measured,
+        # it left a known 90 degree offset at a match of 0.66.
+        A = np.fft.fft(_place(ha.real, ia))
+        na = np.sqrt(pref * float(np.sum(np.abs(A) ** 2 * inv_psd)))
+        for psi in np.linspace(0.0, np.pi, int(n_psi), endpoint=False):
+            B = np.fft.fft(_place((hb * np.exp(2j * psi)).real, ib))
+            nb = np.sqrt(pref * float(np.sum(np.abs(B) ** 2 * inv_psd)))
+            if not (na > 0 and nb > 0):
+                continue
+            z = pref * np.fft.fft(A * np.conj(B) * inv_psd)
+            m = _interpolated_peak(z.real) / (na * nb)
+            if not np.isfinite(best_psi_match) or m > best_psi_match:
+                best_psi_match, best_psi = float(m), float(psi)
+
     return PolarizationMatchResult(
         match_plus=out["plus"][0],
         match_cross=out["cross"][0],
@@ -1513,6 +1551,8 @@ def compute_polarization_match(
         coa_phase=float(coa_phase),
         time_shift_plus=out["plus"][2],
         time_shift_cross=out["cross"][2],
+        match_plus_best_psi=best_psi_match,
+        best_psi=best_psi,
         n_bins=n_bins,
     )
 

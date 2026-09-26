@@ -720,3 +720,43 @@ def test_polarization_match_refuses_a_zero_waveform():
     )
     assert r.failure == "zero_norm"
     assert not np.isfinite(r.match_plus)
+
+
+def test_polarization_psi_scan_recovers_a_known_basis_rotation():
+    """The scan must undo a *relative* basis rotation, not a common one.
+
+    Rotating the model side by psi and scanning recovers pi - psi and returns the
+    match to unity.  An earlier version rotated both sides by the same angle,
+    which changes what h_+ means for each while leaving their relative offset in
+    place: a known 90 degree offset then peaked at 0.66 instead of 1.
+
+    This is the diagnostic that decides whether a fixed-basis disagreement is a
+    waveform difference or an unaccounted convention -- see findings 5aj.
+    """
+    from nrcats.waveform.matching import compute_polarization_match
+
+    w = _chirp_wfm(n_times=2048, ell_max=3, ringdown=64.0)
+    md = _mode_dict(w)
+    kw = dict(delta_t=DT, inclination=1.05, f_lower=F_LOWER, n_psi=36)
+
+    r = compute_polarization_match(md, md, **kw)
+    assert r.best_psi == pytest.approx(0.0, abs=1e-9)
+    assert r.match_plus_best_psi > 1 - 1e-9
+
+    for psi_deg in (30.0, 90.0, 135.0):
+        psi = np.radians(psi_deg)
+        rot = {
+            k: PTS(
+                np.asarray(v) * np.exp(2j * psi), delta_t=v.delta_t, epoch=v.start_time
+            )
+            for k, v in md.items()
+        }
+        r = compute_polarization_match(md, rot, **kw)
+        assert r.match_plus_best_psi > 0.9999, (psi_deg, r.match_plus_best_psi)
+        expected = (np.pi - psi) % np.pi
+        assert r.best_psi == pytest.approx(expected, abs=np.radians(5.1)), (
+            psi_deg,
+            np.degrees(r.best_psi),
+        )
+        # and the unscanned value is genuinely degraded, or the test is vacuous
+        assert r.match_plus < 0.95, (psi_deg, r.match_plus)
