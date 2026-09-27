@@ -66,3 +66,62 @@ def test_the_measured_sensitivity_ordering_holds():
     # and CE at 5 Hz is no better than aLIGO at 5 Hz, which is why that decade
     # contributes almost nothing
     assert at("CE", 5.0) > at("aLIGO", 5.0) / 10.0
+
+
+def test_the_three_observatories_give_different_matches():
+    """The safeguard against reusing one observatory's numbers for another.
+
+    A match is a *noise-weighted* overlap, so each observatory must re-run it;
+    only the conversion to a threshold SNR is arithmetic.  The failure this test
+    exists to catch is a forwarding bug -- a default argument, a switch that
+    silently falls back, a psd_name that never reaches the matcher -- which would
+    produce three identical columns that look like a result and pass every other
+    check in the repository.
+
+    Measured on real waveforms at 40 Msun with the seed-minimum estimator
+    (catalog-comparison-paper findings 5am): aLIGO 4.988e-3, CE 5.868e-3, ET
+    4.801e-3 for SXS:BBH:1868, a spread of 1.07e-3 against a within-observatory
+    seed spread of 6e-8.  This test reproduces the *property* on a synthetic pair
+    so it needs no network and no cache.
+    """
+    pytest.importorskip("pycbc")
+    from test_match_consolidation import DT, _chirp_wfm, _mode_dict
+
+    w = _chirp_wfm(n_times=2048, ell_max=2, ringdown=64.0)
+    md = _mode_dict(w)
+    # A perturbed copy, so the match is neither 1 nor degenerate: a small
+    # frequency-dependent phase, which the three curves weight differently.
+    perturbed = {}
+    for k, v in md.items():
+        arr = np.asarray(v)
+        n = len(arr)
+        ramp = np.exp(1j * 0.05 * np.linspace(0.0, 1.0, n) ** 2)
+        perturbed[k] = type(v)(arr * ramp, delta_t=v.delta_t, epoch=v.start_time)
+
+    got = {}
+    for name in ("aLIGO", "CE", "ET"):
+        det = D.detector(name)
+        lo, hi, _ = D.band(name, 30.0)
+        np.random.seed(0)
+        m = w.match_sphere_averaged(
+            perturbed,
+            None,
+            lo,
+            f_upper=hi,
+            psd_name=det.psd_name,
+            delta_t=DT,
+            total_mass=40.0,
+            distance=1.0,
+        )
+        got[name] = 1.0 - m
+
+    assert all(np.isfinite(v) and v > 0 for v in got.values()), got
+    spread = max(got.values()) - min(got.values())
+    typical = float(np.median(list(got.values())))
+    # Identical columns would give spread == 0 exactly; require the observatories
+    # to separate by a part in a thousand of the mismatch, far below the ~20%
+    # seen on real waveforms but far above any floating-point coincidence.
+    assert spread > 1e-3 * typical, (
+        "the three observatories returned effectively the same mismatch; "
+        f"the noise curve is probably not reaching the matcher: {got}"
+    )
