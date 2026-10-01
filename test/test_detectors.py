@@ -155,3 +155,30 @@ def test_file_backed_curves_resolve_by_label_and_are_the_current_cosmic_explorer
     direct = np.asarray(D.psd_from_name("aLIGOZeroDetHighPower", flen, df, 20.0))
     assert np.array_equal(direct, np.asarray(D.psd_for("aLIGO", flen, df)))
 
+
+def test_file_backed_curves_fill_the_production_grid_to_nyquist():
+    """The campaigns match at 16384 Hz, so their PSD grids run to 8192 Hz; the
+    Cosmic Explorer files end at 5 kHz.  pycbc's reader answers that by returning
+    a shorter series, which broke every CE40 match on 2026-10-02.  The curve must
+    come back on the full grid, finite and positive from its cutoff to Nyquist,
+    equal to the file where the file has data and held at its last value beyond."""
+    length, df = 8193, 1.0
+    f = np.arange(length) * df
+    for name in ("CE40", "CE20"):
+        psd = np.asarray(D.psd_for(name, length, df))
+        assert len(psd) == length
+        band = f >= 6.0
+        assert np.all(np.isfinite(psd[band])) and np.all(psd[band] > 0), name
+        det = D.detector(name)
+        import os
+
+        data = np.loadtxt(os.path.join(D._DATA_DIR, det.psd_file))
+        # beyond the file: the file's last value, held
+        tail = (f > 5500) & (f < 8000)
+        assert np.allclose(np.sqrt(psd[tail]), data[-1, 1], rtol=0.02), name
+        # inside the file: the file
+        for freq in (10.0, 100.0, 1000.0, 4000.0):
+            want = float(np.interp(freq, data[:, 0], data[:, 1]))
+            got = float(np.sqrt(np.interp(freq, f, psd)))
+            assert abs(got / want - 1.0) < 0.02, (name, freq, got, want)
+

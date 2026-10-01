@@ -193,20 +193,31 @@ def psd_from_name(psd_name: str, length: int, delta_f: float, low_freq_cutoff: f
     can keep taking names and a registered file-backed curve reaches them
     without any caller knowing the difference.
     """
-    from pycbc.psd import from_string, from_txt
+    import numpy as np
+    from pycbc.psd import from_string
+    from pycbc.psd.read import from_numpy_arrays
 
     for det in DETECTORS.values():
         if det.psd_name == psd_name and det.psd_file:
             path = os.path.join(_DATA_DIR, det.psd_file)
-            with open(path) as fh:
-                first = float(fh.readline().split()[0])
+            data = np.loadtxt(path)
+            f, asd = data[:, 0], data[:, 1]
+            # A published curve ends where its authors stopped (5 kHz for the
+            # Cosmic Explorer files); the matchers' grids run to Nyquist, and
+            # pycbc's file reader answers a longer grid by returning a shorter
+            # series, which every caller then mis-indexes.  So the curve is
+            # held at its last value up to the grid's top: the minimal
+            # assumption, inventing neither sensitivity nor noise, in a region
+            # that carries no binary-black-hole signal to speak of.
+            f_top = (int(length) - 1) * float(delta_f)
+            if f[-1] < f_top:
+                f = np.concatenate([f, [f_top * 1.01]])
+                asd = np.concatenate([asd, [asd[-1]]])
             # pycbc requires the cutoff to sit at or above the file's first
             # sample, and a file that starts exactly at the cutoff parses a
             # hair above it.
-            low = max(float(low_freq_cutoff), first) * (1.0 + 1e-9)
-            return from_txt(
-                path, int(length), float(delta_f), low_freq_cutoff=low, is_asd_file=True
-            )
+            low = max(float(low_freq_cutoff), float(f[0])) * (1.0 + 1e-9)
+            return from_numpy_arrays(f, asd**2, int(length), float(delta_f), low)
     return from_string(
         psd_name, int(length), float(delta_f), low_freq_cutoff=float(low_freq_cutoff)
     )
