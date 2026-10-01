@@ -254,7 +254,7 @@ def load_psd(
     -------
     pycbc.types.FrequencySeries
     """
-    from pycbc.psd import from_string
+    from .detectors import psd_from_name
 
     n_samples = int(waveform_length_seconds / delta_t)
     n_fft = 1
@@ -264,7 +264,7 @@ def load_psd(
     delta_f = 1.0 / (n_fft * delta_t)
     length_f = n_fft // 2 + 1
 
-    return from_string(psd_name, length_f, delta_f, low_freq_cutoff=f_lower)
+    return psd_from_name(psd_name, length_f, delta_f, f_lower)
 
 
 def _fail(reason, f_req, overlap=float("nan"), cycles=float("nan")):
@@ -391,7 +391,7 @@ def compute_mode_match_detailed(
     ModeMatchResult
     """
     from pycbc.filter import match as pycbc_match
-    from pycbc.psd import from_string
+    from .detectors import psd_from_name
 
     # np.asarray, not np.array: pycbc TimeSeries wraps a numpy buffer whose
     # __array__ predates the numpy-2 copy keyword, so np.array() emits a
@@ -501,9 +501,7 @@ def compute_mode_match_detailed(
         return _fail("insufficient_bins", f_lower_mode, overlap, cycles)
 
     if resampled is None:
-        psd_used = from_string(
-            psd_name, length_f, delta_f, low_freq_cutoff=f_lower_used
-        )
+        psd_used = psd_from_name(psd_name, length_f, delta_f, f_lower_used)
     else:
         psd_used = pycbc_FrequencySeries(resampled, delta_f=delta_f)
 
@@ -1604,13 +1602,11 @@ def compute_strain_mismatch_averaged(
 
 def _inverse_psd(psd, psd_name, freqs, f_lower, f_upper, delta_t, n_fft):
     """``1 / S_n(|f|)`` on the two-sided FFT grid, zeroed outside the band."""
-    from pycbc.psd import from_string
+    from .detectors import psd_from_name
 
     delta_f = 1.0 / (n_fft * delta_t)
     if psd is None:
-        s = np.asarray(
-            from_string(psd_name, n_fft // 2 + 1, delta_f, low_freq_cutoff=f_lower)
-        )
+        s = np.asarray(psd_from_name(psd_name, n_fft // 2 + 1, delta_f, f_lower))
     else:
         # Resample a supplied PSD onto this grid rather than assuming it matches.
         src_f = np.arange(len(psd)) * float(psd.delta_f)

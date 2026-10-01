@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Current Cosmic Explorer curves**: `CE40` and `CE20` (CE-T2000017 v009, the baseline 40 km and 20 km detectors) join the observatory registry as data files under `nrcats/waveform/data/`; `detectors.psd_from_name` resolves a registry label to its file and falls back to LALSimulation, and every PSD in `matching.py` is built through it. `CE` (P1600143, 2016) is kept for published results and documented as superseded; `ET` is noted equal to the official ET-D curve.
 - **Catalog Plugin Registry**: Introduced a dynamic `@register_catalog` decorator and catalog registry framework under `nrcats/registry.py` to allow runtime extensions and registration of custom catalog backends.
 - **Waveform Sub-package Refactoring**: Fully split the massive 60 KB monolithic `waveform.py` into a highly maintainable `nrcats/waveform/` sub-package containing modular components:
   - `modes.py`: Defines the `WaveformModes` core interface.

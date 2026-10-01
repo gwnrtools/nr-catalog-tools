@@ -125,3 +125,33 @@ def test_the_three_observatories_give_different_matches():
         "the three observatories returned effectively the same mismatch; "
         f"the noise curve is probably not reaching the matcher: {got}"
     )
+
+
+def test_file_backed_curves_resolve_by_label_and_are_the_current_cosmic_explorer():
+    """CE40 and CE20 are data files, not LALSimulation names; a matcher given
+    their psd_name must still get a curve, and it must be the superseding one:
+    less sensitive than the 2016 CE curve over 20-100 Hz, more below 7 Hz."""
+    df, flen = 0.25, 8193
+    f = np.arange(flen) * df
+    for name in ("CE40", "CE20"):
+        det = D.detector(name)
+        assert det.psd_file
+        via_registry = np.asarray(D.psd_for(name, flen, df))
+        via_label = np.asarray(D.psd_from_name(det.psd_name, flen, df, det.f_lower))
+        assert np.array_equal(via_registry, via_label)
+        inband = (f >= 6.0) & (f <= 2000.0)
+        assert np.all(np.isfinite(via_registry[inband])) and np.all(via_registry[inband] > 0)
+    old = np.asarray(D.psd_for("CE", flen, df, f_lower=5.0))
+    new40 = np.asarray(D.psd_for("CE40", flen, df, f_lower=5.0))
+    new20 = np.asarray(D.psd_for("CE20", flen, df, f_lower=5.0))
+
+    def ratio(a, b, freq):
+        return float(np.sqrt(np.interp(freq, f, a) / np.interp(freq, f, b)))
+
+    assert 1.2 < ratio(new40, old, 50.0) < 1.5
+    assert ratio(new40, old, 5.0) < 0.2
+    assert 1.3 < ratio(new20, new40, 100.0) < 2.1
+    # and an unregistered LALSimulation name still works through the resolver
+    direct = np.asarray(D.psd_from_name("aLIGOZeroDetHighPower", flen, df, 20.0))
+    assert np.array_equal(direct, np.asarray(D.psd_for("aLIGO", flen, df)))
+
