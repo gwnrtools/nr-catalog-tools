@@ -148,21 +148,68 @@ def test_modes_come_in_plus_minus_m_pairs():
 # ── load_nrsur7dq4 ────────────────────────────────────────────────────────────
 
 
-def test_load_nrsur7dq4_caches_singleton():
-    """gwsurrogate.LoadSurrogate must be called exactly once regardless of call count."""
+def test_load_nrsur7dq4_caches_singleton(monkeypatch):
+    """gwsurrogate.LoadSurrogate must be called exactly once regardless of call count,
+    and with version 1 when nothing selects another model."""
     import nrcats.surrogate as _sur_mod
 
+    monkeypatch.delenv(_sur_mod.SURROGATE_ENV_VAR, raising=False)
     mock_sur = MagicMock()
     mock_gws = MagicMock()
     mock_gws.LoadSurrogate.return_value = mock_sur
 
-    with patch.object(_sur_mod, "_nrsur7dq4", None):
+    with patch.object(_sur_mod, "_surrogates", {}):
         with patch.dict("sys.modules", {"gwsurrogate": mock_gws}):
             r1 = _sur_mod.load_nrsur7dq4()
             r2 = _sur_mod.load_nrsur7dq4()
 
     mock_gws.LoadSurrogate.assert_called_once_with("NRSur7dq4")
     assert r1 is r2
+
+
+# ── choosing the model ────────────────────────────────────────────────────────
+
+
+def test_environment_selects_version_two(monkeypatch):
+    """$NRCATS_SURROGATE switches every caller of load_nrsur7dq4 at once."""
+    import nrcats.surrogate as _sur_mod
+
+    monkeypatch.setenv(_sur_mod.SURROGATE_ENV_VAR, "NRSur7dq4v2")
+    mock_gws = MagicMock()
+    with patch.object(_sur_mod, "_surrogates", {}):
+        with patch.dict("sys.modules", {"gwsurrogate": mock_gws}):
+            _sur_mod.load_nrsur7dq4()
+    mock_gws.LoadSurrogate.assert_called_once_with("NRSur7dq4v2")
+
+
+def test_argument_overrides_environment_and_models_are_cached_apart(monkeypatch):
+    """An explicit name wins, and two models in one process are two objects."""
+    import nrcats.surrogate as _sur_mod
+
+    monkeypatch.setenv(_sur_mod.SURROGATE_ENV_VAR, "NRSur7dq4v2")
+    mock_gws = MagicMock()
+    mock_gws.LoadSurrogate.side_effect = lambda name: MagicMock(name=name)
+    with patch.object(_sur_mod, "_surrogates", {}):
+        with patch.dict("sys.modules", {"gwsurrogate": mock_gws}):
+            v1 = _sur_mod.load_surrogate("NRSur7dq4")
+            v2 = _sur_mod.load_surrogate()
+            assert _sur_mod.load_surrogate("NRSur7dq4") is v1
+    assert v1 is not v2
+    assert [c.args[0] for c in mock_gws.LoadSurrogate.call_args_list] == [
+        "NRSur7dq4",
+        "NRSur7dq4v2",
+    ]
+
+
+def test_unknown_model_fails_and_says_where_it_came_from(monkeypatch):
+    """A typo in the environment must fail, never fall back to version 1."""
+    import nrcats.surrogate as _sur_mod
+
+    monkeypatch.setenv(_sur_mod.SURROGATE_ENV_VAR, "NRSur7dq4V2")
+    with pytest.raises(ValueError, match=r"NRCATS_SURROGATE"):
+        _sur_mod.surrogate_name()
+    with pytest.raises(ValueError, match=r"argument"):
+        _sur_mod.surrogate_name("NRSur7dq5")
 
 
 # ── generate_surrogate_modes ──────────────────────────────────────────────────
@@ -182,6 +229,23 @@ def test_generate_surrogate_modes_returns_timeseries_per_mode():
         assert isinstance(ts, TimeSeries), f"mode {mode} is not a TimeSeries"
         assert ts.dtype == np.complex128, f"mode {mode} dtype is {ts.dtype}"
     assert f_lower_eff > 0.0
+
+
+def test_generate_surrogate_modes_calls_the_named_model():
+    """model= reaches the loader; the default still goes through load_nrsur7dq4."""
+    import nrcats.surrogate as _sur_mod
+
+    params = _params(q=2.0, chi1z=0.3, chi2z=-0.2)
+    with patch.object(
+        _sur_mod, "load_surrogate", return_value=_mock_surrogate()
+    ) as by_name, patch.object(
+        _sur_mod, "load_nrsur7dq4", return_value=_mock_surrogate()
+    ) as default:
+        generate_surrogate_modes(params, total_mass=60.0, model="NRSur7dq4v2")
+        by_name.assert_called_once_with("NRSur7dq4v2")
+        default.assert_not_called()
+        generate_surrogate_modes(params, total_mass=60.0)
+        default.assert_called_once_with()
 
 
 def test_generate_surrogate_modes_epoch_at_h22_peak():
