@@ -1023,16 +1023,16 @@ def get_nr_to_lal_rotation_angles(
             raise ValueError("Math consistency failure! Please contact the developers.")
 
     # 3.2: Compute the vectors theta_hat and psi_hat
-    # stheta = np.sin(theta)
-    # ctheta = np.cos(theta)
+    stheta = np.sin(theta)
+    ctheta = np.cos(theta)
 
     spsi = np.sin(psi)
     cpsi = np.cos(psi)
 
-    # theta_hat_x = cpsi * ctheta
-    # theta_hat_y = spsi * ctheta
-    # theta_hat_z = -stheta
-    # theta_hat = np.array([theta_hat_x, theta_hat_y, theta_hat_z])
+    theta_hat_x = cpsi * ctheta
+    theta_hat_y = spsi * ctheta
+    theta_hat_z = -stheta
+    theta_hat = np.array([theta_hat_x, theta_hat_y, theta_hat_z])
 
     psi_hat_x = -spsi
     psi_hat_y = cpsi
@@ -1043,13 +1043,13 @@ def get_nr_to_lal_rotation_angles(
     # Rotation angles on the tangent plane
     # due to spin weight.
 
-    # n_dot_theta = np.dot(n_hat, theta_hat)
-    # ln_cross_n_dot_theta = np.dot(ln_cross_n, theta_hat)
+    n_dot_theta = np.dot(n_hat, theta_hat)
+    ln_cross_n_dot_theta = np.dot(ln_cross_n, theta_hat)
 
     n_dot_psi = np.dot(n_hat, psi_hat)
     ln_cross_n_dot_psi = np.dot(ln_cross_n, psi_hat)
 
-    # salpha = corb_phase * n_dot_theta - sorb_phase * ln_cross_n_dot_theta
+    salpha = corb_phase * n_dot_theta - sorb_phase * ln_cross_n_dot_theta
     calpha = corb_phase * n_dot_psi - sorb_phase * ln_cross_n_dot_psi
 
     if abs(calpha) > 1:
@@ -1066,7 +1066,7 @@ def get_nr_to_lal_rotation_angles(
                 "Seems like something is wrong with the polarization angle. Please contact the developers!"
             )
 
-    alpha = np.arccos(calpha)
+    alpha = -np.arctan2(salpha, calpha)
 
     angles = {
         "theta": theta,
