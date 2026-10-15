@@ -144,19 +144,45 @@ Notes:
   waveforms in the LAL frame should be built from extrapolated native Ψ4, not
   from the LVCNR files. MAYA1016–1021 are under-resolved (outer boundary
   204.8 M, wave-zone grid spacing 4x coarser) and should be flagged.
-- **MAYA precessing files: dynamics and modes disagree in handedness (under
-  study).** In MAYA1060 and MAYA1070 the file's `LNhat-vs-time` (consistent with
-  `r x v` from its own position tracks to 0.35°) is 14–59° from the waveform's
-  radiation axis (the quaternion-free dominant eigenvector of `<L_(a L_b)>`),
-  and within 2–4° after `(Lx, Ly) -> (-Lx, -Ly)`. The in-plane `nhat` agrees with
-  the waveform's orbital phase at the first sample, and aligned-spin runs agree
-  exactly, which points to a reflection through the orbital plane (axial
-  vectors flip their in-plane components, polar vectors their z component)
-  rather than a rotation. If confirmed, the published spins of precessing MAYA
-  runs are mirrored relative to their waveforms, which bears on any comparison
-  that uses them (and on LAL NR injections from these files). Until resolved,
-  the waveform-derived frame should be preferred for precessing MAYA runs; the
-  affected tests are marked as expected failures.
+- **MAYA files: the modes are rotated by π about z relative to the dynamics.**
+  In every MAYA run checked (MAYA1060, MAYA1070, GT0001, GT0560, and the
+  aligned-spin MAYA0937 and MAYA0970), `h_lm(file) = (-1)^m h_lm(dynamics)`.
+  Here "dynamics" means the positions, `LNhat`, `nhat` and spins stored in the
+  same file. The evidence:
+  - In MAYA1060 and MAYA1070 the file's `LNhat-vs-time` agrees with `r x v`
+    from its own position tracks to 0.35°. It is 9–59° from the waveform's
+    radiation axis (the dominant eigenvector of `<L_(a L_b)>`), and 1–4° from it
+    after `(Lx, Ly) -> (-Lx, -Ly)`.
+  - That change of L does not distinguish a π rotation about z from a
+    reflection through the orbital plane. The phase of the odd-m modes relative
+    to `nhat` does: `ψ33 − ψ22` is −90° under the rotation and +90° under the
+    reflection, where NRSur7dq4 and SXS (horizons plus strain) give −93° to −95°.
+  - NRSur7dq4, maximised over SO(3) and time, matches the rotation 3–4 times
+    better than the reflection (MAYA1060 inspiral: 4.1e-3 against 1.6e-2).
+  - The flip is already in MAYA's native Ψ4 modes, so the mayawaves export did
+    not introduce it.
+  - The dynamics agree with the TwoPunctures initial data in the parfile, so it
+    is the waveform that is rotated.
+  - The waveform-derived frame of nrcats (`frame_consistency` against the
+    catalog frame) is π off in phase as stored. After `(-1)^m` it agrees to
+    1.4–4° and 0.05 rad (MAYA1060, MAYA1070, GT0001). On RIT the same check
+    agrees as stored (2.4° and 5.6°) and fails after `(-1)^m`, so the check
+    itself is sound.
+
+  The likely cause is a `(-1)^m` (azimuth) convention in the `Ylm_Decomp`
+  thorn; that source has not been inspected. For aligned-spin runs the flip is
+  only a shift of π in orbital phase, which explains why nobody noticed it.
+  LALSimulation NR injections from MAYA files use the stored modes with the
+  stored vectors, so they carry the same flip.
+
+  **nrcats** rotates the modes back by default:
+  `MayaCatalog.get(..., correct_azimuth=True)` applies `h_lm -> (-1)^m h_lm`
+  before any frame rotation and records `maya_azimuth_corrected` in the
+  waveform's metadata. `correct_azimuth=False` returns the modes as stored,
+  which reproduces LALSimulation.
+
+  The measurement scripts are in `nrcmp-2026-10/handedness/` and
+  `nrcmp-2026-10/handedness_check/` in the analysis workspace.
 - **RIT `relaxed-time`** is not a time on the waveform's axis (the axis is
   shifted so the peak is near zero) and is not needed: the vectors hold at the
   first sample. Its value is 30 M for 813 of 1,945 simulations, which is inside

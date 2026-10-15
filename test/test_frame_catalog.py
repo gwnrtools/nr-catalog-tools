@@ -9,9 +9,6 @@ from nrcats import frames
 
 MAYA_CACHE = os.path.expanduser("~/.cache/MAYA/data")
 HAVE = {s: os.path.exists(os.path.join(MAYA_CACHE, f"{s}.h5")) for s in ("GT0001", "MAYA1060", "MAYA1070", "GT0587")}
-# Precessing MAYA runs whose LVCNR dynamics (LNhat, positions, spins) and waveform modes
-# disagree by a reflection through the orbital plane (measured October 2026; under study).
-MAYA_HANDEDNESS_SUSPECT = {"GT0001", "MAYA1060", "MAYA1070"}
 
 
 @pytest.fixture(scope="module")
@@ -116,17 +113,34 @@ def test_reference_metadata_matches_lalsimulation(maya, sim):
 
 @pytest.mark.requires_data
 @pytest.mark.skipif(not HAVE["MAYA1060"], reason="cached MAYA1060 not available")
-@pytest.mark.xfail(reason="MAYA precessing files: dynamics and waveform differ by a reflection "
-                          "through the orbital plane (see docs/frame_conventions.md)", strict=False)
 def test_waveform_frame_agrees_with_the_catalog_frame(maya):
+    """With the MAYA modes rotated by pi about z (the default), the waveform-derived
+    triad agrees with the file's dynamics; as stored, it is off by pi in phase."""
     from nrcats.frame_waveform import frame_consistency
 
-    raw = maya.get("MAYA1060", frame="simulation")
-    t_ref = raw.t_ref_nr + 200.0                          # past the junk
-    fa = frames.catalog_frame(raw, t_ref=t_ref)
-    wf = maya.get("MAYA1060", frame="waveform", t_ref=t_ref)
-    c = frame_consistency(fa, frames.frame_of(wf))
-    assert c["l_hat_angle_deg"] < 5.0
+    t_ref = maya.get("MAYA1060", frame="simulation").t_ref_nr + 200.0   # past the junk
+    for correct, expect_phase in ((True, 0.0), (False, np.pi)):
+        raw = maya.get("MAYA1060", frame="simulation", correct_azimuth=correct)
+        fa = frames.catalog_frame(raw, t_ref=t_ref)
+        wf = maya.get("MAYA1060", frame="waveform", t_ref=t_ref, correct_azimuth=correct)
+        c = frame_consistency(fa, frames.frame_of(wf))
+        phase_error = abs(np.angle(np.exp(1j * (c["phase_offset_rad"] - expect_phase))))
+        assert phase_error < 0.3
+        if correct:
+            assert c["l_hat_angle_deg"] < 5.0
+        else:
+            assert c["l_hat_angle_deg"] > 8.0
+
+
+@pytest.mark.requires_data
+@pytest.mark.skipif(not HAVE["MAYA1060"], reason="cached MAYA1060 not available")
+def test_maya_azimuth_correction_flips_the_odd_m_modes(maya):
+    a = maya.get("MAYA1060", frame="simulation")
+    b = maya.get("MAYA1060", frame="simulation", correct_azimuth=False)
+    assert a._metadata["maya_azimuth_corrected"] and not b._metadata["maya_azimuth_corrected"]
+    for ell, m in ((2, 2), (2, 1), (3, 3), (3, -2), (4, -1)):
+        np.testing.assert_array_equal(np.asarray(a.data)[:, a.index(ell, m)],
+                                      (-1) ** m * np.asarray(b.data)[:, b.index(ell, m)])
 
 
 @pytest.mark.requires_data

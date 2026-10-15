@@ -324,6 +324,7 @@ class CatalogBase(CatalogABC):
                     )
                 self.download_waveform_data(sim_name)
             wfm = waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
+            wfm = self._correct_loaded_modes(wfm, **kwargs)
             from nrcats.frames import put_in_frame
 
             return put_in_frame(wfm, frame=frame, t_ref=t_ref)
@@ -348,6 +349,11 @@ class CatalogBase(CatalogABC):
             raise IOError(
                 f"Cannot provide quantity: {quantity}. Only supported options are [waveform, psi4]"
             )
+
+    def _correct_loaded_modes(self, wfm, **kwargs):
+        """Catalog-specific corrections to the modes as loaded, before any frame
+        rotation.  The base class makes none; see ``MayaCatalog``."""
+        return wfm
 
     def get_metadata(self, sim_name: str) -> dict:
         """Get Metadata for this simulation

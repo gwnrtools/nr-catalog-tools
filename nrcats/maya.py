@@ -61,6 +61,14 @@ class MayaCatalog(catalog.CatalogBase):
     - A module-level singleton prevents redundant catalog loads when
       ``load()`` is called multiple times in the same process.
 
+    - The waveform modes in MAYA files are rotated by pi about z relative
+      to the dynamics stored with them (positions, ``LNhat``, ``nhat``,
+      spins): ``h_lm(file) = (-1)^m h_lm``.  ``get`` undoes this by default
+      (``correct_azimuth=True``) so that the modes and the frame vectors
+      describe the same binary; ``correct_azimuth=False`` returns the modes
+      as stored, which is what LALSimulation injects.  See
+      ``docs/frame_conventions.md``.
+
     Example:
         >>> import nrcats as nrcat
         >>> cat = nrcat.MayaCatalog.load()
@@ -68,6 +76,19 @@ class MayaCatalog(catalog.CatalogBase):
     """
 
     CATALOG_TYPE = "MAYA"
+
+    def _correct_loaded_modes(self, wfm, correct_azimuth: bool = True, **kwargs):
+        """Rotate the modes by pi about z (``h_lm -> (-1)^m h_lm``) to match the
+        file's dynamics; see the class docstring.  Recorded as
+        ``wfm._metadata["maya_azimuth_corrected"]``."""
+        if correct_azimuth:
+            import numpy as np
+
+            data = np.asarray(wfm.data)
+            odd = np.array([m % 2 == 1 for _, m in wfm.LM])
+            data[:, odd] *= -1
+        wfm._metadata["maya_azimuth_corrected"] = bool(correct_azimuth)
+        return wfm
 
     def __init__(
         self,
