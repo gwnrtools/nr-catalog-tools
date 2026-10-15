@@ -286,14 +286,24 @@ wfm.frame_consistency()   # A vs B: angle between L_hat, orbital-phase offset, a
 - A request for a `t_ref` the catalog cannot support (single-epoch catalogs)
   raises, unless the user opts in to PN-evolved spins.
 
+**Implemented on branch `frame-conventions` (October 2026):** `catalog.get(sim,
+frame="lal" | "waveform" | "simulation", t_ref=None)` for RIT, MAYA and SXS
+(default `"lal"`); `nrcats.frames.frame_of(wfm)`; `get_reference_metadata(sim,
+frame=..., t_ref=...)`; `nrcats.frame_waveform.waveform_frame` and
+`frame_consistency`. One deliberate difference from the proposal:
+`get_parameters(sim, total_mass, frame=None)` keeps the catalog metadata unless a
+frame is asked for, so existing analyses are not changed silently; switching its
+default to `"lal"` is a decision for the maintainers. PN-evolved spins for other
+epochs are not implemented (a different `t_ref` raises for single-epoch data).
+
 ## Known defects this design resolves
 
 | Where | Problem |
 |---|---|
 | `nrcats/lvc.py`, `get_nr_to_lal_rotation_angles` | `alpha = arccos(calpha)` dropped the sign of α, rotating the polarizations of tilted-frame simulations by up to 4α. **Fixed** on branch `pol_sign` (`alpha = -arctan2(salpha, calpha)`); verified against LAL in 80 of 80 cases. |
-| `nrcats/waveform/modes.py`, `_compute_reference_time` | The orbital phase decreases with time, so the derivative is negative, and the search for `+Omega` lands in post-merger noise (GT0001: 81.6 M, after the peak at 1.7 M). This changes the `coa_phase` → `φ_ref` mapping. |
-| `nrcats/lvc.py`, `get_ref_time_from_ref_freq`, `get_ref_freq_from_ref_time`, `get_interp_ref_values_from_h5_file` | `interp1d(...)[x]` raises `TypeError`, and `Omega-vs-time` is read as an attribute where LVCNR stores a group. `f_ref` is silently ignored and `t_ref` raises, so the format 2/3 time series are never used. |
-| `nrcats/lvc.py`, `check_interp_req` | Looks for `relaxed_time`; RIT's key is `relaxed-time`. |
+| `nrcats/waveform/modes.py`, `_compute_reference_time` | The orbital phase decreases with time, so the derivative is negative, and the search for `+Omega` lands in post-merger noise (GT0001: 81.6 M, after the peak at 1.7 M). This changes the `coa_phase` → `φ_ref` mapping. **Fixed** (stage 1): the reference epoch comes from the data (Format 1: first sample; Format ≥ 2: where `Omega-vs-time` reaches `Omega`; else a recorded reference time; else `|d arg h22/dt|/2` before the peak). |
+| `nrcats/lvc.py`, `get_ref_time_from_ref_freq`, `get_ref_freq_from_ref_time`, `get_interp_ref_values_from_h5_file` | `interp1d(...)[x]` raises `TypeError`, and `Omega-vs-time` is read as an attribute where LVCNR stores a group. `f_ref` is silently ignored and `t_ref` raises, so the format 2/3 time series are never used. **Fixed** (stage 1): the `*-vs-time` groups are read and interpolated with LAL's cubic spline, `f_ref` is converted and checked as LAL does (ignored for Format < 2); agrees with `SimInspiralNRWaveformGetHplusHcross` at `fRef > 0` on MAYA1060 to residual phase 2e-7 rad. |
+| `nrcats/lvc.py`, `check_interp_req` | Looks for `relaxed_time`; RIT's key is `relaxed-time`. **Fixed** (stage 1): read, but deliberately not used as the epoch (not a time on the waveform's axis). |
 | `nrcats/lvc.py`, `compute_lal_source_frame_from_sxs_metadata` | `n̂ = Pos2 − Pos1` points from body 1 to body 2, the reverse of LAL's convention. **Fixed** (stage 1): `n̂ = Pos1 − Pos2`. |
 | `nrcats/waveform/modes.py`, `get_angles` | Opens `self.filepath` as an LVCNR file, so `get_td_waveform` fails for every SXS waveform. **Fixed** (stage 1): without an LVCNR file the reference time and frame come from the SXS metadata; agrees with LAL on the sxs LVCNR export of SXS:BBH:0792 to Re(overlap) ≥ 0.997, time alignment only. |
 | SXS backend | No strain sign correction. **Fixed** (stage 1): `SXSCatalog.get` flips the sign when the sidecar records it (`correct_strain_sign=True`), recorded as `strain_sign_flipped` in the waveform metadata. |
