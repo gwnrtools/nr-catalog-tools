@@ -281,9 +281,9 @@ wfm.frame_consistency()   # A vs B: angle between L_hat, orbital-phase offset, a
 | `nrcats/waveform/modes.py`, `_compute_reference_time` | The orbital phase decreases with time, so the derivative is negative, and the search for `+Omega` lands in post-merger noise (GT0001: 81.6 M, after the peak at 1.7 M). This changes the `coa_phase` → `φ_ref` mapping. |
 | `nrcats/lvc.py`, `get_ref_time_from_ref_freq`, `get_ref_freq_from_ref_time`, `get_interp_ref_values_from_h5_file` | `interp1d(...)[x]` raises `TypeError`, and `Omega-vs-time` is read as an attribute where LVCNR stores a group. `f_ref` is silently ignored and `t_ref` raises, so the format 2/3 time series are never used. |
 | `nrcats/lvc.py`, `check_interp_req` | Looks for `relaxed_time`; RIT's key is `relaxed-time`. |
-| `nrcats/lvc.py`, `compute_lal_source_frame_from_sxs_metadata` | `n̂ = Pos2 − Pos1` points from body 1 to body 2, the reverse of LAL's convention. |
-| `nrcats/waveform/modes.py`, `get_angles` | Opens `self.filepath` as an LVCNR file, so `get_td_waveform` fails for every SXS waveform. |
-| SXS backend | No strain sign correction. |
+| `nrcats/lvc.py`, `compute_lal_source_frame_from_sxs_metadata` | `n̂ = Pos2 − Pos1` points from body 1 to body 2, the reverse of LAL's convention. **Fixed** (stage 1): `n̂ = Pos1 − Pos2`. |
+| `nrcats/waveform/modes.py`, `get_angles` | Opens `self.filepath` as an LVCNR file, so `get_td_waveform` fails for every SXS waveform. **Fixed** (stage 1): without an LVCNR file the reference time and frame come from the SXS metadata; agrees with LAL on the sxs LVCNR export of SXS:BBH:0792 to Re(overlap) ≥ 0.997, time alignment only. |
+| SXS backend | No strain sign correction. **Fixed** (stage 1): `SXSCatalog.get` flips the sign when the sidecar records it (`correct_strain_sign=True`), recorded as `strain_sign_flipped` in the waveform metadata. |
 | `test/test_gt_pol.py` | Compares with phase maximization and uses a file with `L̂ = ẑ` (where α = π exactly), so it cannot see frame errors; it also writes `f_lower_at_1MSUN = f_lower / total_mass` (wrong units) into the committed validation file. |
 | `README.md` | `hc = -1 * pols.imag()` is wrong: the default output already matches LAL with `hc = pols.imag()`. The `lal_convention=True` flag returns the conjugate, which is not LAL's convention. |
 
