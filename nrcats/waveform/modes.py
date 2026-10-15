@@ -742,6 +742,11 @@ class WaveformModes(sxs_WaveformModes):
         sim_metadata = self._metadata.get("metadata") or {}
         if sim_metadata.get("catalog_type") == "SXS":
             return False
+        if sim_metadata.get("reference_frame_source"):
+            # The metadata carry their own reference-epoch frame data (e.g.
+            # MAYA waveforms extrapolated from the native files), in the
+            # SXS form, so any LVCNR file of the simulation does not apply.
+            return False
         path = self.filepath
         return bool(path) and os.path.isfile(path)
 

@@ -17,8 +17,11 @@ Key design decisions
   convert MAYA-format HDF5 files to LVCNR catalog format via the
   ``mayawaves`` package before caching.
 
-* **PSI4 not available** – the MAYA catalog only distributes strain
-  waveforms; all ``psi4_*`` methods raise ``NotImplementedError``.
+* **PSI4 only in the native files** – the ``psi4_*`` methods raise
+  ``NotImplementedError``.  ``MayaCatalog.get_extrapolated`` (or
+  ``get(sim, quantity="extrapolated")``) reads finite-radius Psi4 from the
+  native files and extrapolates it to null infinity
+  (:mod:`nrcats.maya_native`, :mod:`nrcats.extrapolate`).
 
 Public classes
 --------------
@@ -42,6 +45,10 @@ from nrcats.registry import register_catalog
 
 # Module-level singleton — same stale-result fix as RITCatalog.
 _maya_catalog_singleton = None
+
+# Coordinate time of the dynamics at which MAYA's LVCNR export evaluates its
+# metadata (mayawaves: ``initial_time_horizon``), past the junk radiation.
+MAYA_REFERENCE_EPOCH = 75.0
 
 
 @register_catalog("MAYA")
@@ -89,6 +96,166 @@ class MayaCatalog(catalog.CatalogBase):
             data[:, odd] *= -1
         wfm._metadata["maya_azimuth_corrected"] = bool(correct_azimuth)
         return wfm
+
+    def get(
+        self,
+        sim_name: str,
+        quantity: str = "waveform",
+        frame: str = "lal",
+        t_ref: float | None = None,
+        **kwargs,
+    ):
+        """As :meth:`CatalogBase.get`, plus ``quantity="extrapolated"``, which
+        returns :meth:`get_extrapolated` (keyword arguments are passed on)."""
+        if quantity.lower() == "extrapolated":
+            return self.get_extrapolated(sim_name, frame=frame, t_ref=t_ref, **kwargs)
+        return super().get(sim_name, quantity=quantity, frame=frame, t_ref=t_ref, **kwargs)
+
+    def native_cache_dir(self):
+        """Directory of the cached extracts of native files."""
+        return utils.maya_catalog_info["cache_dir"] / "native"
+
+    def get_extrapolated(
+        self,
+        sim_name: str,
+        frame: str = "lal",
+        t_ref: float | None = None,
+        extraction_radius: float | None = None,
+        ell_max: int = 4,
+        background_spin: float = 0.0,
+        ffi_cutoff_fraction: float | None = None,
+        correct_azimuth: bool = True,
+        native_file_path: str | None = None,
+        taper_duration: float | None = None,
+    ):
+        """Strain extrapolated to null infinity from the native finite-radius Psi4.
+
+        Psi4 at one extraction radius is read from the native file (over
+        HTTP unless ``native_file_path`` is given; the extract is cached in
+        :meth:`native_cache_dir`), extrapolated with Nakano et al. (2015) and
+        integrated with the FFI (:func:`nrcats.extrapolate.extrapolate_psi4_to_strain`).
+        The time axis is the retarded time ``u = t - r_*(R)``.  The ``m = 0``
+        modes are zero.  No centre-of-mass correction is applied.
+
+        The frame data come from the native horizon tracks
+        (:func:`nrcats.maya_native.reference_metadata_from_tracks`).  As in
+        MAYA's LVCNR export, the dynamics at coordinate time ``tau`` pair
+        with the waveform extracted at coordinate time ``t = tau + R``
+        (``R`` the coordinate radius of the sphere), i.e. at
+        ``u = tau + R - r_*(R)`` on the retarded time axis.  Any ``t_ref``
+        inside the tracks is allowed.
+
+        Args:
+            sim_name (str): MAYA simulation name, e.g. ``"MAYA1060"``.
+            frame (str): ``"lal"`` (default), ``"waveform"`` or
+                ``"simulation"``, as in :meth:`CatalogBase.get`.
+            t_ref (float, optional): Reference epoch on the retarded time
+                axis. Defaults to the epoch of MAYA's LVCNR metadata, track
+                time 75 M.
+            extraction_radius (float, optional): Coordinate radius to use.
+                Defaults to the largest at or below 145 M.
+            ell_max (int): Largest ell. Defaults to 4.
+            background_spin (float): Kerr parameter of the background in the
+                extrapolation. Defaults to 0.
+            ffi_cutoff_fraction (float, optional): FFI cutoff as a fraction of
+                ``|m|`` times the initial orbital frequency. Defaults to
+                :data:`nrcats.extrapolate.DEFAULT_FFI_CUTOFF_FRACTION`.
+            correct_azimuth (bool): Rotate the modes by pi about z to match
+                the tracks; native Psi4 carries the same rotation as the
+                LVCNR files (see the class docstring). Defaults to True.
+            native_file_path (str, optional): Local copy of the native file.
+            taper_duration (float, optional): Planck taper at each end of
+                r * Psi4 before extrapolating and integrating, in M.
+                Defaults to :data:`nrcats.extrapolate.DEFAULT_TAPER_DURATION`;
+                0 disables it.
+
+        Returns:
+            nrcats.waveform.WaveformModes: Strain modes in ``frame``.
+        """
+        import numpy as np
+        import quaternionic
+        from sxs.waveforms.format_handlers.nrar import (
+            h,
+            translate_data_type_to_spin_weight,
+            translate_data_type_to_sxs_string,
+        )
+
+        from nrcats import waveform
+        from nrcats.extrapolate import (
+            DEFAULT_FFI_CUTOFF_FRACTION,
+            DEFAULT_TAPER_DURATION,
+            extrapolate_psi4_to_strain,
+            retardation,
+        )
+        from nrcats.frames import put_in_frame
+        from nrcats.maya_native import read_native_data, reference_metadata_from_tracks
+
+        if sim_name not in self._simulations:
+            raise IOError(f"Simulation {sim_name} not found in catalog.")
+        native_source = native_file_path or self.waveform_url_from_simname(sim_name, maya_format=True)
+        native_data = read_native_data(
+            native_source,
+            extraction_radius=extraction_radius,
+            ell_max=ell_max,
+            cache_path=self.native_cache_dir(),
+        )
+        native_attrs = native_data["attrs"]
+        total_mass = float(native_attrs["horizon mass 0"]) + float(native_attrs["horizon mass 1"])
+        retarded_time, strain_modes = extrapolate_psi4_to_strain(
+            native_data["time"],
+            native_data["rpsi4_modes"],
+            extraction_radius=native_data["extraction_radius"],
+            total_mass=total_mass,
+            initial_orbital_frequency=float(native_attrs["initial orbital frequency"]),
+            background_spin=background_spin,
+            ffi_cutoff_fraction=DEFAULT_FFI_CUTOFF_FRACTION if ffi_cutoff_fraction is None else ffi_cutoff_fraction,
+            taper_duration=DEFAULT_TAPER_DURATION if taper_duration is None else taper_duration,
+        )
+
+        # Waveform (retarded) time minus track time at the same epoch.
+        waveform_time_offset = native_data["extraction_radius"] - retardation(
+            native_data["extraction_radius"], total_mass, background_spin
+        )
+        dynamics_epoch = MAYA_REFERENCE_EPOCH if t_ref is None else float(t_ref) - waveform_time_offset
+        metadata = dict(self.get_metadata(sim_name))
+        metadata.update(reference_metadata_from_tracks(native_data, dynamics_epoch, waveform_time_offset))
+        metadata.update(
+            waveform_data_location=str(native_source),
+            extrapolation={
+                "method": "Nakano et al. (2015) perturbative, FFI",
+                "extraction_radius": native_data["extraction_radius"],
+                "available_radii": native_data["available_radii"],
+                "background_spin": background_spin,
+                "ffi_cutoff_fraction": DEFAULT_FFI_CUTOFF_FRACTION if ffi_cutoff_fraction is None else ffi_cutoff_fraction,
+                "m0_modes": "zero",
+                "taper_duration": DEFAULT_TAPER_DURATION if taper_duration is None else taper_duration,
+            },
+        )
+
+        mode_list = [(ell, emm) for ell in range(2, ell_max + 1) for emm in range(-ell, ell + 1)]
+        strain_data = np.column_stack([strain_modes[mode_index] for mode_index in mode_list])
+        w_attributes = {}
+        w_attributes["_filepath"] = str(native_source)
+        w_attributes["metadata"] = metadata
+        w_attributes["history"] = ""
+        w_attributes["frame"] = quaternionic.array([[1.0, 0.0, 0.0, 0.0]])
+        w_attributes["frame_type"] = "inertial"
+        w_attributes["spin_weight"] = translate_data_type_to_spin_weight(h)
+        w_attributes["data_type"] = translate_data_type_to_sxs_string(h)
+        w_attributes["r_is_scaled_out"] = True
+        w_attributes["m_is_scaled_out"] = True
+        wfm = waveform.WaveformModes(
+            strain_data,
+            time=retarded_time,
+            time_axis=0,
+            modes_axis=1,
+            ell_min=2,
+            ell_max=ell_max,
+            verbosity=self._verbosity,
+            **w_attributes,
+        )
+        wfm = self._correct_loaded_modes(wfm, correct_azimuth=correct_azimuth)
+        return put_in_frame(wfm, frame=frame)
 
     def __init__(
         self,
