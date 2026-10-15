@@ -35,13 +35,20 @@ def _get(lev):
         pytest.skip(f"{SIM} Lev{lev} unavailable: {type(exc).__name__}: {exc}")
 
 
-def test_available_levs_is_sorted_and_costs_no_download():
-    """The listing comes from the catalog metadata, sorted, with the default last."""
+def _catalog_and_levels():
+    """The SXS catalog and SIM's published levels, skipping without a cached
+    catalog: load_catalog reads the index with download=False, so a machine
+    that has never fetched it (CI) raises here rather than in the assertion."""
     try:
         cat = load_catalog("SXS")
-        levs = cat.available_levs(SIM)
-    except Exception as exc:  # noqa: BLE001
+        return cat, cat.available_levs(SIM)
+    except Exception as exc:  # noqa: BLE001 - any failure means "no data here"
         pytest.skip(f"catalog unavailable: {type(exc).__name__}: {exc}")
+
+
+def test_available_levs_is_sorted_and_costs_no_download():
+    """The listing comes from the catalog metadata, sorted, with the default last."""
+    _, levs = _catalog_and_levels()
     assert len(levs) >= 2, f"{SIM} should publish several levels, got {levs}"
     assert levs == sorted(set(levs)), "levels must be sorted and unique"
     assert all(isinstance(x, int) for x in levs)
@@ -50,7 +57,7 @@ def test_available_levs_is_sorted_and_costs_no_download():
 @pytest.mark.requires_data
 def test_two_levels_load_and_differ():
     """The two highest levels are distinct waveforms, and each records its level."""
-    levs = load_catalog("SXS").available_levs(SIM)
+    _, levs = _catalog_and_levels()
     lo, hi = levs[-2], levs[-1]
     w_lo, w_hi = _get(lo), _get(hi)
     assert w_lo._metadata["lev_number"] == lo
@@ -75,8 +82,8 @@ def test_default_is_highest_level():
     comparable with one computed at ``lev=max``, or nothing in the data says
     which level a row came from.
     """
-    cat = load_catalog("SXS")
-    hi = cat.available_levs(SIM)[-1]
+    cat, levs = _catalog_and_levels()
+    hi = levs[-1]
     try:
         default = cat.get(SIM)
     except Exception as exc:  # noqa: BLE001
@@ -90,11 +97,7 @@ def test_default_is_highest_level():
 
 def test_absent_level_raises():
     """A level the simulation does not publish is an error, never a fallback."""
-    try:
-        cat = load_catalog("SXS")
-        levs = cat.available_levs(SIM)
-    except Exception as exc:  # noqa: BLE001
-        pytest.skip(f"catalog unavailable: {type(exc).__name__}: {exc}")
+    cat, levs = _catalog_and_levels()
     absent = max(levs) + 40
     with pytest.raises(ValueError):
         cat.get(SIM, lev=absent, download=False)
