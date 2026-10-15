@@ -1009,7 +1009,9 @@ def match_sphere_averaged_bms_maximized(
             return 1.0
 
         # back to physical strain; the sample spacing in seconds is unchanged
-        arr2t = {k: np.ascontiguousarray(tr.data[:, _sidx(*k)] * amp) for k in common_modes}
+        arr2t = {
+            k: np.ascontiguousarray(tr.data[:, _sidx(*k)] * amp) for k in common_modes
+        }
         setup = _analysis_setup(
             arr1,
             arr2t,

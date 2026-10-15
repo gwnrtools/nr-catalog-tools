@@ -452,7 +452,9 @@ def _mock_nrhj(n=4096):
         (5, 5): 0.005 * envelope * np.exp(-5j * t),
     }
     mock = MagicMock()
-    mock.in_hull.side_effect = lambda q, c1, c2: q <= 8.0 and max(abs(c1), abs(c2)) <= 0.998
+    mock.in_hull.side_effect = (
+        lambda q, c1, c2: q <= 8.0 and max(abs(c1), abs(c2)) <= 0.998
+    )
     mock.get_td_waveform_modes_geometric.return_value = (t, modes)
     mock._native = modes
     mock._sign = _sur_mod.NRHJ_MODE_SIGN
@@ -501,8 +503,12 @@ def _nrhj_modes(params, model="NRHJSur3dq8_AA_v3", **kw):
     fake = _mock_nrhj()
     with patch.object(_sur_mod, "_surrogates", {model: fake}):
         result, f_low = generate_surrogate_modes(
-            params, total_mass=60.0, distance=1.0, delta_t_seconds=1.0 / 4096,
-            model=model, **kw
+            params,
+            total_mass=60.0,
+            distance=1.0,
+            delta_t_seconds=1.0 / 4096,
+            model=model,
+            **kw,
         )
     return result, f_low, fake
 
@@ -574,7 +580,9 @@ def test_nrhj_refuses_a_point_outside_the_training_box():
 def test_nrhj_info_never_raises_without_the_package():
     import nrcats.surrogate as _sur_mod
 
-    with patch.dict("sys.modules", {"nrhjsurrogate": None, "nrhjsurrogate.models": None}):
+    with patch.dict(
+        "sys.modules", {"nrhjsurrogate": None, "nrhjsurrogate.models": None}
+    ):
         info = _sur_mod.surrogate_info("NRHJSur3dq8_AA_v3")
     assert info["name"] == "NRHJSur3dq8_AA_v3"
     assert info["data_sha256"] is None and info["nrhjsurrogate"] is None
@@ -591,14 +599,17 @@ def _nrhj_available():
         from gwsurrogate import catalog
 
         return any(
-            name in f for f in __import__("os").listdir(catalog.download_path())
+            name in f
+            for f in __import__("os").listdir(catalog.download_path())
             for name in ("NRSur7dq4v2",)
         )
     except Exception:
         return False
 
 
-@pytest.mark.skipif(not _nrhj_available(), reason="needs nrhjsurrogate, its v3 files and NRSur7dq4v2")
+@pytest.mark.skipif(
+    not _nrhj_available(), reason="needs nrhjsurrogate, its v3 files and NRSur7dq4v2"
+)
 def test_nrhj_agrees_with_nrsur7dq4v2_in_the_lal_convention():
     """On their overlap the two models' (2,2) overlap to better than 1e-3
     with no maximisation over time (measured 2.1e-4 at (2, 0.3, -0.2)), and
@@ -610,10 +621,15 @@ def test_nrhj_agrees_with_nrsur7dq4v2_in_the_lal_convention():
 
     params = _params(q=2.0, chi1z=0.3, chi2z=-0.2)
     with patch.object(_sur_mod, "_surrogates", {}):
-        hj, _ = generate_surrogate_modes(params, total_mass=40.0, delta_t_seconds=1 / 16384,
-                                         model="NRHJSur3dq8_AA_v3")
-        ns, _ = generate_surrogate_modes(params, total_mass=40.0, delta_t_seconds=1 / 16384,
-                                         model="NRSur7dq4v2")
+        hj, _ = generate_surrogate_modes(
+            params,
+            total_mass=40.0,
+            delta_t_seconds=1 / 16384,
+            model="NRHJSur3dq8_AA_v3",
+        )
+        ns, _ = generate_surrogate_modes(
+            params, total_mass=40.0, delta_t_seconds=1 / 16384, model="NRSur7dq4v2"
+        )
     m_secs = utils.time_to_physical(40.0)
 
     def chi44(d):
@@ -629,5 +645,7 @@ def test_nrhj_agrees_with_nrsur7dq4v2_in_the_lal_convention():
     grid = np.arange(lo, hi, 1 / 16384)
     ia = np.interp(grid, ta, a.real) + 1j * np.interp(grid, ta, a.imag)
     ib = np.interp(grid, tb, b.real) + 1j * np.interp(grid, tb, b.imag)
-    overlap = abs(np.vdot(ia, ib)) / np.sqrt(np.vdot(ia, ia).real * np.vdot(ib, ib).real)
+    overlap = abs(np.vdot(ia, ib)) / np.sqrt(
+        np.vdot(ia, ia).real * np.vdot(ib, ib).real
+    )
     assert overlap > 0.999

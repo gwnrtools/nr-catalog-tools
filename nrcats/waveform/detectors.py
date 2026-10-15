@@ -159,9 +159,7 @@ def detector(name: str | Detector) -> Detector:
     lowered = {k.lower(): k for k in DETECTORS}
     if key.lower() in lowered:
         return DETECTORS[lowered[key.lower()]]
-    raise KeyError(
-        f"unknown detector {name!r}; known: {', '.join(sorted(DETECTORS))}"
-    )
+    raise KeyError(f"unknown detector {name!r}; known: {', '.join(sorted(DETECTORS))}")
 
 
 def band(name: str | Detector, f_waveform: float | None = None):

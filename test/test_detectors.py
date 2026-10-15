@@ -140,7 +140,9 @@ def test_file_backed_curves_resolve_by_label_and_are_the_current_cosmic_explorer
         via_label = np.asarray(D.psd_from_name(det.psd_name, flen, df, det.f_lower))
         assert np.array_equal(via_registry, via_label)
         inband = (f >= 6.0) & (f <= 2000.0)
-        assert np.all(np.isfinite(via_registry[inband])) and np.all(via_registry[inband] > 0)
+        assert np.all(np.isfinite(via_registry[inband])) and np.all(
+            via_registry[inband] > 0
+        )
     old = np.asarray(D.psd_for("CE", flen, df, f_lower=5.0))
     new40 = np.asarray(D.psd_for("CE40", flen, df, f_lower=5.0))
     new20 = np.asarray(D.psd_for("CE20", flen, df, f_lower=5.0))
@@ -181,4 +183,3 @@ def test_file_backed_curves_fill_the_production_grid_to_nyquist():
             want = float(np.interp(freq, data[:, 0], data[:, 1]))
             got = float(np.sqrt(np.interp(freq, f, psd)))
             assert abs(got / want - 1.0) < 0.02, (name, freq, got, want)
-

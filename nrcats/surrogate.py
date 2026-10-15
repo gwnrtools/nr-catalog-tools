@@ -527,8 +527,16 @@ def generate_surrogate_modes(
 
     if surrogate_name(model) in NRHJ_MODELS:
         return _generate_nrhj_modes(
-            surrogate_name(model), q, chiA, chiB, total_mass, distance,
-            delta_t_seconds, m_secs, dt_dimless, modes,
+            surrogate_name(model),
+            q,
+            chiA,
+            chiB,
+            total_mass,
+            distance,
+            delta_t_seconds,
+            m_secs,
+            dt_dimless,
+            modes,
         )
 
     # The default goes through load_nrsur7dq4, the one entry point every

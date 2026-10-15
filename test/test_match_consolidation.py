@@ -496,7 +496,9 @@ def _bms_transform(md, supertranslation_M=None, boost_velocity=None, total_mass=
     tri = tr.interpolate(tw)
     return {
         k: PTS(
-            np.ascontiguousarray(tri.data[:, sidx(*k)]) * amp, delta_t=DT, epoch=tw[0] * m_secs
+            np.ascontiguousarray(tri.data[:, sidx(*k)]) * amp,
+            delta_t=DT,
+            epoch=tw[0] * m_secs,
         )
         for k in keys
     }
@@ -532,8 +534,16 @@ def test_bms_boost_off_by_default_is_the_old_search():
     kw = dict(delta_t=DT, total_mass=M_TOT, distance=1.0)
     np.random.seed(1)
     got, info = w.match_sphere_averaged_bms_maximized(
-        _mode_dict(w), None, F_LOWER, j_max=1, return_transformation=True,
-        n_coarse=4, n_starts=1, maxfev=40, seed=0, **kw
+        _mode_dict(w),
+        None,
+        F_LOWER,
+        j_max=1,
+        return_transformation=True,
+        n_coarse=4,
+        n_starts=1,
+        maxfev=40,
+        seed=0,
+        **kw,
     )
     assert info["boost_velocity"].shape == (0,)
     assert got > 0.999
@@ -611,7 +621,10 @@ def test_bms_recovers_a_known_ell2_supertranslation():
     fitted = info["supertranslation_M"]
     layout = info["layout"]
     i20 = layout.index((2, 0, "re"))
-    assert fitted[i20] < -0.15, (fitted, layout)  # the inverse of +0.5 M, mostly recovered
+    assert fitted[i20] < -0.15, (
+        fitted,
+        layout,
+    )  # the inverse of +0.5 M, mostly recovered
 
 
 def _shifted_dict(md, k):
@@ -638,7 +651,9 @@ def test_polarization_match_is_one_for_identical_mode_sets():
 
     w = _chirp_wfm(n_times=2048, ell_max=3, ringdown=64.0)
     md = _mode_dict(w)
-    r = compute_polarization_match(md, md, delta_t=DT, inclination=1.05, f_lower=F_LOWER)
+    r = compute_polarization_match(
+        md, md, delta_t=DT, inclination=1.05, f_lower=F_LOWER
+    )
     assert r.failure is None
     assert r.match_plus > 1 - 1e-9 and r.match_cross > 1 - 1e-9
     assert r.match_plus_quadrature >= r.match_plus - 1e-12

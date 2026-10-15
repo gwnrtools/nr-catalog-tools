@@ -341,9 +341,7 @@ def to_coprecessing(obj, ell_max: int | None = None, times=None):
         int(obj.ell_max),
     )
     arr = np.asarray(w.data)
-    rotated = _rebuild(
-        obj, np.asarray(w.time), {k: arr[:, lm.index(k)] for k in lm}
-    )
+    rotated = _rebuild(obj, np.asarray(w.time), {k: arr[:, lm.index(k)] for k in lm})
     return rotated, axis
 
 
@@ -402,7 +400,9 @@ def apply_bms_to_mode_dict(
             from pycbc.types import TimeSeries
 
             out[k] = TimeSeries(
-                col.astype(np.complex128), delta_t=float(delta_t), epoch=float(tw[0] * m_secs)
+                col.astype(np.complex128),
+                delta_t=float(delta_t),
+                epoch=float(tw[0] * m_secs),
             )
         else:
             out[k] = col

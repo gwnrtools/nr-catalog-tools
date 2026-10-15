@@ -182,8 +182,12 @@ def test_apply_bms_to_mode_dict_round_trips_and_is_in_geometric_units():
     a20 = np.zeros(16, dtype=complex)
     a20[6] = 0.02  # (2, 0), in M
     v = np.array([0.0, 0.0, 1e-4])
-    fwd = frame.apply_bms_to_mode_dict(md, DT, supertranslation_M=a20, boost_velocity=v, total_mass=M_TOT)
-    back = frame.apply_bms_to_mode_dict(fwd, DT, supertranslation_M=-a20, boost_velocity=-v, total_mass=M_TOT)
+    fwd = frame.apply_bms_to_mode_dict(
+        md, DT, supertranslation_M=a20, boost_velocity=v, total_mass=M_TOT
+    )
+    back = frame.apply_bms_to_mode_dict(
+        fwd, DT, supertranslation_M=-a20, boost_velocity=-v, total_mass=M_TOT
+    )
     moved, residual = _rel_on_grid(md, fwd), _rel_on_grid(md, back)
     assert 1e-3 < moved < 10.0, moved  # physics-scale, not 1e15
     assert residual < 0.01 * moved, (moved, residual)
