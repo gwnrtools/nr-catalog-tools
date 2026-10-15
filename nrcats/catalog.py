@@ -28,6 +28,7 @@ if TYPE_CHECKING:
 
 from nrcats import waveform
 from nrcats import metadata as md
+from nrcats import utils
 
 
 class CatalogABC(ABC):
@@ -266,7 +267,12 @@ class CatalogBase(CatalogABC):
             json.dump(dict(self._simulations), f, indent=4)
 
     def get(
-        self, sim_name: str, quantity: str = "waveform", **kwargs
+        self,
+        sim_name: str,
+        quantity: str = "waveform",
+        frame: str = "lal",
+        t_ref: float | None = None,
+        **kwargs,
     ) -> waveform.WaveformModes:
         """Retrieve specific quantities for one simulation
 
@@ -274,6 +280,18 @@ class CatalogBase(CatalogABC):
             sim_name (str): Name of simulation in catalog
             quantity (str): Name of quantity to fetch.
                             Options: {waveform, psi4}
+            frame (str): Frame of the returned waveform modes (see
+                ``docs/frame_conventions.md`` and :mod:`nrcats.frames`):
+                ``"lal"`` (default) rotates the modes into the LAL source
+                frame at the reference epoch, using the catalog's frame data;
+                ``"waveform"`` uses the triad derived from the waveform itself;
+                ``"simulation"`` returns the modes in the simulation's own
+                inertial frame, unrotated.  The frame is recorded on the
+                returned object (``nrcats.frames.frame_of(wfm)``).  Ignored for
+                ``quantity="psi4"``.
+            t_ref (float, optional): Reference epoch on the waveform's time
+                axis.  Defaults to the catalog's own epoch (the first sample
+                for LVCNR Format 1 files); other epochs need Format >= 2.
 
         Raises:
             IOError: If `sim_name` not found in the catalog
@@ -302,7 +320,10 @@ class CatalogBase(CatalogABC):
                         " {}".format(self.waveform_url_from_simname(sim_name))
                     )
                 self.download_waveform_data(sim_name)
-            return waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
+            wfm = waveform.WaveformModes.load_from_h5(filepath, metadata=metadata)
+            from nrcats.frames import put_in_frame
+
+            return put_in_frame(wfm, frame=frame, t_ref=t_ref)
         elif quantity.lower() == "psi4":
             filepath = self.psi4_filepath_from_simname(sim_name)
             if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
@@ -370,19 +391,49 @@ class CatalogBase(CatalogABC):
             if attr_name not in fp.attrs:
                 fp.attrs[attr_name] = attr_value
 
-    def get_parameters(self, sim_name: str, total_mass: float = 1.0) -> dict:
+    def get_reference_metadata(
+        self, sim_name: str, frame: str = "lal", t_ref: float | None = None
+    ) -> dict:
+        """Masses, spins and frame vectors at the reference epoch, in ``frame``.
+
+        Uses the same frame as :meth:`get` with the same arguments, so the
+        spins returned here describe the binary whose modes ``get`` returns.
+        Body 1 is the heavier hole.  See :func:`nrcats.frames.reference_metadata`.
+        """
+        from nrcats.frames import frame_of, reference_metadata
+
+        wfm = self.get(sim_name, frame=frame, t_ref=t_ref)
+        return reference_metadata(wfm, frame_of(wfm))
+
+    def get_parameters(
+        self, sim_name: str, total_mass: float = 1.0, frame: str | None = None
+    ) -> dict:
         """Return the initial physical parameters for the simulation. Only for
         quasicircular simulations are supported, orbital eccentricity is ignored
 
         Args:
             total_mass (float, optional): Total Mass of Binary (solar masses).
                 Defaults to 1.0.
+            frame (str, optional): If given (``"lal"`` or ``"waveform"``), the
+                spins are taken from :meth:`get_reference_metadata` in that
+                frame, i.e. projected onto the same frame and epoch as the
+                modes :meth:`get` returns, and ``f_ref`` (Hz at
+                ``total_mass``) is added.  If None (default), the catalog
+                metadata are used as before.
 
         Returns:
             dict: Initial binary parameters with names compatible with PyCBC.
         """
         metadata = self.get_metadata(sim_name)
         params = md.get_source_parameters_from_metadata(metadata, total_mass=total_mass)
+        if frame is not None:
+            ref = self.get_reference_metadata(sim_name, frame=frame)
+            for i, key in ((1, "chi1"), (2, "chi2")):
+                for c, val in zip("xyz", ref[key]):
+                    params[f"spin{i}{c}"] = float(val)
+            if ref.get("f_ref_dimless"):
+                params["f_ref"] = float(ref["f_ref_dimless"]) / utils.time_to_physical(total_mass)
+            params["frame"] = ref["frame"].name
         # If frequency metadata is absent or zero, compute f_lower from the
         # waveform data itself via f_lower_at_1Msun().
         if params.get("f_lower", -1) <= 0:

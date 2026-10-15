@@ -648,6 +648,26 @@ class WaveformModes(sxs_WaveformModes):
             Angles dict with keys ``theta``, ``psi``, ``alpha``, and
             optionally ``t_ref``, ``f_ref``.
         """
+        from nrcats.frames import frame_of, lal_frame_angles
+
+        frame = frame_of(self)
+        if frame.is_rotated:
+            # The modes are already in a LAL frame (see nrcats.frames): the
+            # observer sits at (inclination, pi/2 - phi_ref) and the
+            # polarisation angle is pi.  Rotating again with the file's
+            # vectors would apply the frame twice.
+            if f_ref is not None or (
+                t_ref is not None and abs(t_ref - frame.t_ref) > 1e-5
+            ):
+                raise ValueError(
+                    f"These modes are in the {frame.name!r} frame at t_ref={frame.t_ref}; "
+                    "load them with catalog.get(..., t_ref=...) to use another epoch."
+                )
+            obs_phi_ref = self.get_obs_phi_ref_from_obs_coa_phase(
+                coa_phase=coa_phase, t_ref=frame.t_ref, f_ref=None
+            )
+            theta, psi, alpha = lal_frame_angles(inclination, obs_phi_ref)
+            return {"theta": theta, "psi": psi, "alpha": alpha, "t_ref": frame.t_ref, "f_ref": None}
         if not self._has_lvcnr_file():
             # SXS: no LVCNR file.  The frame comes from the metadata at
             # its single reference epoch, so another epoch cannot be asked for.
@@ -745,8 +765,20 @@ class WaveformModes(sxs_WaveformModes):
         The phase is evaluated at the epoch of the frame used by
         :meth:`get_angles` for the same ``t_ref`` and ``f_ref``.
         """
-        nr_coa_phase = self.get_nr_coa_phase()
-        nr_orb_phase_ts = self._get_phase(2, 2) / 2
+        # Modes rotated into a LAL frame at load (nrcats.frames.put_in_frame)
+        # carry the simulation-frame (2,2) phase, so that coa_phase means the
+        # same thing whichever frame the modes are in: for a precessing binary
+        # the (2,2) phase evolution between t_ref and the peak depends on the
+        # frame it is measured in.
+        sim_phase = self._metadata.get("_sim_frame_h22_phase")
+        if sim_phase is not None and len(sim_phase) == len(self.time):
+            phase_22 = np.asarray(sim_phase)
+            amp_22 = np.asarray(self._metadata["_sim_frame_h22_amp"])
+            nr_coa_phase = phase_22[int(np.argmax(amp_22))] / 2
+            nr_orb_phase_ts = phase_22 / 2
+        else:
+            nr_coa_phase = self.get_nr_coa_phase()
+            nr_orb_phase_ts = self._get_phase(2, 2) / 2
         avail_t_ref = self._resolve_reference_time(t_ref=t_ref, f_ref=f_ref)
         from scipy.interpolate import interp1d
 

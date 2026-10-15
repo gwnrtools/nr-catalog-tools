@@ -216,8 +216,9 @@ def test_reference_time_and_angles_without_lvcnr_file(sxs_pair):
     assert wfm.t_ref_nr == float(wfm.metadata["reference_time"])
     angles = wfm.get_angles(inclination=0.7, coa_phase=0.3)
     assert all(np.isfinite(angles[k]) for k in ("theta", "psi", "alpha"))
-    # The metadata defines the frame at one epoch only.
-    with pytest.raises(ValueError, match="reference_time"):
+    # The metadata define the frame at one epoch only (the modes may already be
+    # rotated into that frame, in which case the message names its t_ref).
+    with pytest.raises(ValueError, match="reference_time|t_ref"):
         wfm.get_angles(inclination=0.7, coa_phase=0.3, f_ref=20.0)
 
 

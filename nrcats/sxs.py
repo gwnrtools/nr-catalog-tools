@@ -338,6 +338,8 @@ class SXSCatalog(catalog.CatalogBase):
         extrapolation_order: int = 2,
         download: bool = True,
         correct_strain_sign: bool = True,
+        frame: str = "lal",
+        t_ref: float | None = None,
     ) -> waveform.WaveformModes:
         """Load the strain waveform for *sim_name* and return a WaveformModes object.
 
@@ -367,6 +369,12 @@ class SXSCatalog(catalog.CatalogBase):
                 unchanged regardless of this flag.  Pass False to get the
                 modes exactly as the ``sxs`` package provides them.  Defaults
                 to True.
+            frame (str): ``"lal"`` (default), ``"waveform"`` or
+                ``"simulation"``; see ``CatalogBase.get`` and
+                :mod:`nrcats.frames`.  For SXS the ``"lal"`` frame comes from
+                the metadata at ``reference_time``.
+            t_ref (float, optional): Must be None or ``reference_time`` for
+                ``frame="lal"`` (the metadata describe one epoch).
 
         Returns:
             nrcats.waveform.WaveformModes: Waveform object with the
@@ -431,7 +439,10 @@ class SXSCatalog(catalog.CatalogBase):
         # waveform raising KeyError from .sim_metadata, and so from .metadata,
         # .get_parameters() and .label.  The pop above is what makes the name
         # free to reuse here.
-        return waveform.WaveformModes(data, raw_obj.time, metadata=sim_metadata, **meta)
+        wfm = waveform.WaveformModes(data, raw_obj.time, metadata=sim_metadata, **meta)
+        from nrcats.frames import put_in_frame
+
+        return put_in_frame(wfm, frame=frame, t_ref=t_ref)
 
     def available_extrapolation_orders(
         self, sim_name: str, download: bool = False

@@ -40,6 +40,10 @@ __all__ = [
     "frame_from_vectors",
     "frame_from_lvcnr_attrs",
     "reference_metadata_from_lvcnr",
+    "catalog_frame",
+    "put_in_frame",
+    "frame_of",
+    "reference_metadata",
     "lal_frame_angles",
 ]
 
@@ -247,6 +251,152 @@ def reference_metadata_from_lvcnr(h5, frame: ReferenceFrame | None = None):
         out["remnant_mass"] = _group_final_value(h5, keys[0])
         out["remnant_chi"] = vector_to_frame(np.array([_group_final_value(h5, k) for k in keys[1:]]), frame)
     return out
+
+
+FRAME_NAMES = ("lal", "simulation", "waveform")
+
+
+def _lvcnr_vectors_at(h5, t_ref):
+    """``L_hat``, ``n_hat`` and the spins interpolated at ``t_ref`` from a Format >= 2 file."""
+    from nrcats.lvc import compute_lal_source_frame_by_interp, read_lvcnr_group
+
+    keys = [f"LNhat{c}-vs-time" for c in "xyz"] + [f"position{i}{c}-vs-time" for i in (1, 2) for c in "xyz"]
+    v = compute_lal_source_frame_by_interp(h5, keys, t_ref)
+    L = np.array([v["LNhatx"], v["LNhaty"], v["LNhatz"]], dtype=float)
+    n = np.array([v["nhatx"], v["nhaty"], v["nhatz"]], dtype=float)
+    spins = {}
+    for i in (1, 2):
+        if all(f"spin{i}{c}-vs-time" in h5 for c in "xyz"):
+            comps = []
+            for c in "xyz":
+                X, Y = read_lvcnr_group(h5, f"spin{i}{c}-vs-time")
+                comps.append(float(np.interp(t_ref, X, Y)))
+            spins[i] = np.array(comps)
+    return L / np.linalg.norm(L), n / np.linalg.norm(n), spins
+
+
+def catalog_frame(wfm, t_ref=None):
+    """The LAL frame from the catalog's own frame data ("method A").
+
+    * LVCNR file (RIT, MAYA): the default ``LNhat``/``nhat`` attributes at the
+      file's reference epoch (``wfm.t_ref_nr``: the first sample for Format 1).
+      A different ``t_ref`` is allowed only for Format >= 2 files, whose
+      ``*-vs-time`` groups are interpolated there.
+    * No LVCNR file (SXS): ``L_hat`` and ``n_hat`` from the simulation metadata
+      at ``reference_time`` (single epoch).
+    """
+    from nrcats.lvc import compute_lal_source_frame_from_sxs_metadata, get_lvcnr_format
+
+    import h5py
+
+    default_t = wfm.t_ref_nr
+    if wfm._has_lvcnr_file():
+        with h5py.File(wfm.filepath, "r") as h5:
+            fmt = get_lvcnr_format(h5)
+            if t_ref is None or abs(float(t_ref) - default_t) < 1e-8:
+                frame = frame_from_lvcnr_attrs(h5.attrs, t_ref=default_t,
+                                               source=f"LVCNR attributes (Format {fmt}) of {wfm.filepath}")
+                frame.extra["lvcnr_format"] = fmt
+                return frame
+            if fmt < 2:
+                raise ValueError(
+                    f"Format {fmt} LVCNR files describe their frame at one epoch only "
+                    f"(t = {default_t}); t_ref={t_ref} cannot be used."
+                )
+            L, n, _ = _lvcnr_vectors_at(h5, float(t_ref))
+            frame = frame_from_vectors(L, n, t_ref=float(t_ref),
+                                       source=f"LVCNR *-vs-time groups (Format {fmt}) of {wfm.filepath}")
+            frame.extra["lvcnr_format"] = fmt
+            return frame
+    md = wfm.sim_metadata
+    if t_ref is not None and abs(float(t_ref) - default_t) > 1e-5:
+        raise ValueError(f"The metadata frame holds at reference_time={default_t} only; t_ref={t_ref} cannot be used.")
+    v = compute_lal_source_frame_from_sxs_metadata(md)
+    L = [v["LNhatx"], v["LNhaty"], v["LNhatz"]]
+    n = [v["nhatx"], v["nhaty"], v["nhatz"]]
+    omega = np.linalg.norm(np.asarray(md.get("reference_orbital_frequency", [np.nan] * 3), dtype=float))
+    return frame_from_vectors(L, n, t_ref=default_t, f_ref_dimless=omega / np.pi if np.isfinite(omega) else None,
+                              source="simulation metadata at reference_time")
+
+
+def put_in_frame(wfm, frame="lal", t_ref=None, **waveform_frame_kwargs):
+    """Return ``wfm`` with its modes expressed in the requested frame.
+
+    ``frame`` is ``"lal"`` (catalog frame data, :func:`catalog_frame`),
+    ``"waveform"`` (the waveform-derived triad, :func:`nrcats.frame_waveform.waveform_frame`)
+    or ``"simulation"`` (no rotation).  The result records the frame under
+    ``wfm._metadata["reference_frame"]`` (see :func:`frame_of`).
+    """
+    if frame not in FRAME_NAMES:
+        raise ValueError(f"frame must be one of {FRAME_NAMES}, not {frame!r}")
+    if frame == "simulation":
+        ref = ReferenceFrame(t_ref=None if t_ref is None else float(t_ref))
+    elif frame == "lal":
+        ref = catalog_frame(wfm, t_ref=t_ref)
+    else:
+        from nrcats.frame_waveform import waveform_frame
+
+        ref = waveform_frame(wfm, wfm.t_ref_nr if t_ref is None else float(t_ref), **waveform_frame_kwargs)
+        ref.name = "waveform"
+    out = rotate_modes(wfm, ref)
+    if hasattr(out, "_metadata") and isinstance(out._metadata, dict):
+        out._metadata["_t_ref_nr"] = wfm.t_ref_nr if ref.t_ref is None else ref.t_ref
+        if ref.is_rotated:
+            # Keep the simulation-frame (2,2) phase: WaveformModes uses it to map
+            # coa_phase to phi_ref identically in every frame.
+            h22 = np.asarray(wfm.data[:, wfm.index(2, 2)])
+            out._metadata["_sim_frame_h22_phase"] = np.unwrap(np.angle(h22))
+            out._metadata["_sim_frame_h22_amp"] = np.abs(h22)
+    return out
+
+
+def frame_of(wfm):
+    """The :class:`ReferenceFrame` the modes of ``wfm`` are in (simulation frame if unrecorded)."""
+    meta = getattr(wfm, "_metadata", None)
+    if isinstance(meta, dict) and isinstance(meta.get("reference_frame"), ReferenceFrame):
+        return meta["reference_frame"]
+    return ReferenceFrame()
+
+
+def reference_metadata(wfm, frame: ReferenceFrame | None = None):
+    """Masses, spins and vectors of the binary in ``frame`` at the frame's epoch.
+
+    LVCNR files: :func:`reference_metadata_from_lvcnr`, with the spins
+    interpolated from the ``spin*-vs-time`` groups when the frame's epoch is not
+    the file's default (Format >= 2).  SXS: ``reference_mass1/2`` and
+    ``reference_dimensionless_spin1/2`` at ``reference_time``.
+    """
+    import h5py
+
+    frame = frame_of(wfm) if frame is None else frame
+    if wfm._has_lvcnr_file():
+        with h5py.File(wfm.filepath, "r") as h5:
+            out = reference_metadata_from_lvcnr(h5, frame if frame.is_rotated else frame_from_lvcnr_attrs(h5.attrs))
+            if frame.t_ref is not None and abs(frame.t_ref - wfm.t_ref_nr) > 1e-8 and int(h5.attrs.get("Format", 1)) >= 2:
+                _, _, spins = _lvcnr_vectors_at(h5, frame.t_ref)
+                if 1 in spins:
+                    out["chi1"] = vector_to_frame(spins[1], out["frame"])
+                if 2 in spins:
+                    out["chi2"] = vector_to_frame(spins[2], out["frame"])
+            return out
+    md = wfm.sim_metadata
+    if not frame.is_rotated:
+        frame = catalog_frame(wfm)
+    m1, m2 = float(md["reference_mass1"]), float(md["reference_mass2"])
+    if m1 < m2 * (1 - 1e-6):
+        raise ValueError(f"Body 1 is the lighter hole (reference_mass1={m1}, reference_mass2={m2}).")
+    return {
+        "frame": frame,
+        "mass1": m1 / (m1 + m2),
+        "mass2": m2 / (m1 + m2),
+        "q": m1 / m2,
+        "chi1": vector_to_frame(np.asarray(md["reference_dimensionless_spin1"], dtype=float), frame),
+        "chi2": vector_to_frame(np.asarray(md["reference_dimensionless_spin2"], dtype=float), frame),
+        "L_hat": vector_to_frame(frame.L_hat, frame),
+        "n_hat": vector_to_frame(frame.n_hat, frame),
+        "t_ref": frame.t_ref,
+        "f_ref_dimless": frame.f_ref_dimless,
+    }
 
 
 def lal_frame_angles(inclination, phi_ref):

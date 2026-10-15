@@ -144,6 +144,19 @@ Notes:
   waveforms in the LAL frame should be built from extrapolated native Ψ4, not
   from the LVCNR files. MAYA1016–1021 are under-resolved (outer boundary
   204.8 M, wave-zone grid spacing 4x coarser) and should be flagged.
+- **MAYA precessing files: dynamics and modes disagree in handedness (under
+  study).** In MAYA1060 and MAYA1070 the file's `LNhat-vs-time` (consistent with
+  `r x v` from its own position tracks to 0.35°) is 14–59° from the waveform's
+  radiation axis (the quaternion-free dominant eigenvector of `<L_(a L_b)>`),
+  and within 2–4° after `(Lx, Ly) -> (-Lx, -Ly)`. The in-plane `nhat` agrees with
+  the waveform's orbital phase at the first sample, and aligned-spin runs agree
+  exactly, which points to a reflection through the orbital plane (axial
+  vectors flip their in-plane components, polar vectors their z component)
+  rather than a rotation. If confirmed, the published spins of precessing MAYA
+  runs are mirrored relative to their waveforms, which bears on any comparison
+  that uses them (and on LAL NR injections from these files). Until resolved,
+  the waveform-derived frame should be preferred for precessing MAYA runs; the
+  affected tests are marked as expected failures.
 - **RIT `relaxed-time`** is not a time on the waveform's axis (the axis is
   shifted so the peak is near zero) and is not needed: the vectors hold at the
   first sample. Its value is 30 M for 813 of 1,945 simulations, which is inside
