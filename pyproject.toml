@@ -28,7 +28,7 @@ dependencies = [
     "pycbc",
     "pandas",
     "sxs>=2025.0.0",
-    "waveformtools",
+    "waveformtools>=2026.10.15",  # FFI and extrapolation fixes (nrcats.extrapolate)
     "mayawaves>=2025.12",
     "h5py",
     # --- previously undeclared but imported at module level ---
@@ -57,6 +57,10 @@ docs = [
 # raises ImportError at call time if they are absent.
 surrogate = [
     "gwsurrogate",          # surrogate.py:63 -- NRSur7dq4 generation
+]
+native = [
+    "fsspec",               # maya_native.py -- MAYA native files over HTTP
+    "aiohttp",
 ]
 plots = [
     "matplotlib",           # comparisons.py:322

@@ -193,6 +193,37 @@ Notes:
 
   The measurement scripts are in `nrcmp-2026-10/handedness/` and
   `nrcmp-2026-10/handedness_check/` in the analysis workspace.
+
+  Against NRSur7dq4 in the LAL frame, with the frames held fixed (one shared
+  time shift, no rotation), 23 of 23 precessing MAYA runs (MAYA1057–1083,
+  GT0900) match better corrected. Over the inspiral the median all-mode
+  mismatch is 4.0e-3 corrected and 0.46 as stored, and (2,1) and (3,3)
+  point opposite to the model as stored. **Exception: GT0900** (q = 1.2,
+  equal in-plane spins, Format 1). There (2,1) lines up after the
+  correction but (3,3) points the opposite way, which no rotation about z
+  fixes, and a reflection through the orbital plane fits better (1.8e-3
+  against 3.0e-3). The other older GT runs with unequal masses (Format 1)
+  should be checked before the correction is trusted for the GT series.
+- **MAYA strain extrapolated from the native files.**
+  `MayaCatalog.get_extrapolated(sim)` (or `get(sim, quantity="extrapolated")`)
+  reads Ψ4 at one finite radius (default: the largest at or below 145 M) and
+  the horizon tracks from the native file. It extrapolates with the
+  perturbative formula of Nakano et al. (2015) and integrates with the FFI
+  (`nrcats.extrapolate`, waveformtools >= 2026.10.15), after a 20 M Planck
+  taper at each end. The result is on the retarded time u = t − r\*(R),
+  with the m = 0 modes set to zero and no CoM correction. On GT0370 and
+  GT0372 it reproduces the October analysis to 0.2% in every mode's
+  mismatch with NRSur7dq4.
+  - The frame data (positions, Ω vector, spins at `t_ref`) come from the
+    tracks, written in the SXS metadata form, so the LAL frame,
+    `get_reference_metadata` and `get_angles` follow the no-LVCNR path.
+  - The dynamics at track time τ pair with the waveform extracted at
+    coordinate time τ + R, as in MAYA's LVCNR export. With this pairing the
+    tracks' n̂ and the waveform-derived n̂ of MAYA1060 differ by 0.08–0.09
+    rad in orbital phase, against 0.31 rad if τ were paired with u = τ.
+  - Any `t_ref` inside the tracks is allowed. Where a run's spin track ends
+    early (older GT runs), the last spins are used and
+    `reference_spin_time` records it.
 - **RIT `relaxed-time`** is not a time on the waveform's axis (the axis is
   shifted so the peak is near zero) and is not needed: the vectors hold at the
   first sample. Its value is 30 M for 813 of 1,945 simulations, which is inside

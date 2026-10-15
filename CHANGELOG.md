@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **MAYA extrapolated strain**: `MayaCatalog.get_extrapolated(sim)` (or `get(sim, quantity="extrapolated")`) reads finite-radius Psi4 and the horizon tracks from MAYA's native files (over HTTP, cached in `~/.cache/MAYA/native/`) and extrapolates to null infinity with waveformtools (Nakano et al. 2015 perturbative formula, FFI). The frame and reference metadata come from the native tracks at any `t_ref`. New modules `nrcats.extrapolate` (catalog-independent) and `nrcats.maya_native`. Requires `waveformtools>=2026.10.15`; reading over HTTP needs `fsspec` and `aiohttp`.
 - **Catalog Plugin Registry**: Introduced a dynamic `@register_catalog` decorator and catalog registry framework under `nrcats/registry.py` to allow runtime extensions and registration of custom catalog backends.
 - **Waveform Sub-package Refactoring**: Fully split the massive 60 KB monolithic `waveform.py` into a highly maintainable `nrcats/waveform/` sub-package containing modular components:
   - `modes.py`: Defines the `WaveformModes` core interface.
