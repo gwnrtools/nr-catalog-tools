@@ -4,6 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+import os
 
 import h5py
 import lal
@@ -20,6 +21,7 @@ from nrcats import utils
 from nrcats.lvc import (
     check_interp_req,
     get_nr_to_lal_rotation_angles,
+    get_ref_time_from_metadata,
     get_ref_vals,
 )
 from nrcats.waveform import modes_worker
@@ -614,6 +616,27 @@ class WaveformModes(sxs_WaveformModes):
         obs_phi_ref = self.get_obs_phi_ref_from_obs_coa_phase(
             coa_phase=coa_phase, t_ref=t_ref, f_ref=f_ref
         )
+        if not self._has_lvcnr_file():
+            # SXS: no LVCNR file.  The frame comes from the metadata at
+            # its single reference epoch, so another epoch cannot be asked for.
+            avail_t_ref = self.t_ref_nr
+            if f_ref is not None or (
+                t_ref is not None and abs(t_ref - avail_t_ref) > 1e-5
+            ):
+                raise ValueError(
+                    "This waveform has no LVCNR file; its LAL frame is defined "
+                    f"from the simulation metadata at reference_time={avail_t_ref} "
+                    "only.  Pass f_ref=None and t_ref=None (or t_ref equal to it)."
+                )
+            # An empty attribute set sends get_nr_to_lal_rotation_angles to
+            # its SXS-metadata branch (compute_lal_source_frame_from_sxs_metadata).
+            return get_nr_to_lal_rotation_angles(
+                h5_file={},
+                sim_metadata=self.sim_metadata,
+                inclination=inclination,
+                phi_ref=obs_phi_ref,
+                tol=tol,
+            )
         with h5py.File(self.filepath) as h5_file:
             angles = get_nr_to_lal_rotation_angles(
                 h5_file=h5_file,
@@ -625,6 +648,20 @@ class WaveformModes(sxs_WaveformModes):
                 tol=tol,
             )
         return angles
+
+    def _has_lvcnr_file(self):
+        """Whether this waveform is backed by an LVCNR HDF5 file on disk.
+
+        SXS waveforms are loaded through the ``sxs`` package and have no LVCNR
+        file; their reference time and LAL frame come from the SXS metadata
+        (``reference_time``, ``reference_position1/2``,
+        ``reference_orbital_frequency``) instead.
+        """
+        sim_metadata = self._metadata.get("metadata") or {}
+        if sim_metadata.get("catalog_type") == "SXS":
+            return False
+        path = self.filepath
+        return bool(path) and os.path.isfile(path)
 
     def to_pycbc(self, input_array=None, delta_t=None, epoch=None):
         if input_array is None:
@@ -675,6 +712,15 @@ class WaveformModes(sxs_WaveformModes):
 
     def _compute_reference_time(self):
         """Obtain the reference time from the simulation data."""
+        if not self._has_lvcnr_file():
+            # SXS: the reference epoch is published in the metadata.
+            avail_t_ref = get_ref_time_from_metadata(self.sim_metadata)
+            if avail_t_ref is None or avail_t_ref == -1:
+                raise KeyError(
+                    "No LVCNR file and no reference_time in the simulation metadata."
+                )
+            self._t_ref_nr = float(avail_t_ref)
+            return self._t_ref_nr
         with h5py.File(self.filepath) as h5_file:
             interp, avail_t_ref = check_interp_req(
                 h5_file, self.sim_metadata, ref_time=None

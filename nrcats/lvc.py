@@ -516,45 +516,59 @@ def get_ref_vals(
 
 
 def compute_lal_source_frame_from_sxs_metadata(sim_metadata: dict) -> tuple:
-    """Compute the LAL source frame vectors at the
-    available reference time from the SXS simulation
-    metadata.
+    """Compute the LAL source frame vectors at the SXS reference time from
+    the SXS simulation metadata.
+
+    The vectors are built from the reference-epoch quantities that SXS
+    publishes (``reference_mass1/2``, ``reference_position1/2`` and the
+    ``reference_orbital_frequency`` vector), all given at
+    ``reference_time`` in the simulation's inertial coordinates.  SXS v3
+    strain is translated and boosted to the centre-of-mass frame but not
+    rotated, so directions computed here hold in the frame of the strain
+    modes as well.
+
+    Conventions (LAL, ``XLALSimInspiralNRWaveformGetHplusHcross``):
+
+    - ``nhat`` points **from body 2 to body 1**, ``(x_1 - x_2) / |x_1 - x_2|``.
+      In SXS metadata body 1 is object A, the heavier hole, so this matches
+      the LAL labelling (mass1 >= mass2) with no relabelling.
+    - ``LNhat`` is the direction of the Newtonian orbital angular momentum
+      ``sum_i m_i x_i x (Omega x x_i)``, positions taken relative to the
+      centre of mass.  It is orthogonal to ``nhat`` by construction.
 
     Parameters
     ----------
     sim_metadata : dict
-               The NR sim_metadata.
+               The SXS simulation metadata.
     Returns
     -------
     params : dict
-             A dictionary containing the LAL source frame
-             vectors.
+             The LAL source frame vectors, keys ``LNhatx``, ``LNhaty``,
+             ``LNhatz``, ``nhatx``, ``nhaty``, ``nhatz``.
     """
     # Masses
     M1 = sim_metadata["reference_mass1"]
     M2 = sim_metadata["reference_mass2"]
     M = M1 + M2
 
-    # Orbital anglular frequency
-    Omega = np.array(sim_metadata["reference_orbital_frequency"])
+    # Orbital angular frequency vector
+    Omega = np.array(sim_metadata["reference_orbital_frequency"], dtype=float)
 
     # Positions
-    Pos1 = np.array(sim_metadata["reference_position1"])
-    Pos2 = np.array(sim_metadata["reference_position2"])
+    Pos1 = np.array(sim_metadata["reference_position1"], dtype=float)
+    Pos2 = np.array(sim_metadata["reference_position2"], dtype=float)
 
-    # CoM position
+    # Positions relative to the centre of mass
     CoMPos = (M1 * Pos1 + M2 * Pos2) / (M)
 
     Pos1 = Pos1 - CoMPos
     Pos2 = Pos2 - CoMPos
 
-    # This should point from
-    # smaller to larger BH
-    # Assumed here is 1 for smaller
-    # BH
-    DPos = Pos2 - Pos1
+    # Separation vector from body 2 to body 1 (LAL's nhat convention).
+    # SXS body 1 (object A) is the heavier hole.
+    DPos = Pos1 - Pos2
 
-    # Oribital angular momentum, Eucledian
+    # Newtonian orbital angular momentum
     P1 = M1 * np.cross(Omega, Pos1)
     P2 = M2 * np.cross(Omega, Pos2)
 
@@ -564,7 +578,7 @@ def compute_lal_source_frame_from_sxs_metadata(sim_metadata: dict) -> tuple:
     LNhat = Lbar / np.linalg.norm(Lbar)
     LNhatx, LNhaty, LNhatz = LNhat
 
-    # Position vector nhat
+    # Separation unit vector nhat
     nhat = (DPos) / np.linalg.norm(DPos)
     nhatx, nhaty, nhatz = nhat
 
