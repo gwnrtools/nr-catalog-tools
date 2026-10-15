@@ -1311,7 +1311,7 @@ def compute_strain_match(
 
 @dataclass(frozen=True)
 class PolarizationMatchResult:
-    """Outcome of a fixed-orientation comparison of the two polarisations.
+    r"""Outcome of a fixed-orientation comparison of the two polarisations.
 
     Attributes
     ----------
@@ -1395,14 +1395,14 @@ def compute_polarization_match(
     taper_fraction: float = TAPER_FRACTION,
     n_psi: int = 0,
 ) -> PolarizationMatchResult:
-    r"""Match :math:`h_+` and :math:`h_	imes` separately at one orientation.
+    r"""Match :math:`h_+` and :math:`h_\times` separately at one orientation.
 
     Builds the complex strain from each mode set at the given inclination and
     coalescence phase,
 
     .. math::
 
-        h = h_+ - i h_	imes = \sum_{\ell m} h_{\ell m}\,
+        h = h_+ - i h_\times = \sum_{\ell m} h_{\ell m}\,
             {}_{-2}Y_{\ell m}(\iota, \varphi),
 
     and matches the two real polarisations one at a time, maximising over the
