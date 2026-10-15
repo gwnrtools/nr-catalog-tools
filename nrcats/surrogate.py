@@ -87,6 +87,11 @@ SURROGATE_MODELS = ("NRSur7dq4", "NRSur7dq4v2") + NRHJ_MODELS
 #: a mode set from any model in SURROGATE_MODELS means the same thing.
 NRHJ_MODE_SIGN = -1.0
 
+#: In-plane spin components below this are dropped when calling an aligned
+#: model; at or above it the call is refused.  The model's training set was
+#: selected with the same bound.
+NRHJ_ALIGNED_TOLERANCE = 1e-3
+
 #: The model used when nothing asks for another.  Version 1, so that every
 #: caller that does not choose -- every result computed before version 2
 #: existed, and every other project importing nrcats -- is unchanged.
@@ -675,9 +680,13 @@ def _generate_nrhj_modes(
     directly rather than resampled.  The m < 0 modes are built by reflection,
     and every mode is multiplied by :data:`NRHJ_MODE_SIGN`.
     """
+    # The model's own training criterion for "aligned" (in-plane components
+    # below 1e-3, training-set.html), which is also this pipeline's: an
+    # earlier 1e-4 refused three SXS simulations the catalog classifies as
+    # aligned (stage 37, 2026-10-15).  Components below it are dropped.
     chi1_perp = float(np.hypot(chiA[0], chiA[1]))
     chi2_perp = float(np.hypot(chiB[0], chiB[1]))
-    if chi1_perp > 1e-4 or chi2_perp > 1e-4:
+    if chi1_perp >= NRHJ_ALIGNED_TOLERANCE or chi2_perp >= NRHJ_ALIGNED_TOLERANCE:
         raise ValueError(
             f"{key} is an aligned-spin model; in-plane spin components "
             f"{chi1_perp:.2e} and {chi2_perp:.2e} cannot be passed to it"

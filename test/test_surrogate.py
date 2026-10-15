@@ -552,9 +552,15 @@ def test_nrhj_modes_all_includes_the_55_pair():
     assert (5, 5) in result and (5, -5) in result
 
 
-def test_nrhj_refuses_a_precessing_binary():
+def test_nrhj_refuses_a_precessing_binary_and_drops_a_negligible_tilt():
+    """The bound is the model's training criterion, 1e-3 in-plane."""
     with pytest.raises(ValueError, match="aligned-spin"):
         _nrhj_modes(_params(q=2.0, chi1x=0.3, chi2z=0.1))
+    with pytest.raises(ValueError, match="aligned-spin"):
+        _nrhj_modes(_params(q=2.0, chi1x=1e-3, chi2z=0.1))
+    result, _, fake = _nrhj_modes(_params(q=2.0, chi1x=9e-4, chi1z=0.3, chi2z=0.1))
+    (q, c1, c2), _ = fake.get_td_waveform_modes_geometric.call_args
+    assert (q, c1, c2) == (2.0, 0.3, 0.1)
 
 
 def test_nrhj_refuses_a_point_outside_the_training_box():
