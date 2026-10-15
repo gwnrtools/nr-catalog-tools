@@ -20,12 +20,39 @@ from nrcats import metadata as md
 from nrcats import utils
 from nrcats.lvc import (
     check_interp_req,
+    get_lvcnr_format,
+    get_lvcnr_ref_time,
     get_nr_to_lal_rotation_angles,
     get_ref_time_from_metadata,
-    get_ref_vals,
+    read_lvcnr_group,
 )
 from nrcats.waveform import modes_worker
 from nrcats.waveform.units import _modal_dt
+
+
+def _last_upward_crossing(time, values, level):
+    """Last time at which ``values`` rises through ``level``.
+
+    Taking the last crossing makes the result insensitive to junk
+    radiation at the start of a waveform, where the frequency may cross
+    the level several times. If ``values`` never drops below ``level``,
+    the first time is returned; if it never reaches it, the last.
+    """
+    time = np.asarray(time, dtype=float)
+    values = np.asarray(values, dtype=float)
+    below = values < level
+    if not below.any():
+        return float(time[0])
+    idx = int(np.flatnonzero(below)[-1])
+    if idx == len(time) - 1:
+        logger.warning(
+            f"The frequency never reaches the reference value {level}; "
+            "using the last time searched."
+        )
+        return float(time[-1])
+    v0, v1 = values[idx], values[idx + 1]
+    frac = (level - v0) / (v1 - v0)
+    return float(time[idx] + frac * (time[idx + 1] - time[idx]))
 
 
 class WaveformModes(sxs_WaveformModes):
@@ -558,6 +585,14 @@ class WaveformModes(sxs_WaveformModes):
             Inclination angle (radians).
         coa_phase : float
             Coalescence orbital phase (radians).
+        f_ref : float, optional
+            Reference GW frequency in Hz, as in LAL. Used only for LVCNR
+            files of format 2 and above, where the frame is interpolated
+            to the time at which the orbital frequency reaches it; for
+            format 1 files it is ignored, as LAL does.
+        t_ref : float, optional
+            Reference time in dimensionless M units on the waveform's
+            time axis. Takes precedence over ``f_ref``.
         delta_t_seconds : float, optional
             Sample spacing in physical seconds.
         delta_t_Msun : float, optional
@@ -688,15 +723,51 @@ class WaveformModes(sxs_WaveformModes):
         return phase_22[maxloc] / 2
 
     def get_obs_phi_ref_from_obs_coa_phase(self, coa_phase, t_ref=None, f_ref=None):
-        """Get the observer reference phase given the observer coalescence phase."""
+        """Get the observer reference phase given the observer coalescence phase.
+
+        Parameters
+        ----------
+        coa_phase : float
+            Coalescence phase (radians).
+        t_ref : float, optional
+            Reference time on the waveform's time axis.
+        f_ref : float, optional
+            Reference GW frequency in Hz scaled to a total mass of
+            1 solar mass (``f_ref * M / Msun``). Used, as in LAL, only
+            for LVCNR files of format 2 and above.
+
+        The phase is evaluated at the epoch of the frame used by
+        :meth:`get_angles` for the same ``t_ref`` and ``f_ref``.
+        """
         nr_coa_phase = self.get_nr_coa_phase()
         nr_orb_phase_ts = self._get_phase(2, 2) / 2
-        avail_t_ref = self.t_ref_nr
+        avail_t_ref = self._resolve_reference_time(t_ref=t_ref, f_ref=f_ref)
         from scipy.interpolate import interp1d
 
         nr_phi_ref = interp1d(self.time, nr_orb_phase_ts, kind="cubic")(avail_t_ref)
         delta_phi_ref = coa_phase - nr_coa_phase
         return nr_phi_ref + delta_phi_ref
+
+    def _resolve_reference_time(self, t_ref=None, f_ref=None):
+        """Reference time on the waveform's time axis for given t_ref / f_ref.
+
+        ``t_ref`` wins if given. A positive ``f_ref`` (Hz at 1 solar
+        mass) is converted through the file's ``Omega-vs-time`` group
+        where LAL would do so. Otherwise the simulation's own reference
+        time, :attr:`t_ref_nr`, is returned.
+
+        The time axis of the ``*-vs-time`` groups is taken to be the
+        waveform's time axis, as in the LVCNR files written by MAYA and
+        by the SXS exporter.
+        """
+        if t_ref is not None:
+            return float(t_ref)
+        if f_ref is not None and f_ref > 0:
+            with h5py.File(self.filepath, "r") as h5_file:
+                lvcnr_t_ref = get_lvcnr_ref_time(h5_file, f_ref)
+            if lvcnr_t_ref is not None:
+                return float(lvcnr_t_ref)
+        return self.t_ref_nr
 
     def to_lal(self):
         raise NotImplementedError()
@@ -711,7 +782,27 @@ class WaveformModes(sxs_WaveformModes):
         return np.unwrap(np.angle(waveform_lm))
 
     def _compute_reference_time(self):
-        """Obtain the reference time from the simulation data."""
+        """Obtain the reference time from the simulation data.
+
+        This is the epoch at which the frame vectors stored as attributes
+        of the LVCNR file (``LNhat``, ``nhat``) hold, on the waveform's
+        time axis:
+
+        1. LVCNR format 1 (single snapshot, e.g. RIT and the older MAYA
+           GT runs): the first sample of the stored waveform. This is
+           LAL's convention for these files.
+        2. LVCNR format 2 and above: the time at which the file's
+           ``Omega-vs-time`` first reaches the ``Omega`` attribute,
+           searched before the (2,2) peak and no earlier than the first
+           sample.
+        3. Otherwise a reference time recorded in the file or the
+           metadata (``reference_time``, ``ref_time``). RIT's
+           ``relaxed-time`` is not used: it is not a time on the
+           waveform's axis.
+        4. Otherwise the time before the (2,2) peak at which the orbital
+           frequency of the waveform, ``|d arg(h22)/dt| / 2``, reaches
+           the reference orbital frequency ``Omega``.
+        """
         if not self._has_lvcnr_file():
             # SXS: the reference epoch is published in the metadata.
             avail_t_ref = get_ref_time_from_metadata(self.sim_metadata)
@@ -721,38 +812,91 @@ class WaveformModes(sxs_WaveformModes):
                 )
             self._t_ref_nr = float(avail_t_ref)
             return self._t_ref_nr
-        with h5py.File(self.filepath) as h5_file:
-            interp, avail_t_ref = check_interp_req(
-                h5_file, self.sim_metadata, ref_time=None
+        sim_metadata = self._metadata.get("metadata") or {}
+        # RIT's relaxed-time is not a time on the waveform's axis (the
+        # axis is shifted to put the peak near zero), so it cannot serve.
+        recorded_time_metadata = {
+            key: val
+            for key, val in sim_metadata.items()
+            if key not in ("relaxed-time", "relaxed_time")
+        }
+        avail_t_ref = None
+        h5_omega = None
+        try:
+            h5_file = h5py.File(self.filepath, "r")
+        except (OSError, TypeError, KeyError) as excep:
+            logger.info(f"Could not open the waveform file as HDF5: {excep}")
+            h5_file = None
+
+        if h5_file is not None:
+            with h5_file:
+                if "Format" in h5_file.attrs:
+                    if get_lvcnr_format(h5_file) < 2 or "Omega-vs-time" not in h5_file:
+                        avail_t_ref = float(self.time[0])
+                    else:
+                        avail_t_ref = self._reference_time_from_omega_vs_time(h5_file)
+                if avail_t_ref is None:
+                    _, avail_t_ref = check_interp_req(
+                        h5_file, recorded_time_metadata, ref_time=None
+                    )
+                if "Omega" in h5_file.attrs:
+                    h5_omega = float(h5_file.attrs["Omega"])
+        elif recorded_time_metadata:
+            _, avail_t_ref = check_interp_req(
+                None, recorded_time_metadata, ref_time=None
             )
 
         if avail_t_ref is None:
-            ref_omega = None
-            try:
-                ref_omega = get_ref_vals(self.sim_metadata, req_attrs=["Omega"])[
-                    "Omega"
-                ]
-            except Exception as excep:
-                logger.info(
-                    "Reference orbital phase not found in simulation metadata."
-                    "Proceeding to retrieve from the h5 file..",
-                    excep,
-                )
-                with h5py.File(self.filepath) as h5_file:
-                    ref_omega = get_ref_vals(h5_file, req_attrs=["Omega"])["Omega"]
+            ref_omega = sim_metadata.get("Omega", h5_omega)
             if ref_omega is None:
                 raise KeyError("Could not compute reference omega!")
+            avail_t_ref = self._reference_time_from_waveform_omega(float(ref_omega))
 
-            nr_orb_phase_ts = self._get_phase(2, 2) / 2
+        self._t_ref_nr = float(avail_t_ref)
+        return self._t_ref_nr
 
-            from waveformtools.differentiate import derivative
+    def _reference_time_from_omega_vs_time(self, h5_file):
+        """First time at which the file's ``Omega-vs-time`` reaches its ``Omega``.
 
-            nr_omega_ts = derivative(self.time, nr_orb_phase_ts, method="FD", degree=2)
-            ref_loc = np.argmin(np.absolute(nr_omega_ts - ref_omega))
-            avail_t_ref = self.time[ref_loc]
+        Returns None if the file has no ``Omega`` attribute.
+        """
+        if "Omega" not in h5_file.attrs:
+            return None
+        from scipy.interpolate import CubicSpline
 
-        self._t_ref_nr = avail_t_ref
-        return avail_t_ref
+        omega_t, omega_y = read_lvcnr_group(h5_file, "Omega-vs-time")
+        time = np.asarray(self.time, dtype=float)
+        time = time[(time >= omega_t[0]) & (time <= omega_t[-1])]
+        time = time[time < self.peak_time_22]
+        if len(time) < 2:
+            return float(self.time[0])
+        omega = CubicSpline(omega_t, omega_y, bc_type="natural")(time)
+        # The orbital frequency from the horizons carries no junk
+        # radiation but may oscillate (eccentricity), so take the first
+        # time it reaches Omega.
+        reached = np.flatnonzero(omega >= float(h5_file.attrs["Omega"]))
+        if len(reached) == 0 or reached[0] == 0:
+            return float(self.time[0])
+        idx = int(reached[0])
+        t_ref = _last_upward_crossing(
+            time[idx - 1 : idx + 1],
+            omega[idx - 1 : idx + 1],
+            float(h5_file.attrs["Omega"]),
+        )
+        return max(float(t_ref), float(self.time[0]))
+
+    def _reference_time_from_waveform_omega(self, ref_omega):
+        """Time before the (2,2) peak at which the orbital frequency is ``ref_omega``.
+
+        The (2,2) mode goes as ``exp(-2 i Phi)``, so its phase decreases
+        with time; the orbital frequency is ``|d arg(h22)/dt| / 2``.
+        """
+        time = np.asarray(self.time, dtype=float)
+        nr_omega_ts = np.abs(np.gradient(self._get_phase(2, 2), time)) / 2
+        pre_peak = time < self.peak_time_22
+        if pre_peak.sum() < 2:
+            pre_peak = np.ones_like(time, dtype=bool)
+        return _last_upward_crossing(time[pre_peak], nr_omega_ts[pre_peak], ref_omega)
 
     @property
     def t_ref_nr(self):

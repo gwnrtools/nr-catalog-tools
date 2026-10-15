@@ -405,6 +405,11 @@ def get_td_waveform(
         new_time_start = max(new_time_start, float(t_relax))
     new_time = np.arange(new_time_start, max(wfm.time), dt_dimless)
 
+    # f_ref is in Hz for this total mass, as in LAL; get_angles takes it
+    # scaled to a total mass of 1 solar mass.
+    if f_ref is not None:
+        f_ref = f_ref * total_mass
+
     angles = wfm.get_angles(
         inclination=inclination,
         coa_phase=coa_phase,
