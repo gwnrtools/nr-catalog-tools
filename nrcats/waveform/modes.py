@@ -30,6 +30,17 @@ from nrcats.waveform import modes_worker
 from nrcats.waveform.units import _modal_dt
 
 
+def _mark_frame_unknown(wfm):
+    """Record that ``wfm``'s modes are no longer in any recorded reference frame."""
+    meta = getattr(wfm, "_metadata", None)
+    if isinstance(meta, dict):
+        from nrcats.frames import ReferenceFrame
+
+        meta["reference_frame"] = ReferenceFrame(name="unknown", method="none")
+        for key in ("_sim_frame_h22_time", "_sim_frame_h22_phase", "_sim_frame_h22_amp"):
+            meta.pop(key, None)
+
+
 def _last_upward_crossing(time, values, level):
     """Last time at which ``values`` rises through ``level``.
 
@@ -651,17 +662,27 @@ class WaveformModes(sxs_WaveformModes):
         from nrcats.frames import frame_of, lal_frame_angles
 
         frame = frame_of(self)
+        if frame.name == "unknown":
+            raise ValueError(
+                "These modes were rotated after loading, so their frame is unknown; "
+                "load them again with catalog.get(..., frame=...)."
+            )
         if frame.is_rotated:
             # The modes are already in a LAL frame (see nrcats.frames): the
             # observer sits at (inclination, pi/2 - phi_ref) and the
             # polarisation angle is pi.  Rotating again with the file's
             # vectors would apply the frame twice.
-            if f_ref is not None or (
+            same_f_ref = f_ref is None or (
+                frame.f_ref_dimless is not None
+                and abs(f_ref * lal.MTSUN_SI / frame.f_ref_dimless - 1) < 1e-2
+            )
+            if not same_f_ref or (
                 t_ref is not None and abs(t_ref - frame.t_ref) > 1e-5
             ):
                 raise ValueError(
-                    f"These modes are in the {frame.name!r} frame at t_ref={frame.t_ref}; "
-                    "load them with catalog.get(..., t_ref=...) to use another epoch."
+                    f"These modes are in the {frame.name!r} frame at t_ref={frame.t_ref} "
+                    f"(f_ref = {frame.f_ref_dimless} cycles/M); load them with "
+                    "catalog.get(..., t_ref=...) to use another epoch."
                 )
             obs_phi_ref = self.get_obs_phi_ref_from_obs_coa_phase(
                 coa_phase=coa_phase, t_ref=frame.t_ref, f_ref=None
@@ -771,10 +792,14 @@ class WaveformModes(sxs_WaveformModes):
         # the (2,2) phase evolution between t_ref and the peak depends on the
         # frame it is measured in.
         sim_phase = self._metadata.get("_sim_frame_h22_phase")
-        if sim_phase is not None and len(sim_phase) == len(self.time):
-            phase_22 = np.asarray(sim_phase)
-            amp_22 = np.asarray(self._metadata["_sim_frame_h22_amp"])
-            nr_coa_phase = phase_22[int(np.argmax(amp_22))] / 2
+        sim_time = self._metadata.get("_sim_frame_h22_time")
+        if sim_phase is not None and sim_time is not None:
+            # Interpolated onto the current time axis, so slicing or resampling
+            # the rotated modes keeps the same mapping.
+            sim_time = np.asarray(sim_time)
+            phase_22 = np.interp(np.asarray(self.time), sim_time, np.asarray(sim_phase))
+            amp_full = np.asarray(self._metadata["_sim_frame_h22_amp"])
+            nr_coa_phase = np.asarray(sim_phase)[int(np.argmax(amp_full))] / 2
             nr_orb_phase_ts = phase_22 / 2
         else:
             nr_coa_phase = self.get_nr_coa_phase()
@@ -961,6 +986,18 @@ class WaveformModes(sxs_WaveformModes):
         self._peak_time_22 = float(np.array(self.time)[np.argmax(amp22)])
         return self._peak_time_22
 
+    def rotate(self, quat):
+        """Rotate the modes (``sxs.WaveformModes.rotate``) and mark their frame unknown.
+
+        A waveform loaded in a recorded frame (see :mod:`nrcats.frames`) is no
+        longer in that frame after an arbitrary rotation; leaving the record in
+        place would let :meth:`get_angles` treat it as LAL-frame modes.
+        ``nrcats.frames.rotate_modes`` records the new frame itself.
+        """
+        out = super().rotate(quat)
+        _mark_frame_unknown(out)
+        return out
+
     def rotated(self, R):
         """Rotate the waveform modes.
 
@@ -1001,6 +1038,7 @@ class WaveformModes(sxs_WaveformModes):
         # raised AttributeError.
         np.asarray(rotated_self)[:] = rotated_data
         rotated_self._metadata["frame"] = R * self.frame
+        _mark_frame_unknown(rotated_self)
         return rotated_self
 
     def rotate_frame(self, R):

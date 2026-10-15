@@ -50,6 +50,10 @@ __all__ = [
 #: Tolerance on |L_hat| and |n_hat| before renormalising, as in LAL.
 UNIT_TOLERANCE = 1e-3
 
+#: Relative tolerance for "body 1 is the heavier": equal-mass runs routinely have
+#: mass1 below mass2 by 1e-6 to 1e-4 (156 SXS simulations), which is not a relabelling.
+MASS_ORDER_TOLERANCE = 1e-3
+
 
 def orthonormal_triad(L_hat, n_hat):
     """Return ``(n_hat, m_hat, L_hat)`` as an orthonormal right-handed triad.
@@ -225,7 +229,7 @@ def reference_metadata_from_lvcnr(h5, frame: ReferenceFrame | None = None):
     if frame is None:
         frame = frame_from_lvcnr_attrs(attrs)
     m1, m2 = float(attrs["mass1"]), float(attrs["mass2"])
-    if m1 < m2 * (1 - 1e-6):
+    if m1 < m2 * (1 - MASS_ORDER_TOLERANCE):
         raise ValueError(f"Body 1 is the lighter hole in this file (mass1={m1}, mass2={m2}).")
     chi1 = np.array([float(attrs[f"spin1{c}"]) for c in "xyz"])
     chi2 = np.array([float(attrs[f"spin2{c}"]) for c in "xyz"])
@@ -258,7 +262,7 @@ FRAME_NAMES = ("lal", "simulation", "waveform")
 
 def _lvcnr_vectors_at(h5, t_ref):
     """``L_hat``, ``n_hat`` and the spins interpolated at ``t_ref`` from a Format >= 2 file."""
-    from nrcats.lvc import compute_lal_source_frame_by_interp, read_lvcnr_group
+    from nrcats.lvc import _lal_cspline_eval, compute_lal_source_frame_by_interp, read_lvcnr_group
 
     keys = [f"LNhat{c}-vs-time" for c in "xyz"] + [f"position{i}{c}-vs-time" for i in (1, 2) for c in "xyz"]
     v = compute_lal_source_frame_by_interp(h5, keys, t_ref)
@@ -270,7 +274,8 @@ def _lvcnr_vectors_at(h5, t_ref):
             comps = []
             for c in "xyz":
                 X, Y = read_lvcnr_group(h5, f"spin{i}{c}-vs-time")
-                comps.append(float(np.interp(t_ref, X, Y)))
+                # the natural cubic spline LAL uses for these groups
+                comps.append(float(_lal_cspline_eval(X, Y, t_ref, f"spin{i}{c}")))
             spins[i] = np.array(comps)
     return L / np.linalg.norm(L), n / np.linalg.norm(n), spins
 
@@ -326,25 +331,51 @@ def put_in_frame(wfm, frame="lal", t_ref=None, **waveform_frame_kwargs):
     ``"waveform"`` (the waveform-derived triad, :func:`nrcats.frame_waveform.waveform_frame`)
     or ``"simulation"`` (no rotation).  The result records the frame under
     ``wfm._metadata["reference_frame"]`` (see :func:`frame_of`).
+
+    The input must be in the simulation frame (as loaded); rotating modes that
+    are already in another frame would apply a frame twice.  ``t_ref`` applies to
+    the ``"lal"`` and ``"waveform"`` frames; for simulation-frame modes pass it to
+    ``get_td_waveform`` instead.
     """
     if frame not in FRAME_NAMES:
         raise ValueError(f"frame must be one of {FRAME_NAMES}, not {frame!r}")
+    current = frame_of(wfm)
+    if current.name != "simulation":
+        raise ValueError(
+            f"put_in_frame expects modes in the simulation frame; these are in the {current.name!r} frame. "
+            "Load them again with catalog.get(..., frame=...)."
+        )
+    catalog_epoch = float(wfm.t_ref_nr)
     if frame == "simulation":
-        ref = ReferenceFrame(t_ref=None if t_ref is None else float(t_ref))
+        if t_ref is not None:
+            raise ValueError(
+                "t_ref applies to the 'lal' and 'waveform' frames; for simulation-frame modes "
+                "pass t_ref (or f_ref) to get_td_waveform / get_angles."
+            )
+        ref = ReferenceFrame()
     elif frame == "lal":
         ref = catalog_frame(wfm, t_ref=t_ref)
     else:
         from nrcats.frame_waveform import waveform_frame
 
-        ref = waveform_frame(wfm, wfm.t_ref_nr if t_ref is None else float(t_ref), **waveform_frame_kwargs)
+        kwargs = dict(waveform_frame_kwargs)
+        mem_start = (wfm.sim_metadata or {}).get("memory_integration_start_time") if hasattr(wfm, "sim_metadata") else None
+        if mem_start is not None and "strip_memory" not in kwargs:
+            # SXS strain carries added memory, whose constant (2,0) offset tilts an
+            # l = 2 radiation axis: strip it before building the triad.
+            kwargs.update(strip_memory=True, memory_integration_start=float(mem_start))
+        ref = waveform_frame(wfm, catalog_epoch if t_ref is None else float(t_ref), **kwargs)
         ref.name = "waveform"
     out = rotate_modes(wfm, ref)
     if hasattr(out, "_metadata") and isinstance(out._metadata, dict):
-        out._metadata["_t_ref_nr"] = wfm.t_ref_nr if ref.t_ref is None else ref.t_ref
+        out._metadata["_catalog_t_ref"] = catalog_epoch
+        out._metadata["_t_ref_nr"] = catalog_epoch if ref.t_ref is None else float(ref.t_ref)
         if ref.is_rotated:
-            # Keep the simulation-frame (2,2) phase: WaveformModes uses it to map
-            # coa_phase to phi_ref identically in every frame.
+            # Keep the simulation-frame (2,2) phase as a function of time:
+            # WaveformModes uses it to map coa_phase to phi_ref identically in
+            # every frame, also after slicing or resampling.
             h22 = np.asarray(wfm.data[:, wfm.index(2, 2)])
+            out._metadata["_sim_frame_h22_time"] = np.asarray(wfm.t, dtype=float).copy()
             out._metadata["_sim_frame_h22_phase"] = np.unwrap(np.angle(h22))
             out._metadata["_sim_frame_h22_amp"] = np.abs(h22)
     return out
@@ -369,21 +400,34 @@ def reference_metadata(wfm, frame: ReferenceFrame | None = None):
     import h5py
 
     frame = frame_of(wfm) if frame is None else frame
+    meta = getattr(wfm, "_metadata", {}) or {}
+    catalog_epoch = float(meta.get("_catalog_t_ref", wfm.t_ref_nr))
+    other_epoch = frame.t_ref is not None and abs(float(frame.t_ref) - catalog_epoch) > 1e-8
     if wfm._has_lvcnr_file():
         with h5py.File(wfm.filepath, "r") as h5:
+            fmt = int(h5.attrs.get("Format", 1))
+            if other_epoch and fmt < 2:
+                raise ValueError(
+                    f"Format {fmt} LVCNR files give the spins at one epoch (t = {catalog_epoch}) only; "
+                    f"the frame is at t = {frame.t_ref}."
+                )
             out = reference_metadata_from_lvcnr(h5, frame if frame.is_rotated else frame_from_lvcnr_attrs(h5.attrs))
-            if frame.t_ref is not None and abs(frame.t_ref - wfm.t_ref_nr) > 1e-8 and int(h5.attrs.get("Format", 1)) >= 2:
-                _, _, spins = _lvcnr_vectors_at(h5, frame.t_ref)
-                if 1 in spins:
-                    out["chi1"] = vector_to_frame(spins[1], out["frame"])
-                if 2 in spins:
-                    out["chi2"] = vector_to_frame(spins[2], out["frame"])
+            if other_epoch:
+                _, _, spins = _lvcnr_vectors_at(h5, float(frame.t_ref))
+                if 1 not in spins or 2 not in spins:
+                    raise ValueError("This file has no spin*-vs-time groups to give the spins at the frame's epoch.")
+                out["chi1"] = vector_to_frame(spins[1], out["frame"])
+                out["chi2"] = vector_to_frame(spins[2], out["frame"])
             return out
     md = wfm.sim_metadata
+    if other_epoch:
+        raise ValueError(
+            f"The metadata give the spins at reference_time = {catalog_epoch} only; the frame is at t = {frame.t_ref}."
+        )
     if not frame.is_rotated:
         frame = catalog_frame(wfm)
     m1, m2 = float(md["reference_mass1"]), float(md["reference_mass2"])
-    if m1 < m2 * (1 - 1e-6):
+    if m1 < m2 * (1 - MASS_ORDER_TOLERANCE):
         raise ValueError(f"Body 1 is the lighter hole (reference_mass1={m1}, reference_mass2={m2}).")
     return {
         "frame": frame,

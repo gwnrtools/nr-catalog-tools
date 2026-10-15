@@ -35,25 +35,42 @@ def _overlap(a, b):
     return np.vdot(b, a) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
+def _sxs_or_skip():
+    from nrcats import SXSCatalog
+
+    try:
+        cat = SXSCatalog.load(download=False)
+        cat.get("SXS:BBH:0792", download=False, frame="simulation")
+    except Exception as exc:  # pragma: no cover - depends on the local cache
+        pytest.skip(f"SXS:BBH:0792 not available offline: {exc}")
+    return cat
+
+
 @pytest.mark.requires_data
 @pytest.mark.parametrize("sim", [s for s in ("GT0001", "MAYA1060") if HAVE[s]] or [pytest.param("none", marks=pytest.mark.skip(reason="no cached MAYA files"))])
-def test_get_returns_modes_in_the_lal_frame(maya, sim):
+def test_get_records_the_lal_frame(maya, sim):
     wfm = maya.get(sim)
     fr = frames.frame_of(wfm)
     assert fr.name == "lal" and fr.method == "catalog"
     assert fr.t_ref == pytest.approx(wfm.t_ref_nr)
     raw = maya.get(sim, frame="simulation")
     assert frames.frame_of(raw).name == "simulation"
-    # With z along the orbital axis, more of the l=2 power sits in (2,+-2) near the epoch.
-    def frac22(w):
-        i = np.argmin(np.abs(np.asarray(w.t) - fr.t_ref - 100))
-        d = np.asarray(w.data)[i]
-        p2 = sum(abs(d[w.index(2, m)]) ** 2 for m in range(-2, 3))
-        return (abs(d[w.index(2, 2)]) ** 2 + abs(d[w.index(2, -2)]) ** 2) / p2
-    if sim in MAYA_HANDEDNESS_SUSPECT:
-        pytest.xfail("MAYA precessing files: the dynamics' L_hat matches the waveform only after "
-                     "(Lx, Ly) -> (-Lx, -Ly); see docs/frame_conventions.md")
-    assert frac22(wfm) >= frac22(raw) - 1e-9
+
+
+@pytest.mark.requires_data
+def test_get_returns_modes_in_the_lal_frame():
+    """In the LAL frame the radiation axis of the modes at t_ref is +z and the
+    (2,2) phase puts n_hat on +x (precessing SXS run, trusted conventions)."""
+    from nrcats.frame_waveform import waveform_frame
+
+    cat = _sxs_or_skip()
+    wfm = cat.get("SXS:BBH:0792", download=False)
+    fr = frames.frame_of(wfm)
+    assert fr.name == "lal"
+    derived = waveform_frame(wfm, fr.t_ref, strip_memory=True,
+                             memory_integration_start=wfm.sim_metadata["memory_integration_start_time"])
+    assert np.degrees(np.arccos(np.clip(derived.L_hat[2], -1, 1))) < 2.0
+    assert abs(np.arctan2(derived.n_hat[1], derived.n_hat[0])) < 0.3
 
 
 @pytest.mark.requires_data
@@ -116,16 +133,99 @@ def test_waveform_frame_agrees_with_the_catalog_frame(maya):
 def test_sxs_catalog_and_waveform_frames_agree():
     """On a precessing SXS run (trusted conventions) the metadata triad and the waveform-derived
     triad at reference_time agree within the physical floor of the design note."""
-    from nrcats import SXSCatalog
     from nrcats.frame_waveform import frame_consistency
 
-    try:
-        cat = SXSCatalog.load(download=False)
-        raw = cat.get("SXS:BBH:0792", download=False, frame="simulation")
-    except Exception as exc:  # pragma: no cover - depends on the local cache
-        pytest.skip(f"SXS:BBH:0792 not available offline: {exc}")
+    cat = _sxs_or_skip()
+    raw = cat.get("SXS:BBH:0792", download=False, frame="simulation")
     fa = frames.catalog_frame(raw)
     fb = frames.frame_of(cat.get("SXS:BBH:0792", download=False, frame="waveform"))
     c = frame_consistency(fa, fb)
     assert c["l_hat_angle_deg"] < 2.0
     assert abs(c["phase_offset_rad"]) < 0.3
+
+
+@pytest.mark.requires_data
+@pytest.mark.skipif(not HAVE["MAYA1060"], reason="cached MAYA1060 (Format 2) not available")
+def test_reference_metadata_at_another_epoch_matches_lalsimulation(maya):
+    """Spins at f_ref = 40 Hz for 60 Msun, i.e. at a t_ref other than the file's default."""
+    import h5py
+
+    lalsim = pytest.importorskip("lalsimulation")
+    from nrcats.lvc import get_lvcnr_ref_time
+
+    path = os.path.join(MAYA_CACHE, "MAYA1060.h5")
+    with h5py.File(path, "r") as h5:
+        t_ref = get_lvcnr_ref_time(h5, 40.0 * 60.0)
+    assert t_ref is not None and abs(t_ref - maya.get("MAYA1060").t_ref_nr) > 1.0
+    md = maya.get_reference_metadata("MAYA1060", t_ref=t_ref)
+    s = lalsim.SimInspiralNRWaveformGetSpinsFromHDF5File(40.0, 60.0, path)
+    np.testing.assert_allclose(md["chi1"], s[:3], atol=1e-5)
+    np.testing.assert_allclose(md["chi2"], s[3:], atol=1e-5)
+
+
+@pytest.mark.requires_data
+@pytest.mark.skipif(not HAVE["MAYA1060"], reason="cached MAYA1060 not available")
+def test_simulation_frame_with_t_ref_is_refused(maya):
+    with pytest.raises(ValueError):
+        maya.get("MAYA1060", frame="simulation", t_ref=maya.get("MAYA1060").t_ref_nr + 100.0)
+
+
+@pytest.mark.requires_data
+@pytest.mark.skipif(not HAVE["MAYA1060"], reason="cached MAYA1060 not available")
+def test_rotating_after_loading_marks_the_frame_unknown(maya):
+    import quaternionic
+
+    wfm = maya.get("MAYA1060")
+    rotated = wfm.rotate(quaternionic.array.from_axis_angle([0.0, 0.3, 0.0]))
+    assert frames.frame_of(rotated).name == "unknown"
+    with pytest.raises(ValueError):
+        rotated.get_angles(0.5, 0.2)
+    with pytest.raises(ValueError):
+        frames.put_in_frame(rotated, "lal")
+    # modes already in the LAL frame cannot be put in a frame a second time
+    with pytest.raises(ValueError):
+        frames.put_in_frame(wfm, "lal")
+
+
+@pytest.mark.requires_data
+@pytest.mark.skipif(not HAVE["MAYA1060"], reason="cached MAYA1060 not available")
+def test_slicing_keeps_the_lal_and_simulation_strain_equal(maya):
+    lal_w, sim_w = maya.get("MAYA1060"), maya.get("MAYA1060", frame="simulation")
+    # drop samples on both sides of t_ref, keeping t_ref inside
+    i_ref = int(np.argmin(np.abs(np.asarray(lal_w.t) - lal_w.t_ref_nr)))
+    i0, i1 = i_ref // 2, len(lal_w.t) - 200
+    h_lal = _strain(lal_w[i0:i1], 1.0, 0.7)
+    h_sim = _strain(sim_w[i0:i1], 1.0, 0.7)
+    ov = _overlap(h_lal, h_sim)
+    assert abs(ov) > 1 - 1e-8
+    assert abs(np.angle(ov)) < 1e-5
+
+
+@pytest.mark.requires_data
+@pytest.mark.skipif(not HAVE["MAYA1060"], reason="cached MAYA1060 not available")
+def test_f_ref_matching_the_frame_is_accepted(maya):
+    import lal
+
+    wfm = maya.get("MAYA1060")
+    fr = frames.frame_of(wfm)
+    f_ref = fr.f_ref_dimless / lal.MTSUN_SI
+    assert wfm.get_angles(0.5, 0.2, f_ref=f_ref) == wfm.get_angles(0.5, 0.2)
+    with pytest.raises(ValueError):
+        wfm.get_angles(0.5, 0.2, f_ref=1.2 * f_ref)
+
+
+def test_near_equal_masses_are_accepted_within_the_tolerance():
+    from types import SimpleNamespace
+
+    def fake(m1, m2):
+        fr = frames.frame_from_vectors([0, 0, 1.0], [0, 1.0, 0], t_ref=0.0)
+        md = {"reference_mass1": m1, "reference_mass2": m2,
+              "reference_dimensionless_spin1": [0, 0, 0.1], "reference_dimensionless_spin2": [0, 0, 0]}
+        return SimpleNamespace(sim_metadata=md, t_ref_nr=0.0, _metadata={"reference_frame": fr},
+                               _has_lvcnr_file=lambda: False), fr
+
+    w, fr = fake(0.4998, 0.5002)          # numerically equal-mass run, labels swapped by noise
+    assert frames.reference_metadata(w, fr)["q"] == pytest.approx(0.4998 / 0.5002)
+    w, fr = fake(0.45, 0.55)
+    with pytest.raises(ValueError):
+        frames.reference_metadata(w, fr)

@@ -19,6 +19,7 @@ CatalogBase
 
 from __future__ import annotations
 
+import logging
 import os
 from abc import ABC, abstractmethod
 from typing import Any, TYPE_CHECKING
@@ -29,6 +30,8 @@ if TYPE_CHECKING:
 from nrcats import waveform
 from nrcats import metadata as md
 from nrcats import utils
+
+logger = logging.getLogger(__name__)
 
 
 class CatalogABC(ABC):
@@ -406,7 +409,7 @@ class CatalogBase(CatalogABC):
         return reference_metadata(wfm, frame_of(wfm))
 
     def get_parameters(
-        self, sim_name: str, total_mass: float = 1.0, frame: str | None = None
+        self, sim_name: str, total_mass: float = 1.0, frame: str | None = "lal"
     ) -> dict:
         """Return the initial physical parameters for the simulation. Only for
         quasicircular simulations are supported, orbital eccentricity is ignored
@@ -414,26 +417,37 @@ class CatalogBase(CatalogABC):
         Args:
             total_mass (float, optional): Total Mass of Binary (solar masses).
                 Defaults to 1.0.
-            frame (str, optional): If given (``"lal"`` or ``"waveform"``), the
-                spins are taken from :meth:`get_reference_metadata` in that
-                frame, i.e. projected onto the same frame and epoch as the
-                modes :meth:`get` returns, and ``f_ref`` (Hz at
-                ``total_mass``) is added.  If None (default), the catalog
-                metadata are used as before.
+            frame (str, optional): ``"lal"`` (default, matching the default of
+                :meth:`get`) or ``"waveform"``: the spins are taken from
+                :meth:`get_reference_metadata` in that frame, i.e. projected
+                onto the same frame and epoch as the modes :meth:`get` returns
+                with the same ``frame``, and ``f_ref`` (Hz at ``total_mass``)
+                is added.  If that frame data is unavailable, or with
+                ``frame=None``, the catalog metadata are used as before
+                (``params["frame"]`` says which).
 
         Returns:
             dict: Initial binary parameters with names compatible with PyCBC.
         """
         metadata = self.get_metadata(sim_name)
         params = md.get_source_parameters_from_metadata(metadata, total_mass=total_mass)
+        params["frame"] = "catalog metadata"
         if frame is not None:
-            ref = self.get_reference_metadata(sim_name, frame=frame)
-            for i, key in ((1, "chi1"), (2, "chi2")):
-                for c, val in zip("xyz", ref[key]):
-                    params[f"spin{i}{c}"] = float(val)
-            if ref.get("f_ref_dimless"):
-                params["f_ref"] = float(ref["f_ref_dimless"]) / utils.time_to_physical(total_mass)
-            params["frame"] = ref["frame"].name
+            try:
+                ref = self.get_reference_metadata(sim_name, frame=frame)
+            except (OSError, KeyError, ValueError) as exc:
+                logger.warning(
+                    f"{sim_name}: no {frame!r}-frame reference data ({exc}); "
+                    "returning the catalog metadata spins."
+                )
+                ref = None
+            if ref is not None:
+                for i, key in ((1, "chi1"), (2, "chi2")):
+                    for c, val in zip("xyz", ref[key]):
+                        params[f"spin{i}{c}"] = float(val)
+                if ref.get("f_ref_dimless"):
+                    params["f_ref"] = float(ref["f_ref_dimless"]) / utils.time_to_physical(total_mass)
+                params["frame"] = ref["frame"].name
         # If frequency metadata is absent or zero, compute f_lower from the
         # waveform data itself via f_lower_at_1Msun().
         if params.get("f_lower", -1) <= 0:

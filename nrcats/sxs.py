@@ -110,6 +110,29 @@ def strain_sign_change_record(sim_obj) -> str | None:
     return None
 
 
+def memory_integration_start_time(sim_obj) -> float | None:
+    """Return the ``integration_start_time`` of the memory SXS added on export.
+
+    Read from ``modifications.add_memory`` in the strain file's JSON sidecar
+    (same file as :func:`strain_sign_change_record`), or None when absent.
+    ``sxs.waveforms.memory.remove_memory`` needs it to undo that memory.
+    """
+    import json
+
+    try:
+        file_stem, group = sim_obj.strain_path
+        with open(Path(sim_obj.__file__) / f"{file_stem}.json") as f:
+            sidecar = json.load(f)
+    except Exception as excep:  # noqa: BLE001
+        logger.info(f"Could not read the strain sidecar: {excep}")
+        return None
+    if group not in (None, "", "/"):
+        sidecar = sidecar.get(group, sidecar.get(group.strip("/"), {}))
+    value = (sidecar.get("modifications", {}) or {}).get("add_memory", {}) or {}
+    value = value.get("integration_start_time")
+    return None if value is None else float(value)
+
+
 @register_catalog("SXS")
 class SXSCatalog(catalog.CatalogBase):
     """Catalog interface for the SXS (SpEC) NR waveform collection.
@@ -427,6 +450,9 @@ class SXSCatalog(catalog.CatalogBase):
         data = -raw_obj.data if flip else raw_obj.data
         sim_metadata["strain_sign_flipped"] = flip
         sim_metadata["strain_sign_record"] = sign_record
+        # The memory SXS added on export; nrcats.frames strips it before
+        # building a waveform-derived frame.
+        sim_metadata["memory_integration_start_time"] = memory_integration_start_time(sim_obj)
 
         # Build a WaveformModes object; strip keys the parent class doesn't accept
         meta = dict(raw_obj._metadata)

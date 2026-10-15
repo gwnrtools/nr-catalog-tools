@@ -225,7 +225,7 @@ unequal masses. For unequal masses its in-plane output carries a bias of
 the same parameters, rotated to the NR orientation and shifted to the NR time
 origin. CoM correction is defined at null infinity, so it belongs after
 extrapolation; finite-radius waveforms carry content that the estimator would
-read as drift. Measured effect on per-mode mismatch with NRSur7dq4: RIT (2,1)
+mistake for drift. Measured effect on per-mode mismatch with NRSur7dq4: RIT (2,1)
 and (3,3) improve by 10–12% in the median (226 runs); extrapolated MAYA by
 25–40% (88 runs). The prototype is `com_drift.py` in the October 2026 scratch
 work; it belongs in waveformtools.
@@ -290,11 +290,19 @@ wfm.frame_consistency()   # A vs B: angle between L_hat, orbital-phase offset, a
 frame="lal" | "waveform" | "simulation", t_ref=None)` for RIT, MAYA and SXS
 (default `"lal"`); `nrcats.frames.frame_of(wfm)`; `get_reference_metadata(sim,
 frame=..., t_ref=...)`; `nrcats.frame_waveform.waveform_frame` and
-`frame_consistency`. One deliberate difference from the proposal:
-`get_parameters(sim, total_mass, frame=None)` keeps the catalog metadata unless a
-frame is asked for, so existing analyses are not changed silently; switching its
-default to `"lal"` is a decision for the maintainers. PN-evolved spins for other
-epochs are not implemented (a different `t_ref` raises for single-epoch data).
+`frame_consistency`. `get_parameters(sim, total_mass, frame="lal")` takes the
+spins from `get_reference_metadata` in the same frame as `get`, adds `f_ref`, and
+records the frame in `params["frame"]`; `frame=None` keeps the catalog metadata
+as before, and a run without the frame data falls back to them with a logged
+warning. Spins at another epoch of a Format >= 2 file come from the
+`spin*-vs-time` groups through LAL's cubic spline and match
+`SimInspiralNRWaveformGetSpinsFromHDF5File` at `fRef = 40 Hz`, 60 Msun to 1e-5
+on MAYA1060. Modes rotated after loading (`rotate`, `rotated`) are marked as in
+an unknown frame, and `get_angles` and `put_in_frame` refuse them. SXS strain is
+stripped of its added memory before a waveform-derived frame is built. PN-evolved
+spins for other epochs are not implemented (a different `t_ref` raises for
+single-epoch data). The backward-incompatible changes are listed in
+`CHANGELOG.md`.
 
 ## Known defects this design resolves
 
