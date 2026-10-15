@@ -463,8 +463,8 @@ def match_single_mode(
 
     # Complex modes throughout: the merger index, the taper and the alignment
     # are all defined on the envelope |h_lm|, which Re(h_lm) cannot give since
-    # it passes through zero every half cycle.  compute_mode_match takes the
-    # real part itself, at the filter, where it costs nothing.
+    # it passes through zero every half cycle.  compute_mode_match keeps the
+    # modes complex at the filter as well (see the note there).
     h1 = wfm.get_mode(
         ell,
         em,
