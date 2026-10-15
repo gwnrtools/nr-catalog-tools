@@ -19,6 +19,23 @@ Key design decisions
 * **Auto-supersede** – ``get()`` passes ``auto_supersede=True`` to
   ``sxs.load()`` so deprecated simulation IDs are resolved transparently.
 
+* **Strain sign** – SXS strain files carry a JSON sidecar (``Strain_N2.json``,
+  or ``ExtraWaveforms.json`` keyed by group) whose
+  ``version_info.spec_version_hist`` lists the processing steps applied by
+  SpEC.  Current files list *"Overall sign change in complex strain h."*  With
+  that sign, SXS modes run through LAL's NR routine
+  (``XLALSimInspiralNRWaveformGetHplusHcross``) disagree with LAL waveform
+  models (NRSur7dq4, IMRPhenomXPHM) by an overall sign, while RIT and MAYA
+  modes agree without any change.  ``get()`` therefore multiplies the modes by
+  -1 when, and only when, the sidecar records that sign change, so that SXS
+  modes follow the same LAL/LVCNR convention as RIT and MAYA.  The flip is
+  recorded on the waveform's metadata (``strain_sign_flipped`` and
+  ``strain_sign_record``) and can be disabled with
+  ``get(..., correct_strain_sign=False)``, which returns the modes exactly as
+  the ``sxs`` package (and its own LVCNR exporter) provides them.  Files whose
+  sidecar has no such record are returned unchanged; whether such files carry
+  the opposite sign has not been checked.
+
 Public classes
 --------------
 SXSCatalog
@@ -47,6 +64,73 @@ _sxs_catalog_singleton = None
 # is an extraction radius rather than an extrapolation order, so it is not an
 # integer member of this sequence and callers wanting it must ask by name.
 _EXTRA_STRAIN_ORDERS = (3, 4)
+
+# Text that SpEC writes into ``version_info.spec_version_hist`` of the strain
+# sidecar when the overall sign of h was changed.  Matched case-insensitively
+# as a substring, so small wording changes in the trailing text still match.
+_STRAIN_SIGN_CHANGE_RECORD = "overall sign change in complex strain h"
+
+
+def strain_sign_change_record(sim_obj) -> str | None:
+    """Return the sidecar entry recording SpEC's overall strain sign change.
+
+    Reads the JSON sidecar of the strain file that ``sim_obj.strain`` loads
+    (``<file>.json`` next to ``<file>.h5``; for ``ExtraWaveforms`` the sidecar
+    is keyed by the HDF5 group, e.g. ``/Strain_N3.dir``) and looks for the
+    "Overall sign change in complex strain h." entry in
+    ``version_info.spec_version_hist``.
+
+    Args:
+        sim_obj: Simulation object returned by ``sxs.load(sim_name, ...)``.
+
+    Returns:
+        str or None: The matching history entry (its message text), or None
+        when the sidecar is missing, unreadable, or has no such entry.
+    """
+    import json
+
+    try:
+        file_stem, group = sim_obj.strain_path
+        json_path = Path(sim_obj.__file__) / f"{file_stem}.json"
+        with open(json_path) as f:
+            sidecar = json.load(f)
+    except Exception as excep:  # noqa: BLE001 - missing sidecar means "no record"
+        logger.info(f"Could not read the strain sidecar: {excep}")
+        return None
+
+    if group not in (None, "", "/"):
+        sidecar = sidecar.get(group, sidecar.get(group.strip("/"), {}))
+
+    history = sidecar.get("version_info", {}).get("spec_version_hist", []) or []
+    for entry in history:
+        # Entries are [commit hash, message]; accept a bare string as well.
+        message = entry[-1] if isinstance(entry, (list, tuple)) else entry
+        if _STRAIN_SIGN_CHANGE_RECORD in str(message).lower():
+            return str(message)
+    return None
+
+
+def memory_integration_start_time(sim_obj) -> float | None:
+    """Return the ``integration_start_time`` of the memory SXS added on export.
+
+    Read from ``modifications.add_memory`` in the strain file's JSON sidecar
+    (same file as :func:`strain_sign_change_record`), or None when absent.
+    ``sxs.waveforms.memory.remove_memory`` needs it to undo that memory.
+    """
+    import json
+
+    try:
+        file_stem, group = sim_obj.strain_path
+        with open(Path(sim_obj.__file__) / f"{file_stem}.json") as f:
+            sidecar = json.load(f)
+    except Exception as excep:  # noqa: BLE001
+        logger.info(f"Could not read the strain sidecar: {excep}")
+        return None
+    if group not in (None, "", "/"):
+        sidecar = sidecar.get(group, sidecar.get(group.strip("/"), {}))
+    value = (sidecar.get("modifications", {}) or {}).get("add_memory", {}) or {}
+    value = value.get("integration_start_time")
+    return None if value is None else float(value)
 
 
 @register_catalog("SXS")
@@ -272,7 +356,13 @@ class SXSCatalog(catalog.CatalogBase):
         sim.psi4  # noqa: B018
 
     def get(
-        self, sim_name: str, extrapolation_order: int = 2, download: bool = True
+        self,
+        sim_name: str,
+        extrapolation_order: int = 2,
+        download: bool = True,
+        correct_strain_sign: bool = True,
+        frame: str = "lal",
+        t_ref: float | None = None,
     ) -> waveform.WaveformModes:
         """Load the strain waveform for *sim_name* and return a WaveformModes object.
 
@@ -294,10 +384,27 @@ class SXSCatalog(catalog.CatalogBase):
                 Raises if the requested order is not the one obtained.
             download (bool): Whether to download the waveform if not cached.
                 Defaults to True.
+            correct_strain_sign (bool): Multiply the modes by -1 when the
+                strain file's JSON sidecar records SpEC's "Overall sign change
+                in complex strain h.", so that the modes follow the LAL/LVCNR
+                convention used for RIT and MAYA (see the module docstring).
+                When the sidecar has no such record the modes are returned
+                unchanged regardless of this flag.  Pass False to get the
+                modes exactly as the ``sxs`` package provides them.  Defaults
+                to True.
+            frame (str): ``"lal"`` (default), ``"waveform"`` or
+                ``"simulation"``; see ``CatalogBase.get`` and
+                :mod:`nrcats.frames`.  For SXS the ``"lal"`` frame comes from
+                the metadata at ``reference_time``.
+            t_ref (float, optional): Must be None or ``reference_time`` for
+                ``frame="lal"`` (the metadata describe one epoch).
 
         Returns:
             nrcats.waveform.WaveformModes: Waveform object with the
-            catalog metadata attached.
+            catalog metadata attached.  Its metadata carries
+            ``strain_sign_flipped`` (bool, whether the modes were multiplied
+            by -1) and ``strain_sign_record`` (the sidecar entry found, or
+            None).
         """
         # sxs >= 2024 uses a Simulation_v3 object; access .strain for WaveformModes.
         # auto_supersede=True resolves deprecated simulation IDs automatically.
@@ -330,8 +437,22 @@ class SXSCatalog(catalog.CatalogBase):
                 f"check sim.files for Strain_*/ExtraWaveforms entries."
             )
 
-        # Get the sim metadata (from our catalog dict, keyed by sim_name)
-        sim_metadata = self.get_metadata(sim_name)
+        # Get the sim metadata (from our catalog dict, keyed by sim_name).  A
+        # copy, because the strain-sign fields below describe this waveform
+        # (they depend on the extrapolation order and on correct_strain_sign)
+        # and must not leak into the catalog's shared entry.
+        sim_metadata = dict(self.get_metadata(sim_name))
+
+        # Strain sign: follow the LAL/LVCNR convention of RIT and MAYA.  See
+        # the module docstring for the measurement behind this.
+        sign_record = strain_sign_change_record(sim_obj)
+        flip = bool(correct_strain_sign and sign_record is not None)
+        data = -raw_obj.data if flip else raw_obj.data
+        sim_metadata["strain_sign_flipped"] = flip
+        sim_metadata["strain_sign_record"] = sign_record
+        # The memory SXS added on export; nrcats.frames strips it before
+        # building a waveform-derived frame.
+        sim_metadata["memory_integration_start_time"] = memory_integration_start_time(sim_obj)
 
         # Build a WaveformModes object; strip keys the parent class doesn't accept
         meta = dict(raw_obj._metadata)
@@ -344,9 +465,10 @@ class SXSCatalog(catalog.CatalogBase):
         # waveform raising KeyError from .sim_metadata, and so from .metadata,
         # .get_parameters() and .label.  The pop above is what makes the name
         # free to reuse here.
-        return waveform.WaveformModes(
-            raw_obj.data, raw_obj.time, metadata=sim_metadata, **meta
-        )
+        wfm = waveform.WaveformModes(data, raw_obj.time, metadata=sim_metadata, **meta)
+        from nrcats.frames import put_in_frame
+
+        return put_in_frame(wfm, frame=frame, t_ref=t_ref)
 
     def available_extrapolation_orders(
         self, sim_name: str, download: bool = False

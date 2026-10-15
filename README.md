@@ -75,7 +75,7 @@ mode22 = wfm.get_mode(2, 2,
 # Get h+ and hx polarizations
 pols = wfm.get_td_waveform(total_mass=40., distance=100.,
                             inclination=0.2, coa_phase=0.3)
-hp, hc = pols.real(), -1 * pols.imag()
+hp, hc = pols.real(), pols.imag()   # h+ + i hx, the LALSimulation convention
 
 # PyCBC-compatible source parameters
 params = ritcat.get_parameters("RIT:BBH:0001-n100-id3", total_mass=60.0)

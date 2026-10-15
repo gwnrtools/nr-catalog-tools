@@ -28,8 +28,12 @@ get_lal_mode_dictionary_from_lmax(lmax)
 get_modes_from_lvcnr_file(path_to_file, Mtot, distance, srate, lmax, f_low)
 get_strain_from_lvcnr_file(path_to_file, Mtot, distance, inclination, phi_ref, srate, mode_array)
 check_interp_req(h5_file, metadata, ref_time, avail_ref_time)
+get_lvcnr_format(h5_file)
+read_lvcnr_group(h5_file, name)
+check_fref(h5_file, f_ref)
 get_ref_freq_from_ref_time(h5_file, ref_time)
 get_ref_time_from_ref_freq(h5_file, ref_freq)
+get_lvcnr_ref_time(h5_file, f_ref)
 check_nr_attrs(sim_metadata_object, req_attrs)
 get_interp_ref_values_from_h5_file(h5_file, req_ts_attrs, ref_time)
 get_ref_vals(sim_metadata_object, req_attrs)
@@ -38,7 +42,7 @@ compute_lal_source_frame_by_interp(h5_file, req_ts_attrs, t_ref)
 normalize_metadata(sim_metadata)
 get_ref_time_from_metadata(sim_metadata)
 transform_spins_nr_to_lal(nrSpin1, nrSpin2, n_hat, ln_hat)
-get_nr_to_lal_rotation_angles(h5_file, sim_metadata, inclination, phi_ref, f_ref, t_ref, tol)
+get_nr_to_lal_rotation_angles(h5_file, sim_metadata, inclination, phi_ref, f_ref, t_ref, tol, total_mass)
 """
 
 from __future__ import annotations
@@ -53,7 +57,7 @@ import lalsimulation as lalsim
 import numpy as np
 from pycbc.pnutils import mtotal_eta_to_mass1_mass2
 from pycbc.types import TimeSeries
-from scipy.interpolate import interp1d
+from scipy.interpolate import CubicSpline
 
 
 def get_lal_mode_dictionary(mode_array: list) -> object:
@@ -312,60 +316,159 @@ def check_interp_req(
     ----------
     h5_file : file object
                 The waveform h5 file handle.
-    metadata :
+    metadata : dict, optional
+                The simulation metadata.
     ref_time, avail_ref_time : float
-                                The use and  available nr reference time.
+                                The requested and available NR reference time.
 
     Returns
     -------
     interp : bool
              Whether interpolation across time is required.
-    avail_ref_time: float
-                    The ref_time available in the NR HDF5 file.
+    avail_ref_time: float or None
+                    The reference time recorded in the NR HDF5 file or
+                    the metadata, or None if neither records one.
+
+    Notes
+    -----
+    RIT records ``relaxed-time``. For RIT's LVCNR files (format 1) the
+    frame vectors hold at the first sample of the stored waveform, not
+    at ``relaxed-time`` on the waveform's time axis, so the value found
+    here is only bookkeeping for those files.
     """
 
-    if avail_ref_time is None:
-        # CCheck for ref time in h5 file
-        if h5_file is not None:
-            keys = list(h5_file.attrs.keys())
+    time_keys = ("reference_time", "ref_time", "relaxed-time", "relaxed_time")
 
-            if "reference_time" in keys:
-                avail_ref_time = h5_file.attrs["reference_time"]
-            elif "ref_time" in keys:
-                avail_ref_time = h5_file.attrs["ref_time"]
-            elif "relaxed_time" in keys:
-                avail_ref_time = h5_file.attrs["relaxed_time"]
+    if avail_ref_time is None:
+        # Check for ref time in h5 file
+        if h5_file is not None:
+            for key in time_keys:
+                if key in h5_file.attrs:
+                    avail_ref_time = float(h5_file.attrs[key])
+                    break
             else:
                 logger.info("Reference time not found in waveform h5 file.")
 
-        if not avail_ref_time:
+        if avail_ref_time is None and metadata is not None:
             # If not found, continue search in metadata.
-            if metadata is not None:
-                keys = list(metadata.keys())
+            for key in time_keys:
+                if metadata.get(key) is not None:
+                    avail_ref_time = float(metadata[key])
+                    break
+            else:
+                logger.info("Reference time not found in simulation metadata file.")
 
-                if "reference_time" in keys:
-                    avail_ref_time = metadata["reference_time"]
-                elif "relaxed_time" in keys:
-                    avail_ref_time = metadata["relaxed_time"]
-                else:
-                    logger.info("Reference time not found in simulation metadata file.")
-
-        if not avail_ref_time:
-            # Then this is GT simulation!
+        if avail_ref_time is None:
             logger.info(
-                "Reference time should be computed from"
+                "Reference time should be computed from "
                 "the reference orbital frequency!"
             )
 
-    interp = True
-    if isinstance(ref_time, float):
-        if abs(avail_ref_time - ref_time) < 1e-5:
-            interp = False
-    else:
-        # ref_time was not supplied (None or non-float); no interpolation needed.
+    if ref_time is None:
+        # ref_time was not supplied; no interpolation needed.
         interp = False
+    elif avail_ref_time is None:
+        # A reference time was asked for and none is recorded.
+        interp = True
+    else:
+        interp = bool(abs(avail_ref_time - float(ref_time)) >= 1e-5)
 
     return interp, avail_ref_time
+
+
+def get_lvcnr_format(h5_file: object) -> int:
+    """Return the LVCNR format number of an NR HDF5 file.
+
+    Files without a ``Format`` attribute are treated as format 1, a
+    single snapshot of the frame vectors and no time series.
+    """
+    if "Format" in h5_file.attrs:
+        return int(h5_file.attrs["Format"])
+    return 1
+
+
+def read_lvcnr_group(h5_file: object, name: str) -> tuple:
+    """Read the knots of an LVCNR spline group.
+
+    LVCNR files store each time series (``amp_l2_m2``,
+    ``Omega-vs-time``, ``LNhatx-vs-time`` ...) as a group holding the
+    datasets ``X`` and ``Y``.
+
+    Returns
+    -------
+    X, Y : numpy.ndarray
+    """
+    group = h5_file[name]
+    return (
+        np.asarray(group["X"][:], dtype=float),
+        np.asarray(group["Y"][:], dtype=float),
+    )
+
+
+def _lal_cspline_eval(x: object, y: object, point: float, what: str) -> float:
+    """Evaluate a natural cubic spline through (x, y) at ``point``.
+
+    This is the interpolant LAL uses for the LVCNR time series
+    (``gsl_interp_cspline``). Like LAL, it fails when ``x`` is not
+    strictly increasing or when ``point`` lies outside the data.
+    """
+    x = np.asarray(x, dtype=float)
+    y = np.asarray(y, dtype=float)
+    if np.any(np.diff(x) <= 0):
+        raise ValueError(
+            f"Cannot interpolate {what}: the abscissa is not strictly increasing."
+        )
+    if not (x[0] <= point <= x[-1]):
+        raise ValueError(
+            f"Cannot interpolate {what} at {point}: outside the data range "
+            f"[{x[0]}, {x[-1]}]."
+        )
+    return float(CubicSpline(x, y, bc_type="natural")(point))
+
+
+def check_fref(h5_file: object, f_ref: float) -> float:
+    """Check a reference frequency against an NR HDF5 file, as LAL does.
+
+    Python version of ``XLALSimInspiralNRWaveformCheckFRef``.
+
+    Parameters
+    ----------
+    h5_file : file object
+              The waveform h5 file handle.
+    f_ref : float
+            The reference GW frequency in Hz, scaled to a total mass of
+            1 solar mass (``f_ref * M / Msun``).
+
+    Returns
+    -------
+    f_ref : float
+            ``f_ref`` unchanged, or -1 when the ``Omega-vs-time`` data
+            start above it, in which case the frame vectors stored as
+            attributes are used.
+
+    Raises
+    ------
+    ValueError
+        If ``f_ref`` is below the start frequency of the waveform.
+    """
+    if f_ref is None or f_ref <= 0:
+        return f_ref
+
+    min_fref = float(h5_file.attrs["f_lower_at_1MSUN"])
+    _, omega = read_lvcnr_group(h5_file, "Omega-vs-time")
+    lowest_arr_fref = omega[0] / (lal.MTSUN_SI * lal.PI)
+
+    if f_ref < 0.9999 * min_fref:
+        raise ValueError(
+            "The supplied reference frequency is lower than the start "
+            "frequency of the waveform. Start frequency (scaled by total "
+            f"mass) is {min_fref} and supplied f_ref (scaled by total mass) "
+            f"is {f_ref}."
+        )
+    if f_ref < lowest_arr_fref:
+        # The Omega array does not quite reach f_ref; use the attributes.
+        return -1
+    return f_ref
 
 
 def get_ref_freq_from_ref_time(h5_file: object, ref_time: float) -> float:
@@ -376,40 +479,87 @@ def get_ref_freq_from_ref_time(h5_file: object, ref_time: float) -> float:
     h5_file : file object
              The waveform h5 file handle.
     ref_time : float
-               Reference time.
+               Reference time, on the time axis of the file's
+               ``Omega-vs-time`` group.
     Returns
     -------
     f_ref : float
-           Reference frequency.
+           Reference GW frequency in Hz, scaled to a total mass of
+           1 solar mass. Divide by the total mass to get Hz.
     """
 
-    time, freq = h5_file.attrs["Omega-vs-time"]
+    time, omega = read_lvcnr_group(h5_file, "Omega-vs-time")
 
-    ref_freq = interp1d(time, freq, kind="cubic")[ref_time]
+    ref_omega = _lal_cspline_eval(time, omega, ref_time, "Omega-vs-time")
 
-    return ref_freq
+    return ref_omega / (lal.MTSUN_SI * lal.PI)
 
 
 def get_ref_time_from_ref_freq(h5_file: object, ref_freq: float) -> float:
     """Get the reference time from reference frequency
+
+    Python version of ``XLALSimInspiralNRWaveformGetRefTimeFromRefFreq``.
 
     Parameters
     ----------
     h5_file : file object
              The waveform h5 file handle.
     ref_freq : float
-               The reference frequency.
+               The reference GW frequency in Hz, scaled to a total mass
+               of 1 solar mass (``f_ref * M / Msun``).
     Returns
     -------
-    fTime : float
-           Reference time.
+    ref_time : float
+           Reference time, on the time axis of the file's
+           ``Omega-vs-time`` group.
     """
 
-    time, freq = h5_file.attrs["Omega-vs-time"]
+    time, omega = read_lvcnr_group(h5_file, "Omega-vs-time")
 
-    ref_time = interp1d(freq, time, kind="cubic")[ref_freq]
+    # Omega is stored as M times the orbital angular frequency, and
+    # M omega_orb = pi * M f_gw, with M f_gw = f_ref * MTSUN_SI here.
+    ref_omega = ref_freq * lal.MTSUN_SI * lal.PI
 
-    return ref_time
+    return _lal_cspline_eval(omega, time, ref_omega, "time vs Omega-vs-time")
+
+
+def get_lvcnr_ref_time(h5_file: object, f_ref: float | None) -> float | None:
+    """Reference time at which LAL evaluates the frame of an NR file.
+
+    Follows ``XLALSimInspiralNRWaveformGetHplusHcross``: a reference
+    frequency is honoured only for LVCNR format 2 and above, and only
+    when it is positive and the ``Omega-vs-time`` data reach it.
+
+    Parameters
+    ----------
+    h5_file : file object
+              The waveform h5 file handle.
+    f_ref : float or None
+            The reference GW frequency in Hz, scaled to a total mass of
+            1 solar mass.
+
+    Returns
+    -------
+    ref_time : float or None
+               The reference time on the file's time axis, or None if
+               the frame vectors stored as attributes are to be used.
+    """
+    if f_ref is None or f_ref <= 0:
+        return None
+
+    if get_lvcnr_format(h5_file) < 2:
+        logger.info(
+            "This NR file is format 1. Only formats 2 and above support "
+            "the use of reference frequency. The reference frequency is "
+            "ignored and the frame at the start of the waveform is used."
+        )
+        return None
+
+    f_ref = check_fref(h5_file, f_ref)
+    if f_ref <= 0:
+        return None
+
+    return get_ref_time_from_ref_freq(h5_file, f_ref)
 
 
 def check_nr_attrs(
@@ -423,6 +573,8 @@ def check_nr_attrs(
     ----------
     sim_metadata_object : h5 file object, dict
                      The NR h5py file handle or simulation metadata.
+                     For an h5 file both its attributes and its groups
+                     (e.g. ``Omega-vs-time``) are searched.
     req_attrs : list
                A list of attribute keys.
     Returns
@@ -433,7 +585,9 @@ def check_nr_attrs(
                  The attributes that are absent.
     """
     if isinstance(sim_metadata_object, h5py.File):
-        all_attrs = list(sim_metadata_object.attrs.keys())
+        all_attrs = list(sim_metadata_object.attrs.keys()) + list(
+            sim_metadata_object.keys()
+        )
 
     elif isinstance(sim_metadata_object, dict):
         all_attrs = list(sim_metadata_object.keys())
@@ -457,12 +611,17 @@ def get_interp_ref_values_from_h5_file(
     """Get the interpolated reference values at a given reference time
     from the NR HDF5 File
 
+    Each key names an LVCNR time-series group (``LNhatx-vs-time`` ...)
+    holding the datasets ``X`` and ``Y``. It is interpolated with a
+    natural cubic spline, as in
+    ``XLALSimInspiralNRWaveformGetInterpValueFromGroupAtPoint``.
+
     Parameters
     ----------
     h5_file : file object
              The waveform h5 file handle.
     req_ts_attrs : list
-               A list of attribute keys.
+               A list of group names.
     ref_time : float
             Reference time.
     Returns
@@ -474,9 +633,8 @@ def get_interp_ref_values_from_h5_file(
     params = {}
 
     for key in req_ts_attrs:
-        time, var = h5_file.attrs[key]
-        RefVal = interp1d(time, var, kind="cubic")[ref_time]
-        params.update({key: RefVal})
+        time, var = read_lvcnr_group(h5_file, key)
+        params[key] = _lal_cspline_eval(time, var, ref_time, key)
     return params
 
 
@@ -516,45 +674,59 @@ def get_ref_vals(
 
 
 def compute_lal_source_frame_from_sxs_metadata(sim_metadata: dict) -> tuple:
-    """Compute the LAL source frame vectors at the
-    available reference time from the SXS simulation
-    metadata.
+    """Compute the LAL source frame vectors at the SXS reference time from
+    the SXS simulation metadata.
+
+    The vectors are built from the reference-epoch quantities that SXS
+    publishes (``reference_mass1/2``, ``reference_position1/2`` and the
+    ``reference_orbital_frequency`` vector), all given at
+    ``reference_time`` in the simulation's inertial coordinates.  SXS v3
+    strain is translated and boosted to the centre-of-mass frame but not
+    rotated, so directions computed here hold in the frame of the strain
+    modes as well.
+
+    Conventions (LAL, ``XLALSimInspiralNRWaveformGetHplusHcross``):
+
+    - ``nhat`` points **from body 2 to body 1**, ``(x_1 - x_2) / |x_1 - x_2|``.
+      In SXS metadata body 1 is object A, the heavier hole, so this matches
+      the LAL labelling (mass1 >= mass2) with no relabelling.
+    - ``LNhat`` is the direction of the Newtonian orbital angular momentum
+      ``sum_i m_i x_i x (Omega x x_i)``, positions taken relative to the
+      centre of mass.  It is orthogonal to ``nhat`` by construction.
 
     Parameters
     ----------
     sim_metadata : dict
-               The NR sim_metadata.
+               The SXS simulation metadata.
     Returns
     -------
     params : dict
-             A dictionary containing the LAL source frame
-             vectors.
+             The LAL source frame vectors, keys ``LNhatx``, ``LNhaty``,
+             ``LNhatz``, ``nhatx``, ``nhaty``, ``nhatz``.
     """
     # Masses
     M1 = sim_metadata["reference_mass1"]
     M2 = sim_metadata["reference_mass2"]
     M = M1 + M2
 
-    # Orbital anglular frequency
-    Omega = np.array(sim_metadata["reference_orbital_frequency"])
+    # Orbital angular frequency vector
+    Omega = np.array(sim_metadata["reference_orbital_frequency"], dtype=float)
 
     # Positions
-    Pos1 = np.array(sim_metadata["reference_position1"])
-    Pos2 = np.array(sim_metadata["reference_position2"])
+    Pos1 = np.array(sim_metadata["reference_position1"], dtype=float)
+    Pos2 = np.array(sim_metadata["reference_position2"], dtype=float)
 
-    # CoM position
+    # Positions relative to the centre of mass
     CoMPos = (M1 * Pos1 + M2 * Pos2) / (M)
 
     Pos1 = Pos1 - CoMPos
     Pos2 = Pos2 - CoMPos
 
-    # This should point from
-    # smaller to larger BH
-    # Assumed here is 1 for smaller
-    # BH
-    DPos = Pos2 - Pos1
+    # Separation vector from body 2 to body 1 (LAL's nhat convention).
+    # SXS body 1 (object A) is the heavier hole.
+    DPos = Pos1 - Pos2
 
-    # Oribital angular momentum, Eucledian
+    # Newtonian orbital angular momentum
     P1 = M1 * np.cross(Omega, Pos1)
     P2 = M2 * np.cross(Omega, Pos2)
 
@@ -564,7 +736,7 @@ def compute_lal_source_frame_from_sxs_metadata(sim_metadata: dict) -> tuple:
     LNhat = Lbar / np.linalg.norm(Lbar)
     LNhatx, LNhaty, LNhatz = LNhat
 
-    # Position vector nhat
+    # Separation unit vector nhat
     nhat = (DPos) / np.linalg.norm(DPos)
     nhatx, nhaty, nhatz = nhat
 
@@ -738,6 +910,23 @@ def transform_spins_nr_to_lal(
     return S1, S2
 
 
+def _normalise_frame_vector(vec: object, name: str, tol: float = 1e-3) -> object:
+    """Return ``vec`` divided by its norm.
+
+    As in ``XLALSimInspiralNRWaveformGetRotationAnglesFromH5File``, a
+    vector whose norm differs from 1 by more than ``tol`` is an error:
+    the frame vectors in an NR file are meant to be unit vectors.
+    """
+    vec = np.asarray(vec, dtype=float)
+    norm = np.linalg.norm(vec)
+    if abs(norm - 1) > tol:
+        raise ValueError(
+            f"The size of the {name} vector is {norm}, not unity. "
+            "Check the frame vectors in the NR file."
+        )
+    return vec / norm
+
+
 def get_nr_to_lal_rotation_angles(
     h5_file: object,
     sim_metadata: dict,
@@ -746,6 +935,7 @@ def get_nr_to_lal_rotation_angles(
     f_ref: float | None = None,
     t_ref: float | None = None,
     tol: float = 1e-6,
+    total_mass: float = 1.0,
 ) -> tuple:
     r"""Get the angular coordinates :math:`\theta, \phi`
     and the rotation angle :math:`\alpha` from the H5 file
@@ -759,20 +949,33 @@ def get_nr_to_lal_rotation_angles(
                   The inclination angle.
     phi_ref : float
              The orbital phase at reference time.
-    f_ref, t_ref : float, optional
-                 The reference orbital frequency or time
+    f_ref : float, optional
+            The reference GW frequency in Hz for a binary of total
+            mass ``total_mass``, as in LAL. It is used only for LVCNR
+            format 2 and above, where the frame is interpolated from the
+            ``*-vs-time`` groups at the time where the orbital frequency
+            reaches it; for format 1 files it is ignored, as LAL does.
+    t_ref : float, optional
+            The reference time on the file's time axis. Takes
+            precedence over ``f_ref``.
 
     sim_metadata : dict
                The sim_metadata of the waveform file.
     tol : float
           The tolerance to use to allow floating point
             representation errors.
+    total_mass : float, optional
+            Total mass in solar masses that ``f_ref`` refers to.
+            The default of 1 means ``f_ref`` is already scaled to
+            1 solar mass (LAL's ``f_lower_at_1MSUN`` convention).
 
     Returns
     -------
     angles : dict
              The angular corrdinates Theta, Psi,  and the rotation angle Alpha.
              If available, this also contains the reference time and frequency.
+             ``f_ref`` is None when the frame stored as attributes was used
+             (format 1 files, or ``f_ref`` below the ``Omega-vs-time`` data).
 
     Notes
     -----
@@ -834,25 +1037,18 @@ def get_nr_to_lal_rotation_angles(
 
     interp = False
 
-    if not t_ref:
-        if not f_ref:
-            # No interpolation required. Use available reference values.
-            interp = False
-
-        else:
-            # Try to get the reference time from orbital frequency
-            try:
-                t_ref = get_ref_time_from_ref_freq(h5_file, f_ref)
-
-                # Check if interpolation is required
-                interp, avail_ref_time = check_interp_req(h5_file, ref_time=t_ref)
-            except Exception as excep:
-                logger.info(
-                    f"Could not obtain reference time from given reference frequency {f_ref}.",
-                    excep,
-                )
-                logger.info("Choosing available reference time")
-                interp = False
+    if t_ref is None:
+        if f_ref is not None and f_ref > 0:
+            # As LAL: format < 2 ignores f_ref, an f_ref below the start
+            # of the waveform raises, and one below the start of the
+            # Omega-vs-time data falls back on the stored attributes.
+            lvcnr_t_ref = get_lvcnr_ref_time(h5_file, f_ref * total_mass)
+            if lvcnr_t_ref is not None:
+                t_ref = lvcnr_t_ref
+                interp = True
+            else:
+                # Report that f_ref was not used.
+                f_ref = None
     else:
         interp, avail_ref_time = check_interp_req(h5_file, ref_time=t_ref)
 
@@ -948,8 +1144,12 @@ def get_nr_to_lal_rotation_angles(
     n_hat_y = ref_params["nhaty"]
     n_hat_z = ref_params["nhatz"]
 
-    ln_hat = np.array([ln_hat_x, ln_hat_y, ln_hat_z])
-    n_hat = np.array([n_hat_x, n_hat_y, n_hat_z])
+    # Normalise the frame vectors as LAL does, refusing vectors that
+    # are far from unit length.
+    ln_hat = _normalise_frame_vector([ln_hat_x, ln_hat_y, ln_hat_z], "LN hat")
+    n_hat = _normalise_frame_vector([n_hat_x, n_hat_y, n_hat_z], "n hat")
+    n_hat_x, n_hat_y, n_hat_z = n_hat
+    ln_hat_x, ln_hat_y, ln_hat_z = ln_hat
 
     # 2.3: Carryout vector math to get Zref in the lal wave frame
     corb_phase = np.cos(orb_phase)
@@ -957,7 +1157,7 @@ def get_nr_to_lal_rotation_angles(
     sinclination = np.sin(inclination)
     cinclination = np.cos(inclination)
 
-    ln_cross_n = np.cross(ln_hat, n_hat)
+    ln_cross_n = _normalise_frame_vector(np.cross(ln_hat, n_hat), "LN x n")
     ln_cross_n_x, ln_cross_n_y, ln_cross_n_z = ln_cross_n
 
     z_wave_x = sinclination * (sorb_phase * n_hat_x + corb_phase * ln_cross_n_x)
@@ -968,8 +1168,8 @@ def get_nr_to_lal_rotation_angles(
     z_wave_y += cinclination * ln_hat_y
     z_wave_z += cinclination * ln_hat_z
 
-    z_wave = np.array([z_wave_x, z_wave_y, z_wave_z])
-    z_wave = z_wave / np.linalg.norm(z_wave)
+    z_wave = _normalise_frame_vector([z_wave_x, z_wave_y, z_wave_z], "Z")
+    z_wave_x, z_wave_y, z_wave_z = z_wave
 
     #################################################################
     # Step 3.1: Extract theta and psi from Z in the lal wave frame
