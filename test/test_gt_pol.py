@@ -135,16 +135,10 @@ def GetPolsToCompare(sim_name, total_mass, distance, inclination, coa_phase, del
     fname = f"{sim_name}.h5"
     file = str(_VALIDATION_DIR / fname)
 
-    f = h5py.File(file, "a")
-
-    # Extrinsic parameters:
+    # Extrinsic parameters.  The validation file is read only: an earlier
+    # version wrote f_lower / total_mass into it as f_lower_at_1MSUN, which has
+    # the wrong units (it should be f_lower * total_mass).
     f_lower = 1
-    f_lower_at_1MSUN = f_lower / total_mass
-    if "f_lower_at_1MSUN" not in list(f.attrs.keys()):
-        f.attrs["f_lower_at_1MSUN"] = f_lower_at_1MSUN
-        f.close()
-    else:
-        f.close()
 
     f = h5py.File(file, "r")
 
