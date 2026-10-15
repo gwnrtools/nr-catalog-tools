@@ -39,6 +39,7 @@ __all__ = [
     "vector_to_frame",
     "frame_from_vectors",
     "frame_from_lvcnr_attrs",
+    "reference_metadata_from_lvcnr",
     "lal_frame_angles",
 ]
 
@@ -197,6 +198,55 @@ def rotate_modes(wfm, frame: ReferenceFrame):
 def vector_to_frame(v, frame: ReferenceFrame):
     """Components of a simulation-frame vector along the frame's axes."""
     return frame.matrix @ np.asarray(v, dtype=float)
+
+
+def _group_final_value(h5, name):
+    """Last value of an LVCNR ``*-vs-time`` group (romspline data with X and Y datasets)."""
+    g = h5[name]
+    return float(np.asarray(g["Y"])[-1])
+
+
+def reference_metadata_from_lvcnr(h5, frame: ReferenceFrame | None = None):
+    """Masses, spins and vectors from an open LVCNR file, expressed in ``frame``.
+
+    Spins are the file's default ``spin1x..spin2z`` attributes (dimensionless, in
+    the simulation frame at the file's reference epoch), projected onto the frame
+    axes, which is what ``XLALSimInspiralNRWaveformGetSpinsFromHDF5File`` returns
+    when no reference frequency is used.  ``frame`` defaults to the file's own
+    LAL frame (:func:`frame_from_lvcnr_attrs`).  Body 1 must be the heavier hole;
+    a file labelled the other way raises, since relabelling also rotates the
+    orbital phase by pi and should be done explicitly.
+    """
+    attrs = h5.attrs
+    if frame is None:
+        frame = frame_from_lvcnr_attrs(attrs)
+    m1, m2 = float(attrs["mass1"]), float(attrs["mass2"])
+    if m1 < m2 * (1 - 1e-6):
+        raise ValueError(f"Body 1 is the lighter hole in this file (mass1={m1}, mass2={m2}).")
+    chi1 = np.array([float(attrs[f"spin1{c}"]) for c in "xyz"])
+    chi2 = np.array([float(attrs[f"spin2{c}"]) for c in "xyz"])
+    out = {
+        "frame": frame,
+        "mass1": m1 / (m1 + m2),
+        "mass2": m2 / (m1 + m2),
+        "q": m1 / m2,
+        "chi1": vector_to_frame(chi1, frame),
+        "chi2": vector_to_frame(chi2, frame),
+        "L_hat": vector_to_frame(frame.L_hat, frame) if frame.is_rotated else None,
+        "n_hat": vector_to_frame(frame.n_hat, frame) if frame.is_rotated else None,
+        "t_ref": frame.t_ref,
+        "f_ref_dimless": frame.f_ref_dimless,
+        "format": int(attrs.get("Format", 1)),
+    }
+    if "eccentricity" in attrs:
+        out["eccentricity"] = float(attrs["eccentricity"])
+    keys = ("remnant-mass-vs-time", "remnant-spinx-vs-time", "remnant-spiny-vs-time", "remnant-spinz-vs-time")
+    if all(k in h5 for k in keys):
+        # LVCNR stores the remnant spin dimensionless (the SXS exporter writes the
+        # horizon's chiInertial), like the component spins.
+        out["remnant_mass"] = _group_final_value(h5, keys[0])
+        out["remnant_chi"] = vector_to_frame(np.array([_group_final_value(h5, k) for k in keys[1:]]), frame)
+    return out
 
 
 def lal_frame_angles(inclination, phi_ref):

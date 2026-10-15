@@ -94,3 +94,22 @@ def test_lal_frame_strain_equals_the_lvcnr_route(inclination, phi_ref):
     w_lal = frames.rotate_modes(wfm, frame)
     h_frame = np.asarray(w_lal.evaluate(list(frames.lal_frame_angles(inclination, phi_ref))))
     np.testing.assert_allclose(h_frame, h_route, rtol=0, atol=1e-8 * np.max(np.abs(h_route)))
+
+
+LVCNR_FILES = [os.path.expanduser(f"~/.cache/MAYA/data/{s}.h5") for s in ("GT0001", "MAYA1060", "MAYA1070")]
+
+
+@pytest.mark.requires_data
+@pytest.mark.parametrize("path", [p for p in LVCNR_FILES if os.path.exists(p)] or [pytest.param(None, marks=pytest.mark.skip(reason="no cached LVCNR files"))])
+def test_reference_spins_match_lalsimulation(path):
+    """Spins projected onto the file's LAL frame equal LAL's own NR spin routine (no reference frequency)."""
+    import h5py
+    lalsim = pytest.importorskip("lalsimulation")
+    with h5py.File(path, "r") as f:
+        md = frames.reference_metadata_from_lvcnr(f)
+    s = lalsim.SimInspiralNRWaveformGetSpinsFromHDF5File(-1, 60.0, path)
+    np.testing.assert_allclose(md["chi1"], s[:3], atol=1e-6)
+    np.testing.assert_allclose(md["chi2"], s[3:], atol=1e-6)
+    np.testing.assert_allclose(md["L_hat"], [0, 0, 1], atol=1e-12)
+    np.testing.assert_allclose(md["n_hat"], [1, 0, 0], atol=1e-12)
+    assert md["mass1"] >= md["mass2"]
