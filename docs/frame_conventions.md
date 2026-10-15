@@ -316,7 +316,10 @@ wfm.frame_consistency()   # A vs B: angle between L_hat, orbital-phase offset, a
   `L̂`, `n̂`, remnant spin, kick, and positions or velocities where they exist)
   into the requested frame at `t_ref`, and relabels the bodies so that body 1 is
   the heavier. With `frame="simulation"` it returns the same quantities in the
-  simulation's own coordinates, so the two can be compared.
+  simulation's own coordinates at the catalog's reference epoch (the spins as
+  the catalog publishes them), so they can be checked against the catalog
+  tables. Those are not the spins of the waveform `get_td_waveform` produces,
+  which is always evaluated in the LAL frame; use `frame="lal"` for those.
 - `get_td_waveform`, `get_parameters` and `get_reference_metadata` all read the
   waveform's `frame`, so they cannot describe different binaries.
 - A request for a `t_ref` the catalog cannot support (single-epoch catalogs)

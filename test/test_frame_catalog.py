@@ -243,3 +243,35 @@ def test_near_equal_masses_are_accepted_within_the_tolerance():
     w, fr = fake(0.45, 0.55)
     with pytest.raises(ValueError):
         frames.reference_metadata(w, fr)
+
+
+@pytest.mark.requires_data
+@pytest.mark.skipif(not HAVE["MAYA1060"], reason="cached MAYA1060 not available")
+def test_simulation_frame_metadata_are_the_published_values(maya):
+    """frame="simulation" gives the spins and vectors as the file stores them (simulation
+    coordinates); frame="lal" projects the same vectors onto the LAL axes."""
+    import h5py
+
+    with h5py.File(os.path.join(MAYA_CACHE, "MAYA1060.h5"), "r") as h5:
+        stored = {key: np.array([h5.attrs[f"{key}{c}"] for c in "xyz"]) for key in ("spin1", "spin2", "LNhat", "nhat")}
+    sim_md = maya.get_reference_metadata("MAYA1060", frame="simulation")
+    lal_md = maya.get_reference_metadata("MAYA1060", frame="lal")
+    assert sim_md["frame"].name == "simulation" and lal_md["frame"].name == "lal"
+    np.testing.assert_allclose(sim_md["chi1"], stored["spin1"], atol=1e-12)
+    np.testing.assert_allclose(sim_md["chi2"], stored["spin2"], atol=1e-12)
+    np.testing.assert_allclose(sim_md["L_hat"], stored["LNhat"] / np.linalg.norm(stored["LNhat"]), atol=1e-6)
+    assert sim_md["t_ref"] == pytest.approx(lal_md["t_ref"])
+    np.testing.assert_allclose(lal_md["L_hat"], [0, 0, 1], atol=1e-12)
+    np.testing.assert_allclose(lal_md["chi1"], lal_md["frame"].matrix @ sim_md["chi1"], atol=1e-12)
+    params = maya.get_parameters("MAYA1060", total_mass=60.0, frame="simulation")
+    assert params["frame"] == "simulation" and params["spin1x"] == pytest.approx(stored["spin1"][0])
+
+
+@pytest.mark.requires_data
+def test_simulation_frame_metadata_for_sxs_are_the_published_values():
+    cat = _sxs_or_skip()
+    raw = cat.get("SXS:BBH:0792", download=False, frame="simulation")
+    sim_md = frames.reference_metadata(raw)
+    np.testing.assert_allclose(sim_md["chi1"], raw.sim_metadata["reference_dimensionless_spin1"], atol=1e-12)
+    lal_md = cat.get_reference_metadata("SXS:BBH:0792", frame="lal")
+    np.testing.assert_allclose(lal_md["chi1"], lal_md["frame"].matrix @ sim_md["chi1"], atol=1e-9)

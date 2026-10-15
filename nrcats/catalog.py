@@ -407,7 +407,11 @@ class CatalogBase(CatalogABC):
 
         Uses the same frame as :meth:`get` with the same arguments, so the
         spins returned here describe the binary whose modes ``get`` returns.
-        Body 1 is the heavier hole.  See :func:`nrcats.frames.reference_metadata`.
+        With ``frame="simulation"`` they are in the simulation's own
+        coordinates, as the catalogs publish them (to compare with the catalog
+        tables); with ``"lal"`` they are the spins of the waveform
+        ``get_td_waveform`` produces.  Body 1 is the heavier hole.  See
+        :func:`nrcats.frames.reference_metadata`.
         """
         from nrcats.frames import frame_of, reference_metadata
 
@@ -428,9 +432,11 @@ class CatalogBase(CatalogABC):
                 :meth:`get_reference_metadata` in that frame, i.e. projected
                 onto the same frame and epoch as the modes :meth:`get` returns
                 with the same ``frame``, and ``f_ref`` (Hz at ``total_mass``)
-                is added.  If that frame data is unavailable, or with
-                ``frame=None``, the catalog metadata are used as before
-                (``params["frame"]`` says which).
+                is added.  ``"simulation"`` gives the spins in the
+                simulation's coordinates, for comparison with the catalog
+                tables, not for generating a model waveform.  If that frame
+                data is unavailable, or with ``frame=None``, the catalog
+                metadata are used as before (``params["frame"]`` says which).
 
         Returns:
             dict: Initial binary parameters with names compatible with PyCBC.

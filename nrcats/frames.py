@@ -221,7 +221,9 @@ def reference_metadata_from_lvcnr(h5, frame: ReferenceFrame | None = None):
     the simulation frame at the file's reference epoch), projected onto the frame
     axes, which is what ``XLALSimInspiralNRWaveformGetSpinsFromHDF5File`` returns
     when no reference frequency is used.  ``frame`` defaults to the file's own
-    LAL frame (:func:`frame_from_lvcnr_attrs`).  Body 1 must be the heavier hole;
+    LAL frame (:func:`frame_from_lvcnr_attrs`).  For the simulation frame the
+    spins are the attributes as stored, and ``L_hat``, ``n_hat`` are the file's
+    ``LNhat``, ``nhat`` in simulation coordinates.  Body 1 must be the heavier hole;
     a file labelled the other way raises, since relabelling also rotates the
     orbital phase by pi and should be done explicitly.
     """
@@ -240,12 +242,16 @@ def reference_metadata_from_lvcnr(h5, frame: ReferenceFrame | None = None):
         "q": m1 / m2,
         "chi1": vector_to_frame(chi1, frame),
         "chi2": vector_to_frame(chi2, frame),
-        "L_hat": vector_to_frame(frame.L_hat, frame) if frame.is_rotated else None,
-        "n_hat": vector_to_frame(frame.n_hat, frame) if frame.is_rotated else None,
         "t_ref": frame.t_ref,
         "f_ref_dimless": frame.f_ref_dimless,
         "format": int(attrs.get("Format", 1)),
     }
+    if frame.is_rotated:
+        out["L_hat"] = vector_to_frame(frame.L_hat, frame)
+        out["n_hat"] = vector_to_frame(frame.n_hat, frame)
+    else:
+        file_frame = frame_from_lvcnr_attrs(attrs)
+        out["L_hat"], out["n_hat"] = file_frame.L_hat, file_frame.n_hat
     if "eccentricity" in attrs:
         out["eccentricity"] = float(attrs["eccentricity"])
     keys = ("remnant-mass-vs-time", "remnant-spinx-vs-time", "remnant-spiny-vs-time", "remnant-spinz-vs-time")
@@ -396,6 +402,13 @@ def reference_metadata(wfm, frame: ReferenceFrame | None = None):
     interpolated from the ``spin*-vs-time`` groups when the frame's epoch is not
     the file's default (Format >= 2).  SXS: ``reference_mass1/2`` and
     ``reference_dimensionless_spin1/2`` at ``reference_time``.
+
+    In the simulation frame (modes as stored) the spins, ``L_hat`` and
+    ``n_hat`` are in the simulation's own coordinates at the catalog's
+    reference epoch, as the catalogs publish them, so they can be checked
+    against the catalog tables.  They are not the spins to pass to a model
+    alongside ``get_td_waveform``, which evaluates in the LAL frame: use the
+    ``"lal"`` frame for that.
     """
     import h5py
 
@@ -411,7 +424,9 @@ def reference_metadata(wfm, frame: ReferenceFrame | None = None):
                     f"Format {fmt} LVCNR files give the spins at one epoch (t = {catalog_epoch}) only; "
                     f"the frame is at t = {frame.t_ref}."
                 )
-            out = reference_metadata_from_lvcnr(h5, frame if frame.is_rotated else frame_from_lvcnr_attrs(h5.attrs))
+            out = reference_metadata_from_lvcnr(h5, frame)
+            if out["t_ref"] is None:
+                out["t_ref"] = catalog_epoch
             if other_epoch:
                 _, _, spins = _lvcnr_vectors_at(h5, float(frame.t_ref))
                 if 1 not in spins or 2 not in spins:
@@ -424,8 +439,8 @@ def reference_metadata(wfm, frame: ReferenceFrame | None = None):
         raise ValueError(
             f"The metadata give the spins at reference_time = {catalog_epoch} only; the frame is at t = {frame.t_ref}."
         )
-    if not frame.is_rotated:
-        frame = catalog_frame(wfm)
+    # The binary's own axes at the epoch, in simulation coordinates.
+    binary_frame = frame if frame.is_rotated else catalog_frame(wfm)
     m1, m2 = float(md["reference_mass1"]), float(md["reference_mass2"])
     if m1 < m2 * (1 - MASS_ORDER_TOLERANCE):
         raise ValueError(f"Body 1 is the lighter hole (reference_mass1={m1}, reference_mass2={m2}).")
@@ -436,10 +451,10 @@ def reference_metadata(wfm, frame: ReferenceFrame | None = None):
         "q": m1 / m2,
         "chi1": vector_to_frame(np.asarray(md["reference_dimensionless_spin1"], dtype=float), frame),
         "chi2": vector_to_frame(np.asarray(md["reference_dimensionless_spin2"], dtype=float), frame),
-        "L_hat": vector_to_frame(frame.L_hat, frame),
-        "n_hat": vector_to_frame(frame.n_hat, frame),
-        "t_ref": frame.t_ref,
-        "f_ref_dimless": frame.f_ref_dimless,
+        "L_hat": vector_to_frame(binary_frame.L_hat, frame),
+        "n_hat": vector_to_frame(binary_frame.n_hat, frame),
+        "t_ref": binary_frame.t_ref,
+        "f_ref_dimless": binary_frame.f_ref_dimless,
     }
 
 
