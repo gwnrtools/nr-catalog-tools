@@ -169,8 +169,18 @@ Notes:
     agrees as stored (2.4° and 5.6°) and fails after `(-1)^m`, so the check
     itself is sound.
 
-  The likely cause is a `(-1)^m` (azimuth) convention in the `Ylm_Decomp`
-  thorn; that source has not been inspected. For aligned-spin runs the flip is
+  - The in-plane recoil computed from the modes points opposite to the
+    remnant horizon's late-time drift in its own track (MAYA0937, MAYA1070,
+    GT0560), and along it, within 6–16°, after `(-1)^m`. So in-plane kick
+    directions computed from the stored modes are reversed; magnitudes are
+    unaffected.
+
+  The likely cause is in MAYA's private `Ylm_Decomp` thorn, which projects
+  Ψ4 onto the harmonics. Either its harmonic carries an extra or missing
+  `(-1)^m`, or its extraction sphere uses φ + π. Psi4 tetrad choices,
+  the puncture tracks and mayawaves are ruled out. The Einstein Toolkit
+  `Multipole` thorn matches LAL's harmonics, so a run with both thorns on
+  the same Ψ4 would settle the question. For aligned-spin runs the flip is
   only a shift of π in orbital phase, which explains why nobody noticed it.
   LALSimulation NR injections from MAYA files use the stored modes with the
   stored vectors, so they carry the same flip.
