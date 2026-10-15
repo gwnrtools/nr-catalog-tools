@@ -648,12 +648,12 @@ class WaveformModes(sxs_WaveformModes):
             Angles dict with keys ``theta``, ``psi``, ``alpha``, and
             optionally ``t_ref``, ``f_ref``.
         """
-        obs_phi_ref = self.get_obs_phi_ref_from_obs_coa_phase(
-            coa_phase=coa_phase, t_ref=t_ref, f_ref=f_ref
-        )
         if not self._has_lvcnr_file():
             # SXS: no LVCNR file.  The frame comes from the metadata at
             # its single reference epoch, so another epoch cannot be asked for.
+            # Checked before the reference phase is resolved, which would
+            # otherwise look for an Omega-vs-time group in a file that does
+            # not exist.
             avail_t_ref = self.t_ref_nr
             if f_ref is not None or (
                 t_ref is not None and abs(t_ref - avail_t_ref) > 1e-5
@@ -663,6 +663,9 @@ class WaveformModes(sxs_WaveformModes):
                     f"from the simulation metadata at reference_time={avail_t_ref} "
                     "only.  Pass f_ref=None and t_ref=None (or t_ref equal to it)."
                 )
+            obs_phi_ref = self.get_obs_phi_ref_from_obs_coa_phase(
+                coa_phase=coa_phase, t_ref=t_ref, f_ref=None
+            )
             # An empty attribute set sends get_nr_to_lal_rotation_angles to
             # its SXS-metadata branch (compute_lal_source_frame_from_sxs_metadata).
             return get_nr_to_lal_rotation_angles(
@@ -672,6 +675,9 @@ class WaveformModes(sxs_WaveformModes):
                 phi_ref=obs_phi_ref,
                 tol=tol,
             )
+        obs_phi_ref = self.get_obs_phi_ref_from_obs_coa_phase(
+            coa_phase=coa_phase, t_ref=t_ref, f_ref=f_ref
+        )
         with h5py.File(self.filepath) as h5_file:
             angles = get_nr_to_lal_rotation_angles(
                 h5_file=h5_file,
