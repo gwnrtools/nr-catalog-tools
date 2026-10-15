@@ -94,13 +94,18 @@ def test_no_op_is_exact_for_the_wrapper_too():
 
 
 def test_band_raise_recovers_a_nan_match():
-    """0.65 cycles at the band edge: NaN before, a real number after."""
+    """0.65 cycles at the band edge: the band is raised to what the window resolves.
+
+    With pycbc.filter.match the unraised band returned NaN here.  The complex
+    filter returns a number (its normalisation does not degenerate), but the
+    band below one cycle is still not resolved by the window, so it is raised.
+    """
     a, b = _pair(0.05)
     f_lower = 13.0
     assert a.duration * f_lower < 1.0  # below the measured NaN boundary
 
     old = compute_mode_match_detailed(a, b, f_lower, min_cycles=0)
-    assert np.isnan(old.match), "precondition: the old path returns NaN here"
+    assert old.reason == "ok" and old.f_lower_used == f_lower
 
     new = compute_mode_match_detailed(a, b, f_lower)
     assert new.reason == "band_raised"

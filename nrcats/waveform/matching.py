@@ -15,7 +15,8 @@ from sxs import TimeSeries as sxs_TimeSeries
 #: Minimum number of cycles at the *lower edge* of the integration band that the
 #: common time window must contain for the band to be resolvable.
 #:
-#: Below one cycle at the band edge ``pycbc.filter.match`` returns a bare NaN
+#: Below one cycle at the band edge ``pycbc.filter.match`` (the filter used here
+#: until October 2026) returned a bare NaN
 #: (measured: the transition sits at ``T * f_lower ≈ 1``).  The default carries a
 #: factor-of-two margin above that boundary.  It is deliberately *not* tuned to
 #: make any particular sample pass: matches computed at ``K = 1`` and ``K = 2``
@@ -349,7 +350,8 @@ def compute_mode_match_detailed(
     physically correct but presumes the waveform extends to the lower
     frequency.  For a short waveform it does not: the integral then runs over a
     band where one input has no support, the normalisation degenerates, and
-    ``pycbc.filter.match`` returns a bare NaN.  Measured, the transition sits at
+    ``pycbc.filter.match`` (the filter used here until October 2026) returned a
+    bare NaN.  Measured, the transition sits at
     ``overlap * f_lower ≈ 1`` cycle.
 
     Discarding the simulation is the wrong remedy, because the failure is
@@ -390,8 +392,6 @@ def compute_mode_match_detailed(
     -------
     ModeMatchResult
     """
-    from pycbc.filter import match as pycbc_match
-    from pycbc.psd import from_string
 
     # np.asarray, not np.array: pycbc TimeSeries wraps a numpy buffer whose
     # __array__ predates the numpy-2 copy keyword, so np.array() emits a
@@ -444,7 +444,7 @@ def compute_mode_match_detailed(
 
     # 4. Wrap the slices back into pycbc TimeSeries
     # We can safely discard the epoch because we've manually aligned the physical window,
-    # and pycbc_match will optimize the exact time-shift regardless of the epoch value.
+    # and the filter below maximises over the time shift regardless of the epoch value.
     h_nr_sliced = pycbc_TimeSeries(arr_nr[slice_nr], delta_t=h_nr.delta_t)
     h_sur_sliced = pycbc_TimeSeries(arr_sur[slice_sur], delta_t=h_sur.delta_t)
 
@@ -500,47 +500,37 @@ def compute_mode_match_detailed(
     if n_bins < MIN_BINS_IN_BAND:
         return _fail("insufficient_bins", f_lower_mode, overlap, cycles)
 
-    if resampled is None:
-        psd_used = from_string(
-            psd_name, length_f, delta_f, low_freq_cutoff=f_lower_used
-        )
-    else:
-        psd_used = pycbc_FrequencySeries(resampled, delta_f=delta_f)
-
-    # pycbc.filter.match builds a real-to-complex FFT internally and raises
-    # "For C2C FFT, len(outvec) must be nbatch*size" if handed a complex series,
-    # so the complex mode cannot be passed through to the filter itself.
+    # The filter is a complex inner product over both signs of frequency,
     #
-    # It does not need to be.  The complex series is what everything *upstream*
-    # requires -- the merger peak, the cross-correlation lag and the taper are
-    # all defined on the amplitude envelope |h_lm|, which the real part alone
-    # cannot give (Re h_lm passes through zero every half cycle).  The filter is
-    # the one step that is indifferent: for h_lm = A e^{-i phi}, Re(h_lm) is
-    # A cos(phi), and match() maximises over a constant phase offset, so the
-    # whole family A cos(phi + phi_0) -- every real projection of the mode --
-    # returns the same value.  Taking the real part here therefore discards
-    # nothing the match could have used.
-    h1_re = h1.real() if h1.kind == "complex" else h1
-    h2_re = h2.real() if h2.kind == "complex" else h2
+    #     <a, b>(t_c) = sum_f  a~(f) b~*(f) e^{2 pi i f t_c} / S_n(|f|),
+    #
+    # normalised and maximised in modulus over t_c, which maximises exactly
+    # over a constant phase.  The real part of a mode is not enough: at f > 0,
+    # FT[Re h](f) = (h~(f) + h~*(-f)) / 2, so a constant phase e^{i phi_0}
+    # rotates the two terms in opposite directions.  That is not an overall
+    # phase whenever the mode has content at both signs of frequency (merger
+    # and ringdown, weak modes such as (2,1), short segments), and a real-part
+    # filter such as pycbc.filter.match then depends on phi_0.  Measured on
+    # NRSur7dq4 against itself times e^{i phi_0}: (2,1) mismatch 4-6e-4 over
+    # the full waveform and 1e-3 over its last 0.1 s, instead of 0.
+    #
+    # The time shift is refined below the sample spacing with
+    # _interpolated_peak_abs(), the same correction as pycbc's
+    # subsample_interpolation=True and the one the sphere-averaged and strain
+    # matches use, so the measures stay comparable.  A real input gives a
+    # Hermitian spectrum and the same value as the real-series match.
+    from nrcats.waveform.modes_worker import _interpolated_peak_abs
 
-    # subsample_interpolation=True: without it match() reports the largest
-    # sample of the SNR time series, quantizing the time shift to one sample.
-    # The error that introduces grows as the mismatch shrinks -- a sharper peak
-    # is worse approximated by its nearest sample -- so it contaminates exactly
-    # the small-mismatch regime the catalog comparison lives in.  It is the
-    # mechanism behind the sample-rate sensitivity of findings 5k: the SXS
-    # (2,2) median moved by a factor of 2.5 between 4096 and 16384 Hz with
-    # nothing near Nyquist, and the approach was not even monotone.  The
-    # sphere-averaged matches maximize over time themselves and get the same
-    # correction from _interpolated_peak_abs(), so the two remain comparable.
-    mm, _ = pycbc_match(
-        h1_re,
-        h2_re,
-        psd=psd_used,
-        low_frequency_cutoff=f_lower_used,
-        high_frequency_cutoff=f_upper,
-        subsample_interpolation=True,
-    )
+    delta_t = float(h1.delta_t)
+    nr_spectrum = np.fft.fft(np.asarray(h1, dtype=complex))
+    model_spectrum = np.fft.fft(np.asarray(h2, dtype=complex))
+    inverse_psd = _inverse_psd(psd, psd_name, None, f_lower_used, f_hi, delta_t, n_fft)
+    nr_norm = np.sqrt(np.sum(np.abs(nr_spectrum) ** 2 * inverse_psd))
+    model_norm = np.sqrt(np.sum(np.abs(model_spectrum) ** 2 * inverse_psd))
+    if not (nr_norm > 0 and model_norm > 0):
+        return _fail("zero_norm", f_lower_mode, overlap, cycles)
+    correlation = np.fft.ifft(nr_spectrum * np.conj(model_spectrum) * inverse_psd) * n_fft
+    mm = _interpolated_peak_abs(correlation) / (nr_norm * model_norm)
     return ModeMatchResult(
         match=float(mm),
         reason=reason,
@@ -569,8 +559,10 @@ def compute_mode_match(
     signature and return type are unchanged from earlier versions.
 
     Both inputs should be the *complex* strain mode, sampled at the same
-    ``delta_t``.  The function pads to the next power-of-two, builds a PSD at
-    the matching frequency resolution, and calls ``pycbc.filter.match()``.
+    ``delta_t``.  The function pads to the next power-of-two and computes the
+    noise-weighted complex inner product over both signs of frequency,
+    maximised over time and phase (see the note in
+    :func:`compute_mode_match_detailed`).
 
     Parameters
     ----------

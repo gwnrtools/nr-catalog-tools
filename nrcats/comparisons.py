@@ -189,7 +189,7 @@ def compare_sim_vs_surrogate(
             }
             continue
 
-        h_nr = h_nr_complex.real()
+        h_nr = h_nr_complex
 
         if (ell, em) not in h_sur:
             print(f"      ({ell},{em:+d}): surrogate mode unavailable (ell > 4?)")
@@ -205,7 +205,7 @@ def compare_sim_vs_surrogate(
             }
             continue
 
-        h_sur_mode = h_sur[(ell, em)].real()
+        h_sur_mode = h_sur[(ell, em)]
         f_low_mode = mode_f_lower(f_lower_match, em)
         mm = compute_mode_match(h_nr, h_sur_mode, f_low_mode, psd_name=psd_name)
         dphase, n_cycles = compute_phase_diff_per_cycle(h_nr_complex, h_sur[(ell, em)])
