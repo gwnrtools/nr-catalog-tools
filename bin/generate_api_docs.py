@@ -62,7 +62,7 @@ MODULES = [
     (
         "surrogate",
         "nrcats.surrogate",
-        "NRSur7dq4 loading, evaluation, and prior check",
+        "NRSur7dq4, NRSur7dq4v2 and NRHJSur3dq8 loading, evaluation, and prior check",
     ),
     (
         "comparisons",
@@ -85,6 +85,16 @@ MODULES = [
         "utils",
         "nrcats.utils",
         "Cache paths, download helpers, unit conversions",
+    ),
+    (
+        "waveform.frame",
+        "nrcats.waveform.frame",
+        "BMS frame operations a catalog records, and the coprecessing frame",
+    ),
+    (
+        "waveform.detectors",
+        "nrcats.waveform.detectors",
+        "Observatory registry: noise curves, bands, PSD resolution",
     ),
 ]
 
